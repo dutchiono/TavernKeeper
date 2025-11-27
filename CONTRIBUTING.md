@@ -69,7 +69,7 @@ pnpm start-worker
    ```bash
    # Run unit tests
    pnpm test
-   
+
    # Run E2E tests
    cd apps/web
    pnpm test:e2e

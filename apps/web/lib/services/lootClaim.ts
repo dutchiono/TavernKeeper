@@ -167,6 +167,7 @@ export async function claimLoot(
   // Fee is sent as value in the transaction
   const hash = await walletClient.writeContract({
     account,
+    chain: null,
     address: inventoryContract,
     abi: [
       {

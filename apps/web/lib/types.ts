@@ -19,7 +19,6 @@ export interface Stats {
     maxMp: number;
     str: number;
     int: number;
-    gold: number;
 }
 
 export interface Agent {
@@ -50,5 +49,5 @@ export interface GameState {
     selectedAgentId: string | null;
     logs: LogEntry[];
     day: number;
-    gold: number;
+    keepBalance: string; // BigInt as string
 }

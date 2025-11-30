@@ -3,12 +3,12 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id } = await context.params;
   try {
     const { data: dungeon, error } = await supabase
-      .from<{ id: string; seed: string; map: unknown;[key: string]: unknown }>('dungeons')
+      .from('dungeons')
       .select('*')
       .eq('id', id)
       .single();
@@ -20,10 +20,13 @@ export async function GET(
       );
     }
 
+    // Type assertion to ensure dungeon is a single object, not an array
+    const dungeonData = dungeon as { id: string; seed: string; map: unknown };
+
     return NextResponse.json({
-      id: dungeon.id,
-      seed: dungeon.seed,
-      map: dungeon.map,
+      id: dungeonData.id,
+      seed: dungeonData.seed,
+      map: dungeonData.map,
     });
   } catch (error) {
     console.error('Error fetching dungeon map:', error);

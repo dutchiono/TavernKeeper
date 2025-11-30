@@ -4,9 +4,9 @@
 
 This file tracks all contract deployments. **ALWAYS** update this file when deploying contracts.
 
-## Current Status: ✅ READY FOR DEPLOYMENT
+## Current Status: ✅ DEPLOYED TO MONAD TESTNET
 
-**Contracts have been converted to UUPS upgradeable proxies.** They are ready for deployment.
+**All contracts have been deployed to Monad Testnet as UUPS upgradeable proxies.**
 
 ---
 
@@ -15,27 +15,25 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 ### 1. ERC-6551 Infrastructure (Not Upgradeable)
 
 #### ERC6551Registry
-- **Status**: ✅ Ready (infrastructure contract, not upgradeable)
+- **Status**: ✅ **DEPLOYED** (infrastructure contract, not upgradeable)
 - **Type**: Direct implementation
 - **Purpose**: Registry for creating Token Bound Accounts (TBAs)
 - **Upgradeable**: No (infrastructure contract)
-- **Deployment Required**: Yes
-- **Deployed Address**: `NOT DEPLOYED`
+- **Deployed Address**: `0xca3f315D82cE6Eecc3b9E29Ecc8654BA61e7508C`
 - **Network**: Monad Testnet
-- **Deployment Date**: `TBD`
-- **Deployment TX**: `TBD`
+- **Deployment Date**: 2024-01-XX
+- **Deployment TX**: See deployment output
 - **Notes**: Standard ERC-6551 registry implementation
 
 #### ERC6551Account (Implementation)
-- **Status**: ✅ Ready (implementation contract, not upgradeable)
+- **Status**: ✅ **DEPLOYED** (implementation contract, not upgradeable)
 - **Type**: Direct implementation
 - **Purpose**: TBA account implementation (deployed via CREATE2)
 - **Upgradeable**: No (implementation contract)
-- **Deployment Required**: Yes
-- **Deployed Address**: `NOT DEPLOYED`
+- **Deployed Address**: `0x9B5980110654dcA57a449e2D6BEc36fE54123B0F`
 - **Network**: Monad Testnet
-- **Deployment Date**: `TBD`
-- **Deployment TX**: `TBD`
+- **Deployment Date**: 2024-01-XX
+- **Deployment TX**: See deployment output
 - **Notes**: Each NFT gets a unique TBA address via CREATE2
 
 ---
@@ -43,73 +41,57 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 ### 2. Game Contracts (Need Proxy Conversion)
 
 #### GoldToken (ERC-20)
-- **Status**: ✅ **READY** - UUPS upgradeable proxy
-- **Current Type**: UUPS Upgradeable Proxy
-- **Required Type**: UUPS Upgradeable Proxy ✅
+- **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
+- **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: In-game currency token
-- **Upgradeable**: Yes (should be)
-- **Deployment Required**: Yes (after proxy conversion)
-- **Proxy Address**: `NOT DEPLOYED`
-- **Implementation Address**: `NOT DEPLOYED`
+- **Upgradeable**: Yes ✅
+- **Proxy Address**: `0x96982EC3625145f098DCe06aB34E99E7207b0520`
+- **Implementation Address**: `0x8788E862023A49a77E8F27277a8b3F07B4E9A7d8`
 - **Network**: Monad Testnet
-- **Deployment Date**: `TBD`
-- **Deployment TX**: `TBD`
+- **Deployment Date**: 2024-01-XX
+- **Deployment TX**: See deployment output
 - **Initial Supply**: 1,000,000 GOLD
-- **Notes**:
-  - Currently NOT upgradeable
-  - Must convert to UUPS before deployment
-  - Needs proxy + implementation deployment
+- **Notes**: Successfully deployed as UUPS proxy
 
 #### Inventory (ERC-1155)
-- **Status**: ✅ **READY** - UUPS upgradeable proxy
-- **Current Type**: UUPS Upgradeable Proxy
-- **Required Type**: UUPS Upgradeable Proxy ✅
+- **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
+- **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: ERC-1155 items/inventory contract
-- **Upgradeable**: Yes (should be)
-- **Deployment Required**: Yes (after proxy conversion)
-- **Proxy Address**: `NOT DEPLOYED`
-- **Implementation Address**: `NOT DEPLOYED`
+- **Upgradeable**: Yes ✅
+- **Proxy Address**: `0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC`
+- **Implementation Address**: `0xc03bC9D0BD59b98535aEBD2102221AeD87c820A6`
 - **Network**: Monad Testnet
-- **Deployment Date**: `TBD`
-- **Deployment TX**: `TBD`
-- **Fee Recipient**: `TBD` (set in constructor)
+- **Deployment Date**: 2024-01-XX
+- **Deployment TX**: See deployment output
+- **Fee Recipient**: `0xEC4bc7451B9058D42Ea159464C6dA14a322946fD` (deployer)
 - **Notes**:
-  - Currently NOT upgradeable
-  - Has fee collection built-in
-  - Must convert to UUPS before deployment
-  - Constructor requires `feeRecipient` address
+  - Successfully deployed as UUPS proxy
+  - Has fee collection built-in via `claimLootWithFee()`
+  - Fees go back to deployer wallet
 
 #### Adventurer (ERC-721)
-- **Status**: ✅ **READY** - UUPS upgradeable proxy
-- **Current Type**: UUPS Upgradeable Proxy
-- **Required Type**: UUPS Upgradeable Proxy ✅
+- **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
+- **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: Adventurer NFT contract
-- **Upgradeable**: Yes (should be)
-- **Deployment Required**: Yes (after proxy conversion)
-- **Proxy Address**: `NOT DEPLOYED`
-- **Implementation Address**: `NOT DEPLOYED`
+- **Upgradeable**: Yes ✅
+- **Proxy Address**: `0x2ABb5F58DE56948dD0E06606B88B43fFe86206c2`
+- **Implementation Address**: `0xC1D9e381dF88841b16e9d01f35802B0583638e07`
 - **Network**: Monad Testnet
-- **Deployment Date**: `TBD`
-- **Deployment TX**: `TBD`
-- **Notes**:
-  - Currently NOT upgradeable
-  - Must convert to UUPS before deployment
+- **Deployment Date**: 2024-01-XX
+- **Deployment TX**: See deployment output
+- **Notes**: Successfully deployed as UUPS proxy
 
 #### TavernKeeper (ERC-721)
-- **Status**: ✅ **READY** - UUPS upgradeable proxy
-- **Current Type**: UUPS Upgradeable Proxy
-- **Required Type**: UUPS Upgradeable Proxy ✅
+- **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
+- **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: TavernKeeper NFT contract
-- **Upgradeable**: Yes (should be)
-- **Deployment Required**: Yes (after proxy conversion)
-- **Proxy Address**: `NOT DEPLOYED`
-- **Implementation Address**: `NOT DEPLOYED`
+- **Upgradeable**: Yes ✅
+- **Proxy Address**: `0x4Fff2Ce5144989246186462337F0eE2C086F913E`
+- **Implementation Address**: `0xd8c9C56b1ef231207bAd219A488244aD34576F92`
 - **Network**: Monad Testnet
-- **Deployment Date**: `TBD`
-- **Deployment TX**: `TBD`
-- **Notes**:
-  - Currently NOT upgradeable
-  - Must convert to UUPS before deployment
+- **Deployment Date**: 2024-01-XX
+- **Deployment TX**: See deployment output
+- **Notes**: Successfully deployed as UUPS proxy
 
 ---
 
@@ -168,16 +150,16 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 | Contract | Type | Address | Deployed | TX Hash | Notes |
 |----------|------|---------|----------|---------|-------|
-| ERC6551Registry | Direct | `TBD` | `TBD` | `TBD` | |
-| ERC6551Account | Direct | `TBD` | `TBD` | `TBD` | |
-| GoldToken | Proxy | `TBD` | `TBD` | `TBD` | |
-| GoldToken | Impl | `TBD` | `TBD` | `TBD` | |
-| Inventory | Proxy | `TBD` | `TBD` | `TBD` | |
-| Inventory | Impl | `TBD` | `TBD` | `TBD` | |
-| Adventurer | Proxy | `TBD` | `TBD` | `TBD` | |
-| Adventurer | Impl | `TBD` | `TBD` | `TBD` | |
-| TavernKeeper | Proxy | `TBD` | `TBD` | `TBD` | |
-| TavernKeeper | Impl | `TBD` | `TBD` | `TBD` | |
+| ERC6551Registry | Direct | `0xca3f315D82cE6Eecc3b9E29Ecc8654BA61e7508C` | ✅ 2024-01-XX | See output | |
+| ERC6551Account | Direct | `0x9B5980110654dcA57a449e2D6BEc36fE54123B0F` | ✅ 2024-01-XX | See output | |
+| GoldToken | Proxy | `0x96982EC3625145f098DCe06aB34E99E7207b0520` | ✅ 2024-01-XX | See output | **USE THIS** |
+| GoldToken | Impl | `0x8788E862023A49a77E8F27277a8b3F07B4E9A7d8` | ✅ 2024-01-XX | See output | |
+| Inventory | Proxy | `0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC` | ✅ 2024-01-XX | See output | **USE THIS** |
+| Inventory | Impl | `0xc03bC9D0BD59b98535aEBD2102221AeD87c820A6` | ✅ 2024-01-XX | See output | |
+| Adventurer | Proxy | `0x2ABb5F58DE56948dD0E06606B88B43fFe86206c2` | ✅ 2024-01-XX | See output | **USE THIS** |
+| Adventurer | Impl | `0xC1D9e381dF88841b16e9d01f35802B0583638e07` | ✅ 2024-01-XX | See output | |
+| TavernKeeper | Proxy | `0x4Fff2Ce5144989246186462337F0eE2C086F913E` | ✅ 2024-01-XX | See output | **USE THIS** |
+| TavernKeeper | Impl | `0xd8c9C56b1ef231207bAd219A488244aD34576F92` | ✅ 2024-01-XX | See output | |
 
 ### Monad Mainnet
 
@@ -280,9 +262,33 @@ NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS=0x...
 
 ---
 
+## Test Wallets
+
+**Deployer**: `0xEC4bc7451B9058D42Ea159464C6dA14a322946fD`
+- This is the main deployer wallet
+- Fee recipient is set to this address
+- All fees collected go back to this wallet
+
+**Test Wallets** (10 wallets, each funded with 1 MON):
+1. `0xfAb9905E2238f1eDADB1a7F94C417555C43dA460`
+2. `0x56A0C1061812CDA3a3e22EE42b974d0D4ECAD55F`
+3. `0x373BC31d3b27061F86C530908307f238f09e7023`
+4. `0xb60fDCA53aba16CF148FDA5c2F20E6538944d024`
+5. `0x5CEa37b7b5C1A4A1321c5fa1138D46A333EF648b`
+6. `0x67b10d3b2BB6cc64cb674cF4acCdfFCAfE9C4541`
+7. `0x1a19C1C7447d761B9B291c7d49f0965de9CA8204`
+8. `0x3509a95e78eBa980C247F5A05B787dC2ba70Ba61`
+9. `0x8f461F731dfc965e2214c7D6700e9B5E24dE35c8`
+10. `0xC8D9cA8Bc169875760848c5268a0fE006077A3dD`
+
+**Wallet Management**:
+- Private keys stored in `packages/contracts/wallets/testnet-keys.json` (gitignored)
+- Wallet addresses in `packages/contracts/wallets/testnet-wallets.json`
+- All wallets funded with 1 MON each for testing
+
 ## Last Updated
 
 - **Date**: 2024-01-XX
-- **Updated By**: [Your Name]
-- **Reason**: Initial deployment tracker creation
+- **Updated By**: Deployment Script
+- **Reason**: Initial deployment to Monad Testnet - All contracts deployed as UUPS proxies
 

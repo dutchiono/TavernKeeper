@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const erc20Token = process.env.NEXT_PUBLIC_ERC20_TOKEN_ADDRESS as `0x${string}`;
+    const erc20Token = process.env.NEXT_PUBLIC_KEEP_TOKEN_ADDRESS as `0x${string}`;
     const inventoryContract = process.env.NEXT_PUBLIC_INVENTORY_CONTRACT_ADDRESS as `0x${string}`;
 
     if (!erc20Token || !inventoryContract) {

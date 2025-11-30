@@ -1,5 +1,10 @@
 // Vitest setup file
 import { vi } from 'vitest';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from root .env file
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Mock environment variables for testing
 process.env.SUPABASE_PROJECT_URL = 'https://test.supabase.co';

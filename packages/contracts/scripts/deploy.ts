@@ -5,9 +5,9 @@ async function main() {
     console.log("Deploying contracts with the account:", deployer.address);
     console.log("Account balance:", (await ethers.provider.getBalance(deployer.address)).toString());
 
-    // Get fee recipient from env or use deployer
-    const feeRecipient = process.env.FEE_RECIPIENT_ADDRESS || deployer.address;
-    console.log("Fee recipient:", feeRecipient);
+    // Fee recipient should be deployer so fees come back to us
+    const feeRecipient = deployer.address;
+    console.log("Fee recipient (deployer):", feeRecipient);
 
     // Deploy ERC-6551 Registry (not upgradeable - infrastructure contract)
     console.log("\n=== Deploying ERC-6551 Registry ===");
@@ -25,18 +25,38 @@ async function main() {
     const accountImplAddress = await erc6551Account.getAddress();
     console.log("ERC6551Account implementation deployed to:", accountImplAddress);
 
-    // Deploy GoldToken as UUPS proxy
-    console.log("\n=== Deploying GoldToken (UUPS Proxy) ===");
-    const GoldToken = await ethers.getContractFactory("GoldToken");
-    const goldTokenImpl = await upgrades.deployProxy(GoldToken, [], {
+    // Deploy TavernKeeper as UUPS proxy (Deploy FIRST to get address for KeepToken)
+    console.log("\n=== Deploying TavernKeeper (UUPS Proxy) ===");
+    const TavernKeeper = await ethers.getContractFactory("TavernKeeper");
+    const tavernKeeper = await upgrades.deployProxy(TavernKeeper, [], {
         kind: "uups",
         initializer: "initialize",
     });
-    await goldTokenImpl.waitForDeployment();
-    const goldTokenProxyAddress = await goldTokenImpl.getAddress();
-    const goldTokenImplAddress = await upgrades.erc1967.getImplementationAddress(goldTokenProxyAddress);
-    console.log("GoldToken proxy deployed to:", goldTokenProxyAddress);
-    console.log("GoldToken implementation deployed to:", goldTokenImplAddress);
+    await tavernKeeper.waitForDeployment();
+    const tavernKeeperProxyAddress = await tavernKeeper.getAddress();
+    const tavernKeeperImplAddress = await upgrades.erc1967.getImplementationAddress(tavernKeeperProxyAddress);
+    console.log("TavernKeeper proxy deployed to:", tavernKeeperProxyAddress);
+    console.log("TavernKeeper implementation deployed to:", tavernKeeperImplAddress);
+
+    // Deploy KeepToken as UUPS proxy
+    console.log("\n=== Deploying KeepToken (UUPS Proxy) ===");
+    const KeepToken = await ethers.getContractFactory("KeepToken");
+    // Initialize with treasury (deployer) and TavernKeeper address
+    const keepTokenImpl = await upgrades.deployProxy(KeepToken, [feeRecipient, tavernKeeperProxyAddress], {
+        kind: "uups",
+        initializer: "initialize",
+    });
+    await keepTokenImpl.waitForDeployment();
+    const keepTokenProxyAddress = await keepTokenImpl.getAddress();
+    const keepTokenImplAddress = await upgrades.erc1967.getImplementationAddress(keepTokenProxyAddress);
+    console.log("KeepToken proxy deployed to:", keepTokenProxyAddress);
+    console.log("KeepToken implementation deployed to:", keepTokenImplAddress);
+
+    // Link KeepToken to TavernKeeper
+    console.log("\n=== Linking Contracts ===");
+    console.log("Setting KeepToken address in TavernKeeper...");
+    await tavernKeeper.setKeepTokenContract(keepTokenProxyAddress);
+    console.log("Done.");
 
     // Deploy Inventory as UUPS proxy
     console.log("\n=== Deploying Inventory (UUPS Proxy) ===");
@@ -65,34 +85,58 @@ async function main() {
     console.log("Adventurer proxy deployed to:", adventurerProxyAddress);
     console.log("Adventurer implementation deployed to:", adventurerImplAddress);
 
-    // Deploy TavernKeeper as UUPS proxy
-    console.log("\n=== Deploying TavernKeeper (UUPS Proxy) ===");
-    const TavernKeeper = await ethers.getContractFactory("TavernKeeper");
-    const tavernKeeper = await upgrades.deployProxy(TavernKeeper, [], {
-        kind: "uups",
-        initializer: "initialize",
-    });
-    await tavernKeeper.waitForDeployment();
-    const tavernKeeperProxyAddress = await tavernKeeper.getAddress();
-    const tavernKeeperImplAddress = await upgrades.erc1967.getImplementationAddress(tavernKeeperProxyAddress);
-    console.log("TavernKeeper proxy deployed to:", tavernKeeperProxyAddress);
-    console.log("TavernKeeper implementation deployed to:", tavernKeeperImplAddress);
-
     // Summary
     console.log("\n=== Deployment Summary ===");
     console.log("ERC6551Registry:", registryAddress);
     console.log("ERC6551Account Implementation:", accountImplAddress);
-    console.log("GoldToken Proxy:", goldTokenProxyAddress);
-    console.log("GoldToken Implementation:", goldTokenImplAddress);
+    console.log("TavernKeeper Proxy:", tavernKeeperProxyAddress);
+    console.log("TavernKeeper Implementation:", tavernKeeperImplAddress);
+    console.log("KeepToken Proxy:", keepTokenProxyAddress);
+    console.log("KeepToken Implementation:", keepTokenImplAddress);
     console.log("Inventory Proxy:", inventoryProxyAddress);
     console.log("Inventory Implementation:", inventoryImplAddress);
     console.log("Adventurer Proxy:", adventurerProxyAddress);
     console.log("Adventurer Implementation:", adventurerImplAddress);
-    console.log("TavernKeeper Proxy:", tavernKeeperProxyAddress);
-    console.log("TavernKeeper Implementation:", tavernKeeperImplAddress);
+
+    // Save deployment info to file
+    const fs = require("fs");
+    const path = require("path");
+    const deploymentFile = path.join(__dirname, "..", "wallets", "deployment-info.json");
+    const deploymentDir = path.dirname(deploymentFile);
+
+    if (!fs.existsSync(deploymentDir)) {
+        fs.mkdirSync(deploymentDir, { recursive: true });
+    }
+
+    const network = await ethers.provider.getNetwork();
+    const deploymentInfo = {
+        network: "Monad Testnet",
+        chainId: Number(network.chainId),
+        deployer: deployer.address,
+        deployedAt: new Date().toISOString(),
+        contracts: {
+            erc6551Registry: registryAddress,
+            erc6551AccountImplementation: accountImplAddress,
+            tavernKeeperProxy: tavernKeeperProxyAddress,
+            tavernKeeperImplementation: tavernKeeperImplAddress,
+            keepTokenProxy: keepTokenProxyAddress,
+            keepTokenImplementation: keepTokenImplAddress,
+            inventoryProxy: inventoryProxyAddress,
+            inventoryImplementation: inventoryImplAddress,
+            adventurerProxy: adventurerProxyAddress,
+            adventurerImplementation: adventurerImplAddress,
+        },
+        feeRecipient: feeRecipient,
+    };
+
+    fs.writeFileSync(deploymentFile, JSON.stringify(deploymentInfo, null, 2));
+    console.log(`\nDeployment info saved to: ${deploymentFile}`);
 
     console.log("\n=== IMPORTANT: Update DEPLOYMENT_TRACKER.md with these addresses ===");
     console.log("Also update .env files with proxy addresses (not implementation addresses)");
+    console.log("\n=== Next Steps ===");
+    console.log("1. Run: npx hardhat run scripts/generateTestWallets.ts");
+    console.log("2. Run: npx hardhat run scripts/fundTestWallets.ts --network monad");
 }
 
 main().catch((error) => {

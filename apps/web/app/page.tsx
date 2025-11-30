@@ -1,31 +1,86 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useGameStore } from '../lib/stores/gameStore';
-import { GameView } from '../lib/types';
+import { SignInButton } from '@farcaster/auth-kit';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+import { ChatOverlay } from '../components/ChatOverlay';
+import { PixelBox, PixelButton } from '../components/PixelComponents';
+import { BattleScene } from '../components/scenes/BattleScene';
 import { InnScene } from '../components/scenes/InnScene';
 import { MapScene } from '../components/scenes/MapScene';
-import { BattleScene } from '../components/scenes/BattleScene';
-import { PixelBox, PixelButton } from '../components/PixelComponents';
-import { Beer, Map as MapIcon, ScrollText, Users, Menu } from 'lucide-react';
-import { SignInButton } from '@farcaster/auth-kit';
+import { TheOffice } from '../components/TheOffice';
+import { WelcomeModal } from '../components/WelcomeModal';
+import { WorldGeneratorDebug } from '../components/WorldGeneratorDebug';
+import { useGameStore } from '../lib/stores/gameStore';
+import { GameView } from '../lib/types';
 
-export default function Home() {
-  const { currentView, switchView, logs, party, selectAgent } = useGameStore();
+import { formatEther } from 'viem';
 
-  // Initialize game loop or data fetching here if needed
+import { useAccount } from 'wagmi';
+import { keepTokenService } from '../lib/services/keepToken';
+
+function SearchParamsHandler({ onViewChange }: { onViewChange: (view: string | null) => void }) {
+  const searchParams = useSearchParams();
+
   useEffect(() => {
-    // Example: Add a welcome log
-    useGameStore.getState().addLog({
-      id: Date.now(),
-      message: "Welcome to the TavernKeeper. The fire is warm.",
-      type: 'info',
-      timestamp: new Date().toLocaleTimeString()
-    });
+    const view = searchParams.get('view');
+    onViewChange(view);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  return null;
+}
+
+function HomeContent() {
+  const { currentView, switchView, party, keepBalance, setKeepBalance } = useGameStore();
+  const { address } = useAccount();
+
+  // Fetch KEEP Balance
+  useEffect(() => {
+    if (!address) {
+      setKeepBalance("0");
+      return;
+    }
+
+    const fetchBalance = async () => {
+      const balance = await keepTokenService.getBalance(address);
+      setKeepBalance(balance);
+    };
+
+    fetchBalance();
+    const interval = setInterval(fetchBalance, 10000); // Poll every 10s
+    return () => clearInterval(interval);
+  }, [address, setKeepBalance]);
+
+  // Initial Greeting
+  useEffect(() => {
+    const hasGreeted = sessionStorage.getItem('innkeeper_greeted');
+    if (!hasGreeted) {
+      useGameStore.getState().addLog({
+        id: Date.now(),
+        message: "Welcome back, traveler! The hearth is warm. How can I help you today?",
+        type: 'dialogue',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+      sessionStorage.setItem('innkeeper_greeted', 'true');
+    }
   }, []);
 
+  // Handle URL Query Params for View Switching
+  const handleViewChange = (view: string | null) => {
+    if (view === 'map') switchView(GameView.MAP);
+    if (view === 'battle') switchView(GameView.BATTLE);
+    if (view === 'inn') switchView(GameView.INN);
+  };
+
   return (
-    <main className="h-full w-full flex flex-col font-pixel">
+    <>
+      <Suspense fallback={null}>
+        <SearchParamsHandler onViewChange={handleViewChange} />
+      </Suspense>
+      <main className="h-full w-full flex flex-col font-pixel">
+      <WelcomeModal onClose={() => { }} />
+
       {/* Mobile Container Wrapper - Filling Parent from Layout */}
       <div className="flex-1 relative flex flex-col overflow-hidden">
 
@@ -38,11 +93,15 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-            <SignInButton />
+            {/* Scaled down Sign In Button */}
+            <div className="transform scale-75 origin-right">
+              <SignInButton />
+            </div>
+
             <div className="hidden md:flex items-center gap-4 px-4 bg-black/30 py-1 rounded border border-white/5">
               <div className="text-[10px] text-yellow-400 flex flex-col items-end leading-tight">
                 <span>DAY 1</span>
-                <span className="text-white/50">450g</span>
+                <span className="text-white/50">{parseFloat(formatEther(BigInt(keepBalance))).toFixed(2)} KEEP</span>
               </div>
             </div>
           </div>
@@ -71,102 +130,69 @@ export default function Home() {
             />
           )}
 
-          {/* LOG OVERLAY (Floating on top of scene) */}
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[95%] h-[55%] z-30 pointer-events-none flex flex-col gap-2">
-            <PixelBox className="w-full flex-1 pointer-events-auto opacity-95 shadow-2xl" variant="paper" title="Inn Log">
-              <div className="h-full flex flex-col">
-                <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar p-2">
-                  {logs.map((log) => (
-                    <div key={log.id} className="text-sm leading-relaxed border-b border-amber-900/20 pb-2 flex flex-col gap-1">
-                      <span className="text-amber-900/60 font-mono text-[10px] uppercase tracking-wider">{log.timestamp}</span>
-                      <span className={`font-medium ${log.type === 'dialogue' ? 'text-amber-950 italic' : 'text-slate-900'}`}>
-                        {log.message}
-                      </span>
-                    </div>
-                  ))}
-                  <div className="text-xs text-amber-900/50 italic flex items-center gap-2 mt-4 justify-center">
-                    <ScrollText size={12} /> End of records...
-                  </div>
-                </div>
+          {/* TAVERNKEEPER CHAT OVERLAY & THE OFFICE */}
+          {currentView === GameView.INN && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[95%] h-[85%] z-30 pointer-events-none flex flex-col gap-4">
 
-                {/* DM Chat Input */}
-                <div className="mt-2 pt-2 border-t-2 border-amber-900/20 flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Message the Dungeon Master..."
-                    className="flex-1 bg-[#eaddcf] border-2 border-[#855e42] text-amber-950 px-2 py-2 text-xs font-pixel focus:outline-none focus:border-amber-600 placeholder:text-amber-900/40"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const target = e.target as HTMLInputElement;
-                        if (target.value.trim()) {
-                          useGameStore.getState().addLog({
-                            id: Date.now(),
-                            message: `You: ${target.value}`,
-                            type: 'info',
-                            timestamp: new Date().toLocaleTimeString()
-                          });
-                          target.value = '';
-                        }
-                      }
-                    }}
-                  />
-                  <button className="bg-[#855e42] text-[#eaddcf] px-3 border-2 border-[#5c4b40] hover:bg-[#5c4b40] active:translate-y-1 transition-all">
-                    ➤
-                  </button>
-                </div>
+              {/* The Office (King of the Hill) wrapping the Chat */}
+              <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
+                <TheOffice>
+                  <ChatOverlay />
+                </TheOffice>
               </div>
-            </PixelBox>
+            </div>
+          )}
+
+          {/* WORLD GENERATOR DEBUG OVERLAY */}
+          <div className="absolute bottom-4 right-4 z-40 pointer-events-auto max-w-md max-h-[50vh] overflow-auto">
+            <WorldGeneratorDebug />
           </div>
+
         </div>
 
         {/* --- BOTTOM HUD: Party Roster Only --- */}
         <div className="w-full h-40 bg-[#1e1e24] border-t-4 border-slate-800 p-2 flex gap-2 z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.5)] shrink-0">
 
-          {/* PARTY ROSTER SECTION */}
-          <PixelBox className="w-full" variant="wood" title="Party Roster">
-            <div className="flex gap-2 h-full items-center justify-around overflow-hidden px-2">
-              {party.map(agent => (
-                <div
-                  key={agent.id}
-                  onClick={() => selectAgent(agent.id)}
-                  className="flex-1 max-w-[100px] bg-[#4a3b32] border-2 border-[#2a1d17] hover:border-[#eaddcf] cursor-pointer p-2 flex flex-col items-center gap-1 group transition-all relative rounded shadow-lg hover:-translate-y-1"
-                >
-                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Users size={10} className="text-white" />
-                  </div>
-
-                  {/* Portrait / Sprite */}
-                  <div className="w-12 h-12 relative shrink-0">
-                    <div
-                      className="w-full h-full bg-no-repeat bg-contain bg-center drop-shadow-md"
-                      style={{
-                        backgroundImage: `url('/sprites/${agent.class === 'Warrior' ? 'warrior_sitting.png' :
-                          agent.class === 'Mage' ? 'mage_sitting.png' :
-                            'rogue_sitting.png'
-                          }')`,
-                        filter: `hue-rotate(${parseInt(agent.id.slice(-2), 16) * 10}deg)`
-                      }}
-                    />
-                  </div>
-
-                  <div className="text-[9px] text-[#eaddcf] truncate w-full text-center font-bold">{agent.name}</div>
-
-                  {/* Bars */}
-                  <div className="w-full space-y-1">
-                    <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden border border-white/10">
-                      <div style={{ width: `${(agent.stats.hp / agent.stats.maxHp) * 100}%` }} className="h-full bg-red-600"></div>
-                    </div>
-                    <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden border border-white/10">
-                      <div style={{ width: `${(agent.stats.mp / agent.stats.maxMp) * 100}%` }} className="h-full bg-blue-500"></div>
-                    </div>
-                  </div>
+          {/* HERO ACTIONS SECTION */}
+          <PixelBox className="w-full" variant="wood" title="Actions">
+            <div className="flex gap-4 h-full items-center justify-center px-4">
+              <PixelButton
+                variant="primary"
+                onClick={() => window.location.href = '/hero-builder'}
+                className="flex items-center gap-2"
+              >
+                <span className="text-lg">⚔️</span>
+                <div className="flex flex-col items-start">
+                  <span className="text-[10px]">NEW HERO</span>
+                  <span className="text-[8px] text-white/60">Mint NFT</span>
                 </div>
-              ))}
+              </PixelButton>
+
+              <PixelButton
+                variant="secondary"
+                onClick={() => window.location.href = '/party'}
+                className="flex items-center gap-2"
+              >
+                <span className="text-lg">👥</span>
+                <div className="flex flex-col items-start">
+                  <span className="text-[10px]">PARTY</span>
+                  <span className="text-[8px] text-white/60">Manage</span>
+                </div>
+              </PixelButton>
             </div>
           </PixelBox>
         </div>
 
       </div>
     </main>
+    </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="h-full w-full flex items-center justify-center bg-black text-white">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

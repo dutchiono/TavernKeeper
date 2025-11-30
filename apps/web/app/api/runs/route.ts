@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // Create run record
     const { data: run, error } = await supabase
-      .from<{ id: string; seed: string; start_time: string; [key: string]: unknown }>('runs')
+      .from('runs')
       .insert({
         dungeon_id: dungeonId,
         party,

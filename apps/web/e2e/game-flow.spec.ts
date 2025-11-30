@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
  * Game Flow E2E Tests
@@ -8,24 +8,24 @@ import { test, expect } from '@playwright/test';
 test.describe('Navigation Flow', () => {
   test('user can navigate between all main pages', async ({ page }) => {
     // Start at home
-    await page.goto('/');
-    await expect(page.getByRole('heading', { name: /TAVERNKEEPER/i })).toBeVisible();
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: /TAVERNKEEPER/i })).toBeVisible({ timeout: 10000 });
 
     // Navigate to party page
-    await page.goto('/party');
-    await expect(page.getByRole('heading', { name: /Party Manager/i })).toBeVisible();
+    await page.goto('/party', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: /Party Manager/i })).toBeVisible({ timeout: 10000 });
 
     // Navigate to map page
-    await page.goto('/map');
-    await expect(page.getByRole('heading').filter({ hasText: /Map|Cellar|Warren/i }).first()).toBeVisible();
+    await page.goto('/map', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading').filter({ hasText: /Map|Cellar|Warren/i }).first()).toBeVisible({ timeout: 10000 });
 
     // Navigate to miniapp
-    await page.goto('/miniapp');
-    await expect(page.getByRole('heading', { name: /TavernKeeper Mini/i })).toBeVisible();
+    await page.goto('/miniapp', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: /TavernKeeper Mini/i })).toBeVisible({ timeout: 10000 });
 
     // Go back to home
-    await page.goto('/');
-    await expect(page.getByRole('heading', { name: /TAVERNKEEPER/i })).toBeVisible();
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: /TAVERNKEEPER/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('back buttons work on all pages', async ({ page }) => {

@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+*.log
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Production
+*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Prisma
+prisma/migrations/
+
+# Hardhat
+cache/
+artifacts/
+typechain-types/
+
+# Misc
+*.tsbuildinfo
+.cache/
+.turbo/
+*.lock
+pnpm-lock.yaml
+
+# Secrets - NEVER COMMIT THESE
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# Contract deployment artifacts
+deployments/
+.openzeppelin/
+packages/contracts/wallets/
+packages/contracts/*.keys.json
+

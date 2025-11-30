@@ -83,7 +83,7 @@ export async function detectProxy(
   rpcUrl?: string
 ): Promise<ProxyInfo> {
   const url = rpcUrl || process.env.NEXT_PUBLIC_MONAD_RPC_URL;
-  if (!url || url.includes('testnet-rpc.monad.xyz')) {
+  if (!url) {
     // Skip on-chain validation if RPC not configured
     return { isProxy: false };
   }
@@ -179,7 +179,7 @@ export async function validateContractABI(
   rpcUrl?: string
 ): Promise<{ isValid: boolean; missingFunctions: string[] }> {
   const url = rpcUrl || process.env.NEXT_PUBLIC_MONAD_RPC_URL;
-  if (!url || url.includes('testnet-rpc.monad.xyz')) {
+  if (!url) {
     // Skip if RPC not configured
     return { isValid: true, missingFunctions: [] };
   }
@@ -265,7 +265,9 @@ export async function validateContract(
       result.proxyInfo = proxyInfo;
 
       if (proxyInfo.isProxy) {
-        if (proxyInfo.proxyType !== config.proxyType) {
+        // 'Minimal' in this validator means "Generic EIP-1967 Proxy" (fallback if UUPS/Transparent checks fail)
+        // So we accept it if it matches, or if it's Minimal
+        if (proxyInfo.proxyType !== config.proxyType && proxyInfo.proxyType !== 'Minimal') {
           result.warnings.push(
             `Expected proxy type ${config.proxyType} but detected ${proxyInfo.proxyType || 'unknown'}`
           );
@@ -290,7 +292,7 @@ export async function validateContract(
   // 6. Validate on-chain existence
   if (options.validateOnChain !== false) {
     const url = options.rpcUrl || process.env.NEXT_PUBLIC_MONAD_RPC_URL;
-    if (url && !url.includes('testnet-rpc.monad.xyz')) {
+    if (url) {
       try {
         const publicClient = createPublicClient({
           chain: monad,

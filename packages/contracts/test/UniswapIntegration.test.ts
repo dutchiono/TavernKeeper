@@ -56,7 +56,7 @@ describe("Uniswap V3 Integration (Fork)", function () {
 
     // Note: Full swap testing requires a pool. Creating a pool on V3 requires initializing it.
     // For this integration test, we verify we can interact with the router.
-    // We will try to execute a swap and expect it to revert with "pool not found" or similar, 
+    // We will try to execute a swap and expect it to revert with "pool not found" or similar,
     // which confirms we are hitting the router.
 
     it("Should attempt a swap (and fail due to no pool, confirming router connection)", async function () {

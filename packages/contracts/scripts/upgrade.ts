@@ -2,10 +2,10 @@ import { ethers, upgrades } from "hardhat";
 
 /**
  * Upgrade script for UUPS upgradeable contracts
- * 
+ *
  * Usage:
  *   npx hardhat run scripts/upgrade.ts --network monad
- * 
+ *
  * Set these environment variables:
  *   CONTRACT_NAME=GoldToken (or Inventory, Adventurer, TavernKeeper)
  *   PROXY_ADDRESS=0x... (proxy address to upgrade)

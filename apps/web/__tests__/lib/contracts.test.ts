@@ -119,7 +119,7 @@ describe('Contract Configuration', () => {
 
       // Fail if there are critical errors
       expect(errors).toHaveLength(0);
-    });
+    }, 30000);
 
     it('should validate proxy configurations for upgradeable contracts', async () => {
       const upgradeableContracts = Object.entries(CONTRACT_REGISTRY).filter(
@@ -143,7 +143,7 @@ describe('Contract Configuration', () => {
           }
         }
       }
-    });
+    }, 30000);
   });
 
   describe('Contract Address Consistency', () => {

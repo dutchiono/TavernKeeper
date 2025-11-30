@@ -110,10 +110,10 @@ export const CONTRACT_REGISTRY: Record<string, ContractConfig> = {
     ],
     requiredFunctions: ['execute', 'token', 'owner'],
   },
-  GOLD_TOKEN: {
-    name: 'Gold Token (ERC-20)',
-    proxyAddress: process.env.NEXT_PUBLIC_ERC20_TOKEN_ADDRESS as Address | undefined,
-    implementationAddress: process.env.NEXT_PUBLIC_ERC20_TOKEN_IMPLEMENTATION_ADDRESS as Address | undefined,
+  KEEP_TOKEN: {
+    name: 'Keep Token (ERC-20)',
+    proxyAddress: process.env.NEXT_PUBLIC_KEEP_TOKEN_ADDRESS as Address | undefined,
+    implementationAddress: process.env.NEXT_PUBLIC_KEEP_TOKEN_IMPLEMENTATION_ADDRESS as Address | undefined,
     version: '1.0.0',
     proxyType: 'UUPS', // Should be upgradeable
     chainId: monad.id,
@@ -286,8 +286,58 @@ export const CONTRACT_REGISTRY: Record<string, ContractConfig> = {
         stateMutability: 'nonpayable',
         type: 'function',
       },
+      {
+        inputs: [{ name: 'tokenId', type: 'uint256' }],
+        name: 'claimTokens',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+      },
+      {
+        inputs: [{ name: 'tokenId', type: 'uint256' }],
+        name: 'calculatePendingTokens',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+      // The Office Functions
+      {
+        inputs: [],
+        name: 'currentKing',
+        outputs: [{ name: '', type: 'address' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+      {
+        inputs: [],
+        name: 'currentPrice',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+      {
+        inputs: [],
+        name: 'kingSince',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+      {
+        inputs: [],
+        name: 'officeRate',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+      {
+        inputs: [],
+        name: 'takeOffice',
+        outputs: [],
+        stateMutability: 'payable',
+        type: 'function',
+      },
     ],
-    requiredFunctions: ['ownerOf', 'safeMint'],
+    requiredFunctions: ['ownerOf', 'safeMint', 'claimTokens', 'calculatePendingTokens'],
   },
 };
 

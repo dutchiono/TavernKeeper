@@ -52,7 +52,7 @@ test.describe('Mobile Responsiveness', () => {
       await expect(heading).toBeVisible();
 
       // Check content is accessible
-      const roster = page.getByText(/Roster/i);
+      const roster = page.getByText(/Your Heroes|Your Parties/i);
       await expect(roster.first()).toBeVisible({ timeout: 5000 });
     });
 

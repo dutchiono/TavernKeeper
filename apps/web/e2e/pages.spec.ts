@@ -57,20 +57,53 @@ test.describe('Home Page (/)', () => {
     // This test verifies the structure exists for view switching
   });
 
-  test('party roster displays', async ({ page }) => {
-    // Check for party roster section
-    const partyRoster = page.getByText(/Party Roster/i).or(
-      page.locator('[class*="roster"], [class*="party"]').first()
+  test('actions section displays', async ({ page }) => {
+    // Check for actions section
+    const actions = page.getByText(/Actions/i).or(
+      page.locator('[class*="actions"], [class*="Actions"]').first()
     );
-    await expect(partyRoster).toBeVisible({ timeout: 5000 });
+    await expect(actions).toBeVisible({ timeout: 5000 });
   });
 
-  test('inn log displays', async ({ page }) => {
-    // Check for inn log section
-    const innLog = page.getByText(/Inn Log/i).or(
-      page.locator('[class*="log"], [class*="Log"]').first()
+  test('tavernkeeper chat displays', async ({ page }) => {
+    // Check for chat section
+    const chat = page.getByText(/The TavernKeeper/i).or(
+      page.locator('[class*="chat"], [class*="Chat"]').first()
     );
-    await expect(innLog).toBeVisible({ timeout: 5000 });
+    await expect(chat).toBeVisible({ timeout: 5000 });
+  });
+
+  test('welcome modal appears and can be closed', async ({ page }) => {
+    // Clear session storage to force modal appearance
+    await page.evaluate(() => sessionStorage.clear());
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    // Check for modal
+    const modal = page.getByText(/Welcome Traveler!/i);
+    await expect(modal).toBeVisible({ timeout: 5000 });
+
+    // Close modal
+    const closeButton = page.getByRole('button', { name: /Enter the Inn/i });
+    await closeButton.click();
+
+    // Verify modal is gone
+    await expect(modal).not.toBeVisible();
+
+    // Reload and verify it doesn't appear again
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await expect(modal).not.toBeVisible();
+  });
+
+  test('KEEP balance displays in header', async ({ page }) => {
+    // Check for KEEP balance
+    const balance = page.getByText(/KEEP/i).first();
+    await expect(balance).toBeVisible({ timeout: 5000 });
+
+    // Check format (number + KEEP)
+    const text = await balance.textContent();
+    expect(text).toMatch(/[\d.]+\s*KEEP/);
   });
 });
 
@@ -102,53 +135,35 @@ test.describe('Party Page (/party)', () => {
   test('agent roster renders', async ({ page }) => {
     await page.waitForLoadState('networkidle');
 
-    // Check for roster section
-    const roster = page.getByText(/Roster/i).or(
-      page.locator('[class*="roster"], [class*="Roster"]').first()
-    );
+    // Check for roster/heroes section
+    const roster = page.getByText(/Your Heroes|Your Parties/i).first();
     await expect(roster).toBeVisible({ timeout: 5000 });
 
     // Check for agent cards OR empty state message
-    const hasAgents = await page.locator('.agent-card').count() > 0;
-    const hasEmptyState = await page.getByText(/No heroes|No heroes recruited/i).count() > 0;
-
-    expect(hasAgents || hasEmptyState).toBeTruthy();
+    const content = page.locator('.agent-card').or(page.getByText(/No heroes found/i)).first();
+    await expect(content).toBeVisible();
   });
 
   test('clicking an agent shows details', async ({ page }) => {
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
+    // Wait for either agents or empty state to load
+    const content = page.locator('.agent-card').or(page.getByText(/No heroes found/i)).first();
+    await expect(content).toBeVisible();
+
     // Find agent cards
     const agentCards = page.locator('.agent-card');
-
     const count = await agentCards.count();
 
     if (count > 0) {
-      // Click first agent
-      await agentCards.first().click();
-      await page.waitForTimeout(500);
-
-      // Check for details panel
-      const detailsPanel = page.locator('[class*="detail"], [class*="Details"]').or(
-        page.getByText(/Details/i)
-      );
-      await expect(detailsPanel.first()).toBeVisible({ timeout: 5000 });
-
-      // Check for stats display
-      const stats = page.getByText(/STR|INT|HP|MP/i).or(
-        page.locator('[class*="stat"], [class*="Stat"]').first()
-      );
-      await expect(stats.first()).toBeVisible({ timeout: 5000 });
+      // Check for Add button (current functionality)
+      const addButton = agentCards.first().getByRole('button', { name: /Add/i });
+      await expect(addButton).toBeVisible();
     } else {
-      // If no agents, check for empty state in roster OR details panel
-      const emptyStateRoster = page.getByText(/No heroes|No heroes recruited/i);
-      const emptyStateDetails = page.getByText(/Select a hero to view details/i);
-
-      const hasRosterEmpty = await emptyStateRoster.count() > 0;
-      const hasDetailsEmpty = await emptyStateDetails.count() > 0;
-
-      expect(hasRosterEmpty || hasDetailsEmpty).toBeTruthy();
+      // If no agents, check for empty state in roster AND details panel
+      await expect(page.getByText(/No heroes found/i)).toBeVisible();
+      await expect(page.getByText(/Select a party to view details/i)).toBeVisible();
     }
   });
 
@@ -371,7 +386,7 @@ test.describe('Miniapp Page (/miniapp)', () => {
   test('frame navigation works', async ({ page }) => {
     // Check for navigation buttons
     const adventureButton = page.getByRole('button', { name: /Adventure/i });
-    const partyButton = page.getByRole('button', { name: /Party/i });
+    const partyButton = page.getByRole('button', { name: /Roster/i });
 
     await expect(adventureButton).toBeVisible({ timeout: 5000 });
     await expect(partyButton).toBeVisible({ timeout: 5000 });
@@ -382,7 +397,7 @@ test.describe('Miniapp Page (/miniapp)', () => {
 
     // Should show party frame
     const partyContent = page.getByText(/Back/i).or(
-      page.locator('[class*="party"], [class*="Party"]').first()
+      page.locator('[class*="party"], [class*="Party"], [class*="Roster"]').first()
     );
     await expect(partyContent.first()).toBeVisible({ timeout: 5000 });
 

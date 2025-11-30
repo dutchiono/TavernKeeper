@@ -15,10 +15,12 @@ const PixiMap = dynamic(() => import('../../../components/PixiMap'), {
 
 export default function RunPage() {
   const params = useParams();
+  console.log('RunPage params:', params);
   const runId = params?.id as string;
   const [lootClaims, setLootClaims] = useState<LootClaim[]>([]);
   const [showLootModal, setShowLootModal] = useState(false);
   const [loadingLoot, setLoadingLoot] = useState(false);
+
   // Fetch unclaimed loot
   useEffect(() => {
     const fetchLoot = async () => {
@@ -54,7 +56,7 @@ export default function RunPage() {
     startTime: '2023-11-27 10:00:00',
     endTime: '2023-11-27 10:45:00',
     stats: {
-      gold: 150,
+      keep: 15,
       xp: 450,
       turns: 124,
     },
@@ -62,7 +64,7 @@ export default function RunPage() {
       { id: 1, time: '10:00:05', text: 'Party entered the dungeon.' },
       { id: 2, time: '10:05:20', text: 'Gimli attacked Goblin for 12 damage.' },
       { id: 3, time: '10:05:25', text: 'Goblin was defeated!' },
-      { id: 4, time: '10:12:00', text: 'Found a chest containing 50 gold.' },
+      { id: 4, time: '10:12:00', text: 'Found a chest containing 5 KEEP.' },
       { id: 5, time: '10:45:00', text: 'Boss defeated! Run complete.' },
     ]
   };
@@ -92,8 +94,8 @@ export default function RunPage() {
                   <div>{run.stats.turns}</div>
                 </div>
                 <div>
-                  <div className="text-[#eaddcf]/60 text-xs uppercase">Gold Found</div>
-                  <div className="text-yellow-400">{run.stats.gold}</div>
+                  <div className="text-[#eaddcf]/60 text-xs uppercase">KEEP Found</div>
+                  <div className="text-yellow-400">{run.stats.keep}</div>
                 </div>
                 <div>
                   <div className="text-[#eaddcf]/60 text-xs uppercase">XP Gained</div>

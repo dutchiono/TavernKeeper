@@ -9,7 +9,7 @@ export async function GET(
   try {
     // Fetch run
     const { data: run, error: runError } = await supabase
-      .from<{ id: string; dungeon_id: string;[key: string]: unknown }>('runs')
+      .from('runs')
       .select('*')
       .eq('id', id)
       .single();

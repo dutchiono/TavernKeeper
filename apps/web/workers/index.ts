@@ -1,3 +1,5 @@
+// Load environment variables BEFORE importing any modules that use them
+import 'dotenv/config';
 import './runWorker';
 import './replayWorker';
 

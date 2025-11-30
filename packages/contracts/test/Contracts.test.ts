@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { GoldToken, Inventory, Adventurer, TavernKeeper } from "../typechain-types";
+import { KeepToken, Inventory, Adventurer, TavernKeeper } from "../typechain-types";
 
 describe("InnKeeper Contracts", function () {
-    let goldToken: GoldToken;
+    let keepToken: KeepToken;
     let inventory: Inventory;
     let adventurer: Adventurer;
     let tavernKeeper: TavernKeeper;
@@ -13,12 +13,22 @@ describe("InnKeeper Contracts", function () {
     beforeEach(async function () {
         [owner, otherAccount] = await ethers.getSigners();
 
-        // Deploy as UUPS proxies
-        const GoldTokenFactory = await ethers.getContractFactory("GoldToken");
-        goldToken = await upgrades.deployProxy(GoldTokenFactory, [], {
+        // Deploy TavernKeeper first
+        const TavernKeeperFactory = await ethers.getContractFactory("TavernKeeper");
+        tavernKeeper = await upgrades.deployProxy(TavernKeeperFactory, [], {
             kind: "uups",
             initializer: "initialize",
-        }) as unknown as GoldToken;
+        }) as unknown as TavernKeeper;
+
+        // Deploy KeepToken
+        const KeepTokenFactory = await ethers.getContractFactory("KeepToken");
+        keepToken = await upgrades.deployProxy(KeepTokenFactory, [owner.address, await (tavernKeeper as any).getAddress()], {
+            kind: "uups",
+            initializer: "initialize",
+        }) as unknown as KeepToken;
+
+        // Link KeepToken
+        await tavernKeeper.setKeepTokenContract(await (keepToken as any).getAddress());
 
         const InventoryFactory = await ethers.getContractFactory("Inventory");
         inventory = await upgrades.deployProxy(InventoryFactory, [owner.address], {
@@ -31,28 +41,16 @@ describe("InnKeeper Contracts", function () {
             kind: "uups",
             initializer: "initialize",
         }) as unknown as Adventurer;
-
-        const TavernKeeperFactory = await ethers.getContractFactory("TavernKeeper");
-        tavernKeeper = await upgrades.deployProxy(TavernKeeperFactory, [], {
-            kind: "uups",
-            initializer: "initialize",
-        }) as unknown as TavernKeeper;
     });
 
-    describe("GoldToken", function () {
-        it("Should mint initial supply to owner", async function () {
-            const balance = await goldToken.balanceOf(owner.address);
-            expect(balance).to.equal(ethers.parseUnits("1000000", 18));
+    describe("KeepToken", function () {
+        it("Should have correct name and symbol", async function () {
+            expect(await keepToken.name()).to.equal("Tavern Keeper");
+            expect(await keepToken.symbol()).to.equal("KEEP");
         });
 
-        it("Should allow owner to mint", async function () {
-            await goldToken.mint(otherAccount.address, ethers.parseUnits("100", 18));
-            expect(await goldToken.balanceOf(otherAccount.address)).to.equal(ethers.parseUnits("100", 18));
-        });
-
-        it("Should allow owner to burn", async function () {
-            await goldToken.burn(owner.address, ethers.parseUnits("100", 18));
-            expect(await goldToken.balanceOf(owner.address)).to.equal(ethers.parseUnits("999900", 18));
+        it("Should have treasury set", async function () {
+            expect(await keepToken.treasury()).to.equal(owner.address);
         });
     });
 
@@ -86,6 +84,13 @@ describe("InnKeeper Contracts", function () {
             await tavernKeeper.safeMint(otherAccount.address, "https://example.com/keeper/1");
             expect(await tavernKeeper.ownerOf(0)).to.equal(otherAccount.address);
             expect(await tavernKeeper.tokenURI(0)).to.equal("https://example.com/keeper/1");
+        });
+
+        it("Should initialize claim data on mint", async function () {
+            await tavernKeeper.safeMint(otherAccount.address, "uri");
+            // Check if lastClaimTime is set (non-zero)
+            const lastClaim = await tavernKeeper.lastClaimTime(0);
+            expect(lastClaim).to.be.gt(0);
         });
     });
 });

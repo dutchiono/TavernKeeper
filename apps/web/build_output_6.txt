@@ -1,0 +1,65 @@
+
+> @innkeeper/web@0.1.0 build C:\Users\epj33\Desktop\InnKeeper\apps\web
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\epj33\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\epj33\Desktop\InnKeeper\pnpm-lock.yaml
+
+   ▲ Next.js 16.0.5 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 4.6s
+   Running TypeScript ...
+   Collecting page data using 23 workers ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Generating static pages using 23 workers (0/22) ...
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Generating static pages using 23 workers (5/22) 
+   Generating static pages using 23 workers (10/22) 
+   Generating static pages using 23 workers (16/22) 
+ ⨯ useSearchParams() should be wrapped in a suspense boundary at page "/miniapp". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at S (C:\Users\epj33\Desktop\InnKeeper\apps\web\.next\server\chunks\ssr\de2d7__pnpm_6f0db7e8._.js:2:2111)
+    at p (C:\Users\epj33\Desktop\InnKeeper\apps\web\.next\server\chunks\ssr\de2d7__pnpm_6f0db7e8._.js:4:4845)
+    at i (C:\Users\epj33\Desktop\InnKeeper\apps\web\.next\server\chunks\ssr\[root-of-the-server]__721c62b0._.js:9:7560)
+    at ar (C:\Users\epj33\Desktop\InnKeeper\node_modules\.pnpm\next@16.0.5_@babel+core@7.2_996b5417c9b63e199bc9a395540beb64\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84366)
+    at aa (C:\Users\epj33\Desktop\InnKeeper\node_modules\.pnpm\next@16.0.5_@babel+core@7.2_996b5417c9b63e199bc9a395540beb64\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86185)
+    at as (C:\Users\epj33\Desktop\InnKeeper\node_modules\.pnpm\next@16.0.5_@babel+core@7.2_996b5417c9b63e199bc9a395540beb64\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:107952)
+    at ao (C:\Users\epj33\Desktop\InnKeeper\node_modules\.pnpm\next@16.0.5_@babel+core@7.2_996b5417c9b63e199bc9a395540beb64\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:105374)
+    at an (C:\Users\epj33\Desktop\InnKeeper\node_modules\.pnpm\next@16.0.5_@babel+core@7.2_996b5417c9b63e199bc9a395540beb64\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84718)
+    at aa (C:\Users\epj33\Desktop\InnKeeper\node_modules\.pnpm\next@16.0.5_@babel+core@7.2_996b5417c9b63e199bc9a395540beb64\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86234)
+    at aa (C:\Users\epj33\Desktop\InnKeeper\node_modules\.pnpm\next@16.0.5_@babel+core@7.2_996b5417c9b63e199bc9a395540beb64\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:104714)
+Error occurred prerendering page "/miniapp". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /miniapp/page: /miniapp, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null
+ ELIFECYCLE  Command failed with exit code 1.

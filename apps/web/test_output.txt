@@ -1,0 +1,190 @@
+
+Running 25 tests using 12 workers
+
+  ✓   8 [chromium] › e2e\hero-builder.spec.ts:36:9 › Hero Builder Page (/hero-builder) › sprite preview renders (2.1s)
+  ✓   5 [chromium] › e2e\hero-builder.spec.ts:80:9 › Hero Builder Page (/hero-builder) › mint button is disabled without wallet or enabled if mock wallet (2.2s)
+  ✓   4 [chromium] › e2e\hero-builder.spec.ts:63:9 › Hero Builder Page (/hero-builder) › customization controls are interactive (2.2s)
+  ✓   2 [chromium] › e2e\hero-builder.spec.ts:49:9 › Hero Builder Page (/hero-builder) › randomize button works (2.7s)
+  ✓  12 [webkit] › e2e\hero-builder.spec.ts:36:9 › Hero Builder Page (/hero-builder) › sprite preview renders (3.0s)
+  ✘   1 [webkit] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors (3.1s)
+  ✘   6 [chromium] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors (2.1s)
+  ✓   3 [firefox] › e2e\hero-builder.spec.ts:49:9 › Hero Builder Page (/hero-builder) › randomize button works (3.7s)
+  ✓   9 [firefox] › e2e\hero-builder.spec.ts:80:9 › Hero Builder Page (/hero-builder) › mint button is disabled without wallet or enabled if mock wallet (3.4s)
+  ✓   7 [firefox] › e2e\hero-builder.spec.ts:36:9 › Hero Builder Page (/hero-builder) › sprite preview renders (3.7s)
+  ✘  11 [firefox] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors (4.3s)
+  ✓  15 [Mobile Chrome] › e2e\hero-builder.spec.ts:49:9 › Hero Builder Page (/hero-builder) › randomize button works (2.5s)
+  ✓  17 [Mobile Chrome] › e2e\hero-builder.spec.ts:63:9 › Hero Builder Page (/hero-builder) › customization controls are interactive (2.7s)
+  ✓  14 [Mobile Chrome] › e2e\hero-builder.spec.ts:36:9 › Hero Builder Page (/hero-builder) › sprite preview renders (3.0s)
+  ✓  10 [firefox] › e2e\hero-builder.spec.ts:63:9 › Hero Builder Page (/hero-builder) › customization controls are interactive (5.3s)
+  ✓  13 [webkit] › e2e\hero-builder.spec.ts:80:9 › Hero Builder Page (/hero-builder) › mint button is disabled without wallet or enabled if mock wallet (3.8s)
+  ✓  20 [Mobile Chrome] › e2e\hero-builder.spec.ts:80:9 › Hero Builder Page (/hero-builder) › mint button is disabled without wallet or enabled if mock wallet (2.0s)
+  ✘  18 [Mobile Chrome] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors (2.8s)
+  ✓  16 [webkit] › e2e\hero-builder.spec.ts:63:9 › Hero Builder Page (/hero-builder) › customization controls are interactive (4.3s)
+  ✘  19 [Mobile Safari] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors (2.9s)
+  ✓  21 [webkit] › e2e\hero-builder.spec.ts:49:9 › Hero Builder Page (/hero-builder) › randomize button works (3.6s)
+  ✓  23 [Mobile Safari] › e2e\hero-builder.spec.ts:36:9 › Hero Builder Page (/hero-builder) › sprite preview renders (2.3s)
+  ✓  22 [Mobile Safari] › e2e\hero-builder.spec.ts:49:9 › Hero Builder Page (/hero-builder) › randomize button works (3.2s)
+  ✓  25 [Mobile Safari] › e2e\hero-builder.spec.ts:80:9 › Hero Builder Page (/hero-builder) › mint button is disabled without wallet or enabled if mock wallet (1.6s)
+  ✓  24 [Mobile Safari] › e2e\hero-builder.spec.ts:63:9 › Hero Builder Page (/hero-builder) › customization controls are interactive (1.7s)
+
+
+  1) [chromium] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })
+    Expected: visible
+    Error: strict mode violation: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i }) resolved to 2 elements:
+        1) <h1 class="text-2xl sm:text-3xl md:text-4xl text-yellow-400 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] tracking-widest">Hero Builder</h1> aka getByRole('heading', { name: 'Hero Builder' })
+        2) <h1 class="text-4xl text-[#fcdfa6] drop-shadow-md mb-2">InnKeeper Forge</h1> aka getByRole('heading', { name: 'InnKeeper Forge' })
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })[22m
+
+
+      10 |         // Check page title/heading - page has "Hero Builder" or "InnKeeper Forge"
+      11 |         const heading = page.getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i });
+    > 12 |         await expect(heading).toBeVisible();
+         |                               ^
+      13 |
+      14 |         // Check for no console errors
+      15 |         const errors: string[] = [];
+        at C:\Users\epj33\Desktop\InnKeeper\apps\web\e2e\hero-builder.spec.ts:12:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-chromium\error-context.md
+
+  2) [firefox] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })
+    Expected: visible
+    Error: strict mode violation: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i }) resolved to 2 elements:
+        1) <h1 class="text-2xl sm:text-3xl md:text-4xl text-yellow-400 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] tracking-widest">Hero Builder</h1> aka getByRole('heading', { name: 'Hero Builder' })
+        2) <h1 class="text-4xl text-[#fcdfa6] drop-shadow-md mb-2">InnKeeper Forge</h1> aka getByRole('heading', { name: 'InnKeeper Forge' })
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })[22m
+
+
+      10 |         // Check page title/heading - page has "Hero Builder" or "InnKeeper Forge"
+      11 |         const heading = page.getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i });
+    > 12 |         await expect(heading).toBeVisible();
+         |                               ^
+      13 |
+      14 |         // Check for no console errors
+      15 |         const errors: string[] = [];
+        at C:\Users\epj33\Desktop\InnKeeper\apps\web\e2e\hero-builder.spec.ts:12:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-firefox\error-context.md
+
+  3) [webkit] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })
+    Expected: visible
+    Error: strict mode violation: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i }) resolved to 2 elements:
+        1) <h1 class="text-2xl sm:text-3xl md:text-4xl text-yellow-400 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] tracking-widest">Hero Builder</h1> aka getByRole('heading', { name: 'Hero Builder' })
+        2) <h1 class="text-4xl text-[#fcdfa6] drop-shadow-md mb-2">InnKeeper Forge</h1> aka getByRole('heading', { name: 'InnKeeper Forge' })
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })[22m
+
+
+      10 |         // Check page title/heading - page has "Hero Builder" or "InnKeeper Forge"
+      11 |         const heading = page.getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i });
+    > 12 |         await expect(heading).toBeVisible();
+         |                               ^
+      13 |
+      14 |         // Check for no console errors
+      15 |         const errors: string[] = [];
+        at C:\Users\epj33\Desktop\InnKeeper\apps\web\e2e\hero-builder.spec.ts:12:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-webkit\error-context.md
+
+  4) [Mobile Chrome] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })
+    Expected: visible
+    Error: strict mode violation: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i }) resolved to 2 elements:
+        1) <h1 class="text-2xl sm:text-3xl md:text-4xl text-yellow-400 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] tracking-widest">Hero Builder</h1> aka getByRole('heading', { name: 'Hero Builder' })
+        2) <h1 class="text-4xl text-[#fcdfa6] drop-shadow-md mb-2">InnKeeper Forge</h1> aka getByRole('heading', { name: 'InnKeeper Forge' })
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })[22m
+
+
+      10 |         // Check page title/heading - page has "Hero Builder" or "InnKeeper Forge"
+      11 |         const heading = page.getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i });
+    > 12 |         await expect(heading).toBeVisible();
+         |                               ^
+      13 |
+      14 |         // Check for no console errors
+      15 |         const errors: string[] = [];
+        at C:\Users\epj33\Desktop\InnKeeper\apps\web\e2e\hero-builder.spec.ts:12:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-Mobile-Chrome\error-context.md
+
+  5) [Mobile Safari] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })
+    Expected: visible
+    Error: strict mode violation: getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i }) resolved to 2 elements:
+        1) <h1 class="text-2xl sm:text-3xl md:text-4xl text-yellow-400 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] tracking-widest">Hero Builder</h1> aka getByRole('heading', { name: 'Hero Builder' })
+        2) <h1 class="text-4xl text-[#fcdfa6] drop-shadow-md mb-2">InnKeeper Forge</h1> aka getByRole('heading', { name: 'InnKeeper Forge' })
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i })[22m
+
+
+      10 |         // Check page title/heading - page has "Hero Builder" or "InnKeeper Forge"
+      11 |         const heading = page.getByRole('heading', { name: /Hero Builder|InnKeeper Forge/i });
+    > 12 |         await expect(heading).toBeVisible();
+         |                               ^
+      13 |
+      14 |         // Check for no console errors
+      15 |         const errors: string[] = [];
+        at C:\Users\epj33\Desktop\InnKeeper\apps\web\e2e\hero-builder.spec.ts:12:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\hero-builder-Hero-Builder--c985b-r-page-loads-without-errors-Mobile-Safari\error-context.md
+
+  5 failed
+    [chromium] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+    [firefox] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+    [webkit] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+    [Mobile Chrome] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+    [Mobile Safari] › e2e\hero-builder.spec.ts:9:9 › Hero Builder Page (/hero-builder) › page loads without errors 
+  20 passed (14.2s)
+
+[36m  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.[39m
+^C^C

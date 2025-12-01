@@ -5,7 +5,7 @@
  */
 
 import { type Address, createPublicClient, http, getAddress, isAddress } from 'viem';
-import { monad } from '../wagmi';
+import { monad } from '../chains';
 import { CONTRACT_REGISTRY, type ContractConfig, type ProxyInfo, getContractAddress } from './registry';
 
 // Proxy detection ABIs

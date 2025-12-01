@@ -7,7 +7,7 @@
  */
 
 import { type Address, createPublicClient, http, getAddress } from 'viem';
-import { monad } from './wagmi';
+import { monad } from './chains';
 import type { Item } from '@innkeeper/lib';
 
 // ERC-6551 Registry address for Monad

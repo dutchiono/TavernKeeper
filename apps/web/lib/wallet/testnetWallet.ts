@@ -7,7 +7,7 @@
 
 import { createWalletClient, http, type Address, type WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { monad } from '../wagmi';
+import { monad } from '../chains';
 
 /**
  * Create a wallet client from a private key

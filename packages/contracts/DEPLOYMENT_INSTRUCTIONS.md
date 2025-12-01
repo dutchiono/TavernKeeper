@@ -12,7 +12,7 @@ The current contracts are **NOT upgradeable**. They must be converted to UUPS be
 
 ### 1. Convert Contracts to UUPS
 
-All game contracts (GoldToken, Inventory, Adventurer, TavernKeeper) need to be converted to use OpenZeppelin's UUPS upgradeable pattern.
+All game contracts (KeepToken, Inventory, Adventurer, TavernKeeper) need to be converted to use OpenZeppelin's UUPS upgradeable pattern.
 
 **Required Changes:**
 - Use `@openzeppelin/contracts-upgradeable` instead of `@openzeppelin/contracts`
@@ -27,12 +27,25 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract GoldToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
-    function initialize() public initializer {
-        __ERC20_init("InnKeeper Gold", "GOLD");
-        __Ownable_init();
+contract KeepToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
+    address public treasury;
+    address public tavernKeeperContract;
+
+    function initialize(address _treasury, address _tavernKeeperContract) public initializer {
+        __ERC20_init("Tavern Keeper", "KEEP");
+        __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
-        _mint(msg.sender, 1000000 * 10 ** decimals());
+        treasury = _treasury;
+        tavernKeeperContract = _tavernKeeperContract;
+    }
+
+    modifier onlyTavernKeeper() {
+        require(msg.sender == tavernKeeperContract, "Caller is not TavernKeeper");
+        _;
+    }
+
+    function mint(address to, uint256 amount) public onlyTavernKeeper {
+        _mint(to, amount);
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}

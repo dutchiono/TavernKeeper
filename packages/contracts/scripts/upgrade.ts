@@ -7,7 +7,7 @@ import { ethers, upgrades } from "hardhat";
  *   npx hardhat run scripts/upgrade.ts --network monad
  *
  * Set these environment variables:
- *   CONTRACT_NAME=GoldToken (or Inventory, Adventurer, TavernKeeper)
+ *   CONTRACT_NAME=KeepToken (or Inventory, Adventurer, TavernKeeper)
  *   PROXY_ADDRESS=0x... (proxy address to upgrade)
  */
 
@@ -17,7 +17,7 @@ async function main() {
 
     if (!contractName || !proxyAddress) {
         console.error("Error: CONTRACT_NAME and PROXY_ADDRESS must be set");
-        console.error("Example: CONTRACT_NAME=GoldToken PROXY_ADDRESS=0x... npx hardhat run scripts/upgrade.ts --network monad");
+        console.error("Example: CONTRACT_NAME=KeepToken PROXY_ADDRESS=0x... npx hardhat run scripts/upgrade.ts --network monad");
         process.exit(1);
     }
 

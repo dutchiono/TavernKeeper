@@ -234,6 +234,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.KeepToken__factory>;
     getContractFactory(
+      name: "MockERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MockERC20__factory>;
+    getContractFactory(
       name: "IKeepToken",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IKeepToken__factory>;
@@ -241,6 +245,10 @@ declare module "hardhat/types/runtime" {
       name: "TavernKeeper",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TavernKeeper__factory>;
+    getContractFactory(
+      name: "TheCellar",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TheCellar__factory>;
     getContractFactory(
       name: "UniswapIntegration",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -522,6 +530,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.KeepToken>;
     getContractAt(
+      name: "MockERC20",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MockERC20>;
+    getContractAt(
       name: "IKeepToken",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -531,6 +544,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.TavernKeeper>;
+    getContractAt(
+      name: "TheCellar",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TheCellar>;
     getContractAt(
       name: "UniswapIntegration",
       address: string | ethers.Addressable,
@@ -758,6 +776,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.KeepToken>;
     deployContract(
+      name: "MockERC20",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.MockERC20>;
+    deployContract(
       name: "IKeepToken",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IKeepToken>;
@@ -765,6 +787,10 @@ declare module "hardhat/types/runtime" {
       name: "TavernKeeper",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TavernKeeper>;
+    deployContract(
+      name: "TheCellar",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellar>;
     deployContract(
       name: "UniswapIntegration",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -1046,6 +1072,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.KeepToken>;
     deployContract(
+      name: "MockERC20",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.MockERC20>;
+    deployContract(
       name: "IKeepToken",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -1055,6 +1086,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TavernKeeper>;
+    deployContract(
+      name: "TheCellar",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellar>;
     deployContract(
       name: "UniswapIntegration",
       args: any[],

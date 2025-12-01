@@ -1,8 +1,8 @@
 import { expect } from "chai";
-import { ethers, upgrades, network } from "hardhat";
-import { GoldToken, Inventory, Adventurer, TavernKeeper, ERC6551Registry, ERC6551Account } from "../typechain-types";
 import * as fs from "fs";
+import { ethers, network } from "hardhat";
 import * as path from "path";
+import { Adventurer, ERC6551Account, ERC6551Registry, Inventory, KeepToken, TavernKeeper } from "../typechain-types";
 
 /**
  * Testnet Integration Tests
@@ -12,7 +12,7 @@ import * as path from "path";
  */
 
 describe("Monad Testnet Integration Tests", function () {
-    let goldToken: GoldToken;
+    let keepToken: KeepToken;
     let inventory: Inventory;
     let adventurer: Adventurer;
     let tavernKeeper: TavernKeeper;
@@ -46,7 +46,7 @@ describe("Monad Testnet Integration Tests", function () {
                 contracts: {
                     erc6551Registry: "0xca3f315D82cE6Eecc3b9E29Ecc8654BA61e7508C",
                     erc6551AccountImplementation: "0x9B5980110654dcA57a449e2D6BEc36fE54123B0F",
-                    goldTokenProxy: "0x96982EC3625145f098DCe06aB34E99E7207b0520",
+                    keepTokenProxy: "0x96982EC3625145f098DCe06aB34E99E7207b0520",
                     inventoryProxy: "0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC",
                     adventurerProxy: "0x2ABb5F58DE56948dD0E06606B88B43fFe86206c2",
                     tavernKeeperProxy: "0x4Fff2Ce5144989246186462337F0eE2C086F913E",
@@ -55,8 +55,8 @@ describe("Monad Testnet Integration Tests", function () {
         }
 
         // Connect to deployed contracts
-        const GoldTokenFactory = await ethers.getContractFactory("GoldToken");
-        goldToken = GoldTokenFactory.attach(deployedAddresses.contracts.goldTokenProxy) as unknown as GoldToken;
+        const KeepTokenFactory = await ethers.getContractFactory("KeepToken");
+        keepToken = KeepTokenFactory.attach(deployedAddresses.contracts.keepTokenProxy) as unknown as KeepToken;
 
         const InventoryFactory = await ethers.getContractFactory("Inventory");
         inventory = InventoryFactory.attach(deployedAddresses.contracts.inventoryProxy) as unknown as Inventory;
@@ -88,15 +88,15 @@ describe("Monad Testnet Integration Tests", function () {
     });
 
     describe("Contract Verification", function () {
-        it("Should verify GoldToken is deployed and initialized", async function () {
-            const name = await goldToken.name();
-            const symbol = await goldToken.symbol();
-            const totalSupply = await goldToken.totalSupply();
+        it("Should verify KeepToken is deployed and initialized", async function () {
+            const name = await keepToken.name();
+            const symbol = await keepToken.symbol();
+            const totalSupply = await keepToken.totalSupply();
 
-            expect(name).to.equal("InnKeeper Gold");
-            expect(symbol).to.equal("GOLD");
-            // Initial supply is 1M, but may have been minted more
-            expect(totalSupply).to.be.at.least(ethers.parseUnits("1000000", 18));
+            expect(name).to.equal("Tavern Keeper");
+            expect(symbol).to.equal("KEEP");
+            // KeepToken has no initial supply, starts at 0
+            expect(totalSupply).to.be.at.least(0n);
         });
 
         it("Should verify Inventory is deployed with fee recipient", async function () {
@@ -120,36 +120,39 @@ describe("Monad Testnet Integration Tests", function () {
         });
     });
 
-    describe("GoldToken Operations", function () {
-        it("Should allow owner to mint tokens", async function () {
-            if (testWallets.length === 0) this.skip();
-
-            const recipient = testWallets[0].address;
-            const amount = ethers.parseUnits("100", 18);
-
-            const balanceBefore = await goldToken.balanceOf(recipient);
-            await goldToken.mint(recipient, amount);
-            const balanceAfter = await goldToken.balanceOf(recipient);
-
-            expect(balanceAfter - balanceBefore).to.equal(amount);
+    describe("KeepToken Operations", function () {
+        it("Should verify KeepToken is connected to TavernKeeper", async function () {
+            // Verify that KeepToken contract is set in TavernKeeper
+            const keepTokenAddress = await tavernKeeper.keepToken();
+            expect(keepTokenAddress).to.not.equal(ethers.ZeroAddress);
+            expect(keepTokenAddress).to.equal(await keepToken.getAddress());
         });
 
-        it("Should allow owner to burn tokens", async function () {
+        it("Should allow TavernKeeper NFT owner to claim tokens (if time has passed)", async function () {
             if (testWallets.length === 0) this.skip();
 
             const recipient = testWallets[0].address;
-            const burnAmount = ethers.parseUnits("10", 18);
 
-            const balanceBefore = await goldToken.balanceOf(recipient);
-            if (balanceBefore < burnAmount) {
-                // Mint first if needed
-                await goldToken.mint(recipient, burnAmount);
+            // Mint a TavernKeeper NFT to the recipient
+            const mintTx = await tavernKeeper.safeMint(recipient, "https://example.com/keeper/1");
+            await mintTx.wait();
+            const tokenId = 0n;
+
+            // Check pending tokens (may be 0 if just minted)
+            const pending = await tavernKeeper.calculatePendingTokens(tokenId);
+
+            if (pending > 0n) {
+                const balanceBefore = await keepToken.balanceOf(recipient);
+                // KeepToken can only be minted by TavernKeeper contract via claimTokens
+                await tavernKeeper.connect(testWallets[0].signer).claimTokens(tokenId);
+                const balanceAfter = await keepToken.balanceOf(recipient);
+
+                expect(balanceAfter).to.be.greaterThan(balanceBefore);
+            } else {
+                // If no tokens pending, just verify the function exists and contract is set up correctly
+                console.log("  No tokens pending yet (token just minted). Skipping claim test.");
+                this.skip();
             }
-
-            await goldToken.burn(recipient, burnAmount);
-            const balanceAfter = await goldToken.balanceOf(recipient);
-
-            expect(balanceBefore - balanceAfter).to.equal(burnAmount);
         });
     });
 

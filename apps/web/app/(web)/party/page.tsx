@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { PixelButton, PixelPanel, PixelCard } from '../../components/PixelComponents';
-import { usePartyStore } from '../../lib/stores/partyStore';
-import { useHeroStore } from '../../lib/stores/heroStore';
-import { Party } from '../../lib/services/partyService';
+import { PixelButton, PixelPanel, PixelCard } from '../../../components/PixelComponents';
+import { usePartyStore } from '../../../lib/stores/partyStore';
+import { useHeroStore } from '../../../lib/stores/heroStore';
 
 export default function PartyPage() {
   const { userParties, currentParty, isLoading: partyLoading, fetchUserParties, createParty, fetchPartyDetails, generateInvite, startRun } = usePartyStore();

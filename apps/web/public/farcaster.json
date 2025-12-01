@@ -1,0 +1,18 @@
+{
+    "accountAssociation": {
+      "header": "eyJmaWQiOjQ3NDg2NywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGQ1OUIyOUNEZGM4NGZjNTNDNzM3NjIzOEUzRjE2QUMzMTI1MTZDNTYifQ",
+      "payload": "eyJkb21haW4iOiJ0YXZlcm5rZWVwZXIueHl6In0",
+      "signature": "AjRUtAaP04vcr9xJOvnUc42tFhcdXmEQJQWJqbewAGRWPsBGQLeyqbEodFWgWeNhoqpkBy2ilUtqIZ7nWwhJWRs="
+    },
+    "frame": {
+      "version": "1",
+      "name": "Example Frame",
+      "iconUrl": "https://tavernkeeper.xyz/icon.png",
+      "homeUrl": "https://tavernkeeper.xyz",
+      "imageUrl": "https://tavernkeeper.xyz/image.png",
+      "buttonTitle": "Check this out",
+      "splashImageUrl": "https://tavernkeeper.xyz/splash.png",
+      "splashBackgroundColor": "#eeccff",
+      "webhookUrl": "https://tavernkeeper.xyz/api/webhook"
+    }
+  }

@@ -1,5 +1,5 @@
-import { ethers, upgrades } from "hardhat";
 import * as fs from "fs";
+import { ethers } from "hardhat";
 import * as path from "path";
 
 /**
@@ -32,7 +32,7 @@ async function main() {
             contracts: {
                 erc6551Registry: "0xca3f315D82cE6Eecc3b9E29Ecc8654BA61e7508C",
                 erc6551AccountImplementation: "0x9B5980110654dcA57a449e2D6BEc36fE54123B0F",
-                goldTokenProxy: "0x96982EC3625145f098DCe06aB34E99E7207b0520",
+                keepTokenProxy: "0x96982EC3625145f098DCe06aB34E99E7207b0520",
                 inventoryProxy: "0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC",
                 adventurerProxy: "0x2ABb5F58DE56948dD0E06606B88B43fFe86206c2",
                 tavernKeeperProxy: "0x4Fff2Ce5144989246186462337F0eE2C086F913E",
@@ -41,8 +41,8 @@ async function main() {
     }
 
     // Connect to contracts
-    const GoldToken = await ethers.getContractFactory("GoldToken");
-    const goldToken = GoldToken.attach(deployedAddresses.contracts.goldTokenProxy);
+    const KeepToken = await ethers.getContractFactory("KeepToken");
+    const keepToken = KeepToken.attach(deployedAddresses.contracts.keepTokenProxy);
 
     const Inventory = await ethers.getContractFactory("Inventory");
     const inventory = Inventory.attach(deployedAddresses.contracts.inventoryProxy);
@@ -138,12 +138,21 @@ async function main() {
     const feeReceived = deployerBalanceAfter - deployerBalanceBefore + (await claimTx.wait())!.gasUsed * (await ethers.provider.getFeeData()).gasPrice!;
     console.log("  Fee received (approx):", ethers.formatEther(feeReceived), "MON");
 
-    // 5. Mint GoldToken to test wallet
-    console.log("\n5. Minting GoldToken to test wallet...");
-    const goldAmount = ethers.parseUnits("1000", 18);
-    const goldTx = await goldToken.mint(testWallet.address, goldAmount);
-    await goldTx.wait();
-    console.log("  ✓ GoldToken minted");
+    // 5. Mint KeepToken to test wallet (via TavernKeeper NFT)
+    console.log("\n5. Minting KeepToken to test wallet...");
+    // Mint a TavernKeeper NFT to test wallet
+    const keeperMintTx = await tavernKeeper.safeMint(testWallet.address, "https://example.com/keeper/1");
+    await keeperMintTx.wait();
+    const keeperTokenId = 0n;
+
+    // Fast-forward time to accumulate tokens (100 hours)
+    await ethers.provider.send("evm_increaseTime", [360000]);
+    await ethers.provider.send("evm_mine", []);
+
+    // Claim tokens
+    const keepTx = await tavernKeeper.connect(testSigner).claimTokens(keeperTokenId);
+    await keepTx.wait();
+    console.log("  ✓ KeepToken minted via claimTokens");
 
     // 6. Verify everything
     console.log("\n=== Verification ===");
@@ -151,8 +160,8 @@ async function main() {
     console.log("Final TBA item balance:", finalBalance.toString());
     console.log("Expected: 15 (10 initial + 5 transferred)");
 
-    const goldBalance = await goldToken.balanceOf(testWallet.address);
-    console.log("Test wallet GoldToken balance:", ethers.formatEther(goldBalance), "GOLD");
+    const keepBalance = await keepToken.balanceOf(testWallet.address);
+    console.log("Test wallet KeepToken balance:", ethers.formatEther(keepBalance), "KEEP");
 
     console.log("\n=== Workflow Test Complete ===");
     console.log("All operations successful!");

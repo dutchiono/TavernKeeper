@@ -33,7 +33,7 @@ export const PixelBox: React.FC<PixelBoxProps> = ({ children, className = '', ti
       <div className="absolute bottom-0 right-0 w-1 h-1 bg-black/20" />
 
       {title && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-black border-2 border-slate-600 text-[10px] uppercase tracking-wider text-yellow-400 shadow-md whitespace-nowrap z-10">
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-black border-2 border-slate-600 text-[10px] uppercase tracking-wider text-yellow-400 shadow-md whitespace-nowrap z-20">
           {title}
         </div>
       )}

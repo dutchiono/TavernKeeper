@@ -1,10 +1,11 @@
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
-import { GoldToken, UniswapIntegration } from "../typechain-types";
-import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { KeepToken, TavernKeeper, UniswapIntegration } from "../typechain-types";
 
 describe("Uniswap V3 Integration (Fork)", function () {
-    let goldToken: GoldToken;
+    let keepToken: KeepToken;
+    let tavernKeeper: TavernKeeper;
     let uniswapIntegration: UniswapIntegration;
     let owner: SignerWithAddress;
     let otherAccount: SignerWithAddress;
@@ -37,12 +38,22 @@ describe("Uniswap V3 Integration (Fork)", function () {
     beforeEach(async function () {
         [owner, otherAccount] = await ethers.getSigners();
 
-        // Deploy GoldToken as UUPS proxy
-        const GoldTokenFactory = await ethers.getContractFactory("GoldToken");
-        goldToken = await upgrades.deployProxy(GoldTokenFactory, [], {
+        // Deploy TavernKeeper first (needed for KeepToken)
+        const TavernKeeperFactory = await ethers.getContractFactory("TavernKeeper");
+        tavernKeeper = await upgrades.deployProxy(TavernKeeperFactory, [], {
             kind: "uups",
             initializer: "initialize",
-        }) as unknown as GoldToken;
+        }) as unknown as TavernKeeper;
+
+        // Deploy KeepToken as UUPS proxy (requires treasury and TavernKeeper address)
+        const KeepTokenFactory = await ethers.getContractFactory("KeepToken");
+        keepToken = await upgrades.deployProxy(KeepTokenFactory, [owner.address, await tavernKeeper.getAddress()], {
+            kind: "uups",
+            initializer: "initialize",
+        }) as unknown as KeepToken;
+
+        // Link KeepToken to TavernKeeper
+        await tavernKeeper.setKeepTokenContract(await keepToken.getAddress());
 
         // Deploy UniswapIntegration
         const UniswapIntegrationFactory = await ethers.getContractFactory("UniswapIntegration");
@@ -50,7 +61,7 @@ describe("Uniswap V3 Integration (Fork)", function () {
     });
 
     it("Should deploy contracts correctly", async function () {
-        expect(await goldToken.getAddress()).to.be.properAddress;
+        expect(await keepToken.getAddress()).to.be.properAddress;
         expect(await uniswapIntegration.getAddress()).to.be.properAddress;
     });
 
@@ -61,8 +72,17 @@ describe("Uniswap V3 Integration (Fork)", function () {
 
     it("Should attempt a swap (and fail due to no pool, confirming router connection)", async function () {
         const amountIn = ethers.parseUnits("10", 18);
-        await goldToken.mint(owner.address, amountIn);
-        await goldToken.approve(await uniswapIntegration.getAddress(), amountIn);
+        // Mint a TavernKeeper NFT and claim tokens
+        const mintTx = await tavernKeeper.safeMint(owner.address, "https://example.com/keeper/1");
+        await mintTx.wait();
+        const tokenId = 0n;
+
+        // Fast-forward time to accumulate enough tokens
+        await ethers.provider.send("evm_increaseTime", [360000]); // ~100 hours to get enough tokens
+        await ethers.provider.send("evm_mine", []);
+
+        await tavernKeeper.claimTokens(tokenId);
+        await keepToken.approve(await uniswapIntegration.getAddress(), amountIn);
 
         // Random token address for target
         const randomToken = "0x1234567890123456789012345678901234567890";
@@ -70,7 +90,7 @@ describe("Uniswap V3 Integration (Fork)", function () {
         // Expect revert because pool doesn't exist, but specific revert confirms we hit the router logic
         await expect(
             uniswapIntegration.swapExactInputSingle(
-                await goldToken.getAddress(),
+                await keepToken.getAddress(),
                 randomToken,
                 3000, // 0.3% fee tier
                 amountIn

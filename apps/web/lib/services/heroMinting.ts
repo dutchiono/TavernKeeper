@@ -7,7 +7,7 @@ import { createPublicClient, http } from 'viem';
 import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 import { metadataStorage } from './metadataStorage';
 import { spriteRenderer, type ColorPalette } from './spriteRenderer';
-import { monad } from '../wagmi';
+import { monad } from '../chains';
 
 export interface HeroMintData {
     name: string;

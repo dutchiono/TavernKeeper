@@ -9,4 +9,6 @@ export { ERC6551Registry__factory } from "./ERC6551Registry__factory";
 export { GoldToken__factory } from "./GoldToken__factory";
 export { Inventory__factory } from "./Inventory__factory";
 export { KeepToken__factory } from "./KeepToken__factory";
+export { MockERC20__factory } from "./MockERC20__factory";
+export { TheCellar__factory } from "./TheCellar__factory";
 export { UniswapIntegration__factory } from "./UniswapIntegration__factory";

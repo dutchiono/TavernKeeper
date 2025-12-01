@@ -1,13 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAccount, useWalletClient } from 'wagmi';
-import { tavernKeeperService, OfficeState } from '../lib/services/tavernKeeperService';
-import { PixelBox, PixelButton, PixelCard } from './PixelComponents';
+import React, { useEffect, useState } from 'react';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { createWalletClient, custom } from 'viem';
+import { OfficeState, tavernKeeperService } from '../lib/services/tavernKeeperService';
+import { useGameStore } from '../lib/stores/gameStore';
+import { monad } from '../lib/chains';
+import { TheOfficeView } from './TheOfficeView';
 
 export const TheOffice: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-    const { address } = useAccount();
-    const { data: walletClient } = useWalletClient();
+    const { authenticated, user, logout } = usePrivy();
+    const { wallets } = useWallets();
+    const { keepBalance } = useGameStore();
+
+    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
+    const address = user?.wallet?.address;
+    const isConnected = authenticated && !!wallet;
+    const chainId = wallet?.chainId ? parseInt(wallet.chainId.split(':')[1]) : undefined;
+
     const [state, setState] = useState<OfficeState>({
         currentKing: 'Loading...',
         currentPrice: '0.00',
@@ -16,16 +26,23 @@ export const TheOffice: React.FC<{ children?: React.ReactNode }> = ({ children }
         officeRateUsd: '$0.00',
         priceUsd: '$0.00',
         totalEarned: '0',
-        totalEarnedUsd: '$0.00'
+        totalEarnedUsd: '$0.00',
+        epochId: 0,
+        startTime: 0,
+        nextDps: '0',
+        initPrice: '0'
     });
     const [isLoading, setIsLoading] = useState(false);
-
     const [timeHeld, setTimeHeld] = useState<string>('0m 0s');
+
+    const [interpolatedState, setInterpolatedState] = useState<OfficeState>(state);
+    const [pnl, setPnl] = useState<string>('$0.00');
 
     // Fetch Office State
     const fetchOfficeState = async () => {
         const data = await tavernKeeperService.getOfficeState();
         setState(data);
+        setInterpolatedState(data); // Reset interpolation on fetch
     };
 
     useEffect(() => {
@@ -34,119 +51,119 @@ export const TheOffice: React.FC<{ children?: React.ReactNode }> = ({ children }
         return () => clearInterval(interval);
     }, []);
 
+    // Interpolation Loop
     useEffect(() => {
         const interval = setInterval(() => {
-            const diff = Date.now() - state.kingSince;
-            const minutes = Math.floor(diff / 60000);
-            const seconds = Math.floor((diff % 60000) / 1000);
+            const now = Date.now();
+            const timeSinceStart = (now - state.kingSince) / 1000; // seconds
+
+            // 1. Time Held
+            const minutes = Math.floor(timeSinceStart / 60);
+            const seconds = Math.floor(timeSinceStart % 60);
             setTimeHeld(`${minutes}m ${seconds}s`);
+
+            // 2. Interpolate Price (Dutch Auction)
+            // Price decays linearly from initPrice to 0 over 1 hour (3600s)
+            const EPOCH_PERIOD = 3600;
+            const initPrice = parseFloat(state.initPrice || '0');
+            let currentPrice = 0;
+
+            if (timeSinceStart < EPOCH_PERIOD) {
+                currentPrice = initPrice * (1 - timeSinceStart / EPOCH_PERIOD);
+            }
+            // Ensure non-negative
+            currentPrice = Math.max(0, currentPrice);
+
+            // 3. Interpolate Earnings
+            const dps = parseFloat(state.officeRate || '0');
+            const earned = timeSinceStart * dps;
+
+            // 4. Calculate PNL
+            // Cost = Price Paid. We estimate this from initPrice.
+            // newInitPrice = pricePaid * 1.5. So pricePaid = initPrice / 1.5.
+            const pricePaid = initPrice / 1.5;
+            // Revenue = 80% of currentPrice (if someone buys now)
+            const revenue = currentPrice * 0.8;
+            const pnlValue = revenue - pricePaid;
+
+            // Format PNL
+            const pnlFormatted = pnlValue >= 0
+                ? `+Ξ${pnlValue.toFixed(4)}`
+                : `-Ξ${Math.abs(pnlValue).toFixed(4)}`;
+            setPnl(pnlFormatted);
+
+            // Update Interpolated State
+            setInterpolatedState(prev => ({
+                ...prev,
+                currentPrice: currentPrice.toFixed(4),
+                totalEarned: earned.toFixed(2)
+            }));
+
         }, 1000);
         return () => clearInterval(interval);
-    }, [state.kingSince]);
+    }, [state]);
 
     const handleTakeOffice = async () => {
-        if (!walletClient) {
+        if (!address || !isConnected || !wallet) {
             alert('Please connect your wallet first!');
             return;
         }
 
+        if (chainId !== monad.id) {
+            try {
+                await wallet.switchChain(monad.id);
+            } catch (error) {
+                console.error('Failed to switch chain:', error);
+                alert('Please switch to Monad Testnet manually.');
+            }
+            return;
+        }
+
+        await executeTakeOffice(wallet, address);
+    };
+
+    const executeTakeOffice = async (wallet: any, clientAddress: string) => {
         try {
             setIsLoading(true);
-            const hash = await tavernKeeperService.takeOffice(walletClient, state.currentPrice);
+            const provider = await wallet.getEthereumProvider();
+            const client = createWalletClient({
+                account: clientAddress as `0x${string}`,
+                chain: monad,
+                transport: custom(provider)
+            });
+
+            // Use interpolated price for the transaction
+            const hash = await tavernKeeperService.takeOffice(client, interpolatedState.currentPrice, clientAddress);
             console.log('Transaction sent:', hash);
             alert('Transaction sent! Waiting for confirmation...');
-            // Optimistic update or wait for receipt could be added here
+            // Refresh office state after transaction
+            setTimeout(() => fetchOfficeState(), 2000);
         } catch (error) {
             console.error('Failed to take office:', error);
-            alert('Failed to take office. See console for details.');
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            alert(`Failed to take office: ${errorMessage}`);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const isKing = address && state.currentKing && address.toLowerCase() === state.currentKing.toLowerCase();
+
     return (
-        <div className="w-full max-w-md mx-auto font-pixel flex flex-col h-full max-h-full">
-            {/* Main Container - Wood Style */}
-            <PixelBox variant="wood" className="flex flex-col h-full p-0 gap-0 overflow-hidden !p-0 border-0" title="The Office">
-
-                {/* Header / King Info - Parchment Style */}
-                <div className="bg-[#eaddcf] border-b-4 border-[#8c7b63] p-3 relative shrink-0">
-                    <div className="flex justify-between items-start relative z-10">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#8c7b63] p-0.5 rounded-sm border-2 border-[#5c4033] overflow-hidden shadow-inner">
-                                {/* Avatar Placeholder */}
-                                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${state.currentKing}`} alt="King" className="w-full h-full bg-[#d4c5b0]" />
-                            </div>
-                            <div>
-                                <div className="text-[8px] text-[#8c7b63] uppercase tracking-widest font-bold mb-0.5">Office Manager</div>
-                                <div className="text-[#3e2b22] font-bold text-xs truncate w-24">{state.currentKing}</div>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-[8px] text-[#8c7b63] uppercase tracking-widest font-bold mb-0.5">Time Held</div>
-                            <div className="text-[#3e2b22] font-bold text-sm font-mono">{timeHeld}</div>
-                        </div>
-                    </div>
-
-                    {/* Stats Row */}
-                    <div className="flex justify-between items-center mt-2 pt-2 border-t-2 border-[#d4c5b0] relative z-10">
-                        <div>
-                            <div className="text-[8px] text-[#8c7b63] uppercase font-bold">Earned</div>
-                            <div className="text-[#b45309] font-bold text-xs">KEEP {state.totalEarned} <span className="text-[#8c7b63] text-[8px] ml-1">{state.totalEarnedUsd}</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Visual Area (The Office View) - Now holds the CHAT */}
-                <div className="relative flex-1 bg-[#2a1d17] overflow-hidden flex flex-col min-h-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
-                    {/* Chat Container */}
-                    <div className="relative z-10 flex-1 flex flex-col min-h-0">
-                        {children}
-                    </div>
-                </div>
-
-                {/* Stats Grid - Dark Wood */}
-                <div className="grid grid-cols-2 gap-2 bg-[#3e2b22] border-t-4 border-[#2a1d17] p-2 shrink-0">
-                    <div className="bg-[#2a1d17] border-2 border-[#5c4033] rounded p-2 shadow-inner">
-                        <div className="text-[8px] text-[#a8a29e] uppercase tracking-widest mb-0.5">Earning Rate</div>
-                        <div className="text-[#fbbf24] font-bold text-sm">KEEP {state.officeRate}<span className="text-[10px] text-[#78716c]">/s</span></div>
-                        <div className="text-[8px] text-[#78716c]">{state.officeRateUsd}/s</div>
-                    </div>
-                    <div className="bg-[#2a1d17] border-2 border-[#5c4033] rounded p-2 shadow-inner">
-                        <div className="text-[8px] text-[#fca5a5] uppercase tracking-widest mb-0.5">Takeover Price</div>
-                        <div className="text-[#f87171] font-bold text-sm">Ξ {state.currentPrice}</div>
-                        <div className="text-[8px] text-[#78716c]">{state.priceUsd}</div>
-                    </div>
-                </div>
-
-                {/* Action Button Area */}
-                <div className="bg-[#3e2b22] p-3 pt-0 shrink-0">
-                    <PixelButton
-                        onClick={handleTakeOffice}
-                        disabled={isLoading}
-                        variant="danger"
-                        className="w-full !py-3 !text-sm shadow-lg"
-                    >
-                        {isLoading ? 'Processing...' : 'Take The Office'}
-                    </PixelButton>
-
-                    {/* User Balance Footer */}
-                    <div className="flex justify-between items-center mt-2 text-[8px] text-[#a8a29e] px-2 font-mono">
-                        <div className="flex flex-col items-center">
-                            <span className="mb-0.5">Your Balance</span>
-                            <span className="text-[#eaddcf] font-bold">KEEP 0</span>
-                        </div>
-                        <div className="flex flex-col items-center">
-                            <span className="mb-0.5">Spent</span>
-                            <span className="text-[#eaddcf] font-bold">Ξ 0</span>
-                        </div>
-                        <div className="flex flex-col items-center">
-                            <span className="mb-0.5">Earned</span>
-                            <span className="text-[#eaddcf] font-bold">KEEP 0</span>
-                        </div>
-                    </div>
-                </div>
-            </PixelBox>
-        </div>
+        <TheOfficeView
+            state={interpolatedState}
+            timeHeld={timeHeld}
+            keepBalance={keepBalance}
+            isLoading={isLoading}
+            walletReady={isConnected}
+            isWalletConnected={isConnected}
+            isWrongNetwork={isConnected && chainId !== monad.id}
+            onTakeOffice={handleTakeOffice}
+            onDisconnect={() => logout()}
+            pnl={pnl}
+            isKing={!!isKing}
+        >
+            {children}
+        </TheOfficeView>
     );
 };

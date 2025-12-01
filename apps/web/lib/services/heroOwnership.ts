@@ -1,5 +1,5 @@
 import { createPublicClient, http, parseAbiItem } from 'viem';
-import { monad } from '../wagmi';
+import { monad } from '../chains';
 import { supabase } from '../supabase';
 import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 import { metadataStorage } from './metadataStorage';

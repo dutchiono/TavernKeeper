@@ -97,62 +97,201 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     // --- The Office (King of the Hill) Mechanics ---
-    address public currentKing;
-    uint256 public currentPrice;
-    uint256 public kingSince;
-    uint256 public officeRate; // KEEP per second for the King
+    // Deprecated legacy storage (kept for slot alignment)
+    // DO NOT REMOVE OR RENAME
+    address private currentKing;
+    uint256 private currentPrice;
+    uint256 private kingSince;
+    uint256 private officeRate;
 
-    event OfficeTaken(address indexed newKing, uint256 newPrice, uint256 paidAmount);
-    event OfficeEarningsClaimed(address indexed king, uint256 amount);
-
-    function initializeOffice(uint256 _startPrice, uint256 _rate) public onlyOwner {
-        require(currentPrice == 0, "Already initialized");
-        currentPrice = _startPrice;
-        officeRate = _rate;
-        currentKing = msg.sender; // Initial king
-        kingSince = block.timestamp;
+    // New Storage (Donut Miner Port)
+    struct Slot0 {
+        uint8 locked;
+        uint16 epochId;
+        uint192 initPrice;
+        uint40 startTime;
+        uint256 dps;
+        address miner; // The King
+        string uri;    // The Message
     }
 
-    function takeOffice() public payable {
-        require(msg.value >= currentPrice, "Insufficient payment");
-        require(msg.sender != currentKing, "Already the King");
+    Slot0 public slot0;
+    address public treasury;
 
-        // 1. Settle previous King's earnings
-        uint256 timeHeld = block.timestamp - kingSince;
-        if (timeHeld > 0 && currentKing != address(0)) {
-            uint256 reward = timeHeld * officeRate;
-            if (keepToken != address(0)) {
-                IKeepToken(keepToken).mint(currentKing, reward);
-                emit OfficeEarningsClaimed(currentKing, reward);
+    // Constants
+    uint256 public constant FEE = 2_000; // 20%
+    uint256 public constant DIVISOR = 10_000;
+    uint256 public constant PRECISION = 1e18;
+    uint256 public constant EPOCH_PERIOD = 1 hours;
+    uint256 public constant PRICE_MULTIPLIER = 2e18; // 2x (Matched reference)
+    uint256 public constant NEW_PRICE_MULTIPLIER = 2e18; // Deprecated/Alias for clarity if needed, but using PRICE_MULTIPLIER in logic
+    
+    uint256 public constant MIN_INIT_PRICE = 0.0001 ether; // 0.0001 MON (Matched reference)
+    uint256 public constant ABS_MAX_INIT_PRICE = type(uint192).max;
+
+    uint256 public constant INITIAL_DPS = 4 ether; // 4 KEEP per second (Matched reference)
+    uint256 public constant HALVING_PERIOD = 30 days;
+    uint256 public constant TAIL_DPS = 0.01 ether;
+
+    event OfficeTaken(address indexed newKing, uint256 newPrice, uint256 paidAmount, string uri);
+    event OfficeEarningsClaimed(address indexed king, uint256 amount);
+    event TreasuryFee(address indexed treasury, uint256 amount);
+    event PreviousKingPaid(address indexed prevKing, uint256 amount);
+
+    error Reentrancy();
+    error Expired();
+    error EpochIdMismatch();
+    error MaxPriceExceeded();
+    error InvalidTreasury();
+
+    modifier nonReentrant() {
+        if (slot0.locked == 2) revert Reentrancy();
+        slot0.locked = 2;
+        _;
+        slot0.locked = 1;
+    }
+
+    modifier nonReentrantView() {
+        if (slot0.locked == 2) revert Reentrancy();
+        _;
+    }
+
+    uint256 public v2StartTime;
+
+    function initializeOfficeV2(address _treasury) public onlyOwner {
+        require(treasury == address(0), "Already initialized V2");
+        treasury = _treasury;
+        v2StartTime = block.timestamp;
+        
+        slot0.initPrice = uint192(MIN_INIT_PRICE);
+        slot0.startTime = uint40(block.timestamp);
+        slot0.miner = msg.sender; // Initial king is owner
+        slot0.dps = INITIAL_DPS;
+        slot0.epochId = 1;
+    }
+
+    function setTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Invalid treasury");
+        treasury = _treasury;
+        emit TreasuryFee(_treasury, 0); // Emit event to log change (using 0 amount)
+    }
+
+    // ... (takeOffice remains same) ...
+
+    function _getDpsFromTime(uint256 time) internal view returns (uint256 dps) {
+        if (v2StartTime == 0) return INITIAL_DPS;
+        uint256 halvings = time <= v2StartTime ? 0 : (time - v2StartTime) / HALVING_PERIOD;
+        dps = INITIAL_DPS >> halvings;
+        if (dps < TAIL_DPS) dps = TAIL_DPS;
+        return dps;
+    }
+
+    function takeOffice(
+        uint256 epochId,
+        uint256 deadline,
+        uint256 maxPrice,
+        string memory uri
+    ) public payable nonReentrant returns (uint256 price) {
+        if (block.timestamp > deadline) revert Expired();
+
+        Slot0 memory slot0Cache = slot0;
+
+        // Allow epochId 0 to match current if passed 0, otherwise check
+        if (epochId != 0 && uint16(epochId) != slot0Cache.epochId) revert EpochIdMismatch();
+
+        price = _getPriceFromCache(slot0Cache);
+        if (price > maxPrice) revert MaxPriceExceeded();
+        if (msg.value < price) revert("Insufficient payment");
+
+        // Refund excess
+        uint256 excess = msg.value - price;
+        if (excess > 0) {
+            payable(msg.sender).transfer(excess);
+        }
+
+        if (price > 0) {
+            uint256 totalFee = price * FEE / DIVISOR; // 20%
+            uint256 minerFee = price - totalFee;      // 80%
+            
+            // Split totalFee (20%) into Dev (10%) and Cellar (10%)
+            uint256 devFee = totalFee / 2;
+            uint256 cellarFee = totalFee - devFee;
+
+            // Pay Dev (Owner)
+            payable(owner()).transfer(devFee);
+
+            // Pay Cellar (Treasury)
+            if (treasury != address(0)) {
+                payable(treasury).transfer(cellarFee);
+                emit TreasuryFee(treasury, cellarFee);
+            } else {
+                payable(owner()).transfer(cellarFee);
+            }
+
+            // Pay Previous King
+            if (slot0Cache.miner != address(0)) {
+                payable(slot0Cache.miner).transfer(minerFee);
+                emit PreviousKingPaid(slot0Cache.miner, minerFee);
             }
         }
 
-        // 2. Distribute Payment (ETH/MON)
-        // 80% to previous King, 15% to Treasury, 5% to Dev/Contract
-        uint256 payment = msg.value;
-        uint256 toPrevKing = (payment * 80) / 100;
-        uint256 toTreasury = (payment * 15) / 100;
-        // Remaining 5% stays in contract or goes to owner
+        // Calculate new init price
+        uint256 newInitPrice = price * NEW_PRICE_MULTIPLIER / PRECISION;
 
-        if (currentKing != address(0)) {
-            payable(currentKing).transfer(toPrevKing);
-        } else {
-            // If no previous king (first run), send to treasury
-            toTreasury += toPrevKing;
+        if (newInitPrice > ABS_MAX_INIT_PRICE) {
+            newInitPrice = ABS_MAX_INIT_PRICE;
+        } else if (newInitPrice < MIN_INIT_PRICE) {
+            newInitPrice = MIN_INIT_PRICE;
         }
 
-        // Send to treasury (assuming treasury is set on KeepToken, or we add a var here)
-        // For now, send to owner() as treasury proxy if not defined
-        payable(owner()).transfer(toTreasury);
+        // Mint KEEP rewards for previous king
+        uint256 mineTime = block.timestamp - slot0Cache.startTime;
+        uint256 minedAmount = mineTime * slot0Cache.dps;
 
-        // 3. Update State
-        currentKing = msg.sender;
-        kingSince = block.timestamp;
-        
-        // Increase price by 10%
-        currentPrice = (currentPrice * 110) / 100;
+        if (keepToken != address(0) && slot0Cache.miner != address(0)) {
+            IKeepToken(keepToken).mint(slot0Cache.miner, minedAmount);
+            emit OfficeEarningsClaimed(slot0Cache.miner, minedAmount);
+        }
 
-        emit OfficeTaken(msg.sender, currentPrice, payment);
+        // Update State
+        unchecked {
+            slot0Cache.epochId++;
+        }
+        slot0Cache.initPrice = uint192(newInitPrice);
+        slot0Cache.startTime = uint40(block.timestamp);
+        slot0Cache.miner = msg.sender;
+        slot0Cache.dps = _getDpsFromTime(block.timestamp);
+        slot0Cache.uri = uri;
+
+        slot0 = slot0Cache;
+
+        emit OfficeTaken(msg.sender, price, price, uri);
+
+        return price;
+    }
+
+    function _getPriceFromCache(Slot0 memory slot0Cache) internal view returns (uint256) {
+        uint256 timePassed = block.timestamp - slot0Cache.startTime;
+
+        if (timePassed > EPOCH_PERIOD) {
+            return 0;
+        }
+
+        return slot0Cache.initPrice - slot0Cache.initPrice * timePassed / EPOCH_PERIOD;
+    }
+
+
+
+    function getPrice() external view nonReentrantView returns (uint256) {
+        return _getPriceFromCache(slot0);
+    }
+
+    function getDps() external view nonReentrantView returns (uint256) {
+        return slot0.dps;
+    }
+
+    function getSlot0() external view nonReentrantView returns (Slot0 memory) {
+        return slot0;
     }
 
 }

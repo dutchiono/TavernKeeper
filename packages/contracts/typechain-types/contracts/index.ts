@@ -11,4 +11,6 @@ export type { ERC6551Registry } from "./ERC6551Registry";
 export type { GoldToken } from "./GoldToken";
 export type { Inventory } from "./Inventory";
 export type { KeepToken } from "./KeepToken";
+export type { MockERC20 } from "./MockERC20";
+export type { TheCellar } from "./TheCellar";
 export type { UniswapIntegration } from "./UniswapIntegration";

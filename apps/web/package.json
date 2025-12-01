@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev\" \"tsx workers/index.ts\" --names \"WEB,WORKER\" --prefix-colors \"blue,magenta\"",
+    "dev": "concurrently \"next dev\" \"tsx watch workers/index.ts\" --names \"WEB,WORKER\" --prefix-colors \"blue,magenta\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -22,12 +22,17 @@
     "start-worker": "tsx workers/index.ts"
   },
   "dependencies": {
+    "@base-org/account": "^1.0.0",
+    "@coinbase/wallet-sdk": "^3.7.2",
     "@farcaster/auth-kit": "^0.8.1",
     "@farcaster/miniapp-sdk": "^0.1.0",
     "@google/genai": "^1.30.0",
     "@innkeeper/agents": "workspace:*",
     "@innkeeper/engine": "workspace:*",
     "@innkeeper/lib": "workspace:*",
+    "@privy-io/react-auth": "^1.0.0",
+    "@safe-global/safe-apps-provider": "^0.18.0",
+    "@safe-global/safe-apps-sdk": "^9.0.0",
     "@tanstack/react-query": "^5.90.11",
     "@tokenbound/sdk": "^0.1.2",
     "@vercel/og": "^0.6.1",
@@ -39,8 +44,8 @@
     "pixi.js": "^7.3.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "thread-stream": "^3.1.0",
     "viem": "^2.40.3",
-    "wagmi": "^3.0.2",
     "zustand": "^4.4.7"
   },
   "devDependencies": {

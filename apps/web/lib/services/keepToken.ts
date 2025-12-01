@@ -1,6 +1,6 @@
-import { createPublicClient, http, formatEther } from 'viem';
+import { createPublicClient, formatEther, http } from 'viem';
 import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
-import { monad } from '../wagmi';
+import { monad } from '../chains';
 
 export const keepTokenService = {
     /**
@@ -12,7 +12,7 @@ export const keepTokenService = {
             const contractAddress = getContractAddress(contractConfig);
 
             if (!contractAddress) {
-                console.warn('KEEP token contract address not found');
+                console.warn('KEEP token contract address not found. Set NEXT_PUBLIC_KEEP_TOKEN_ADDRESS in .env');
                 return '0';
             }
 

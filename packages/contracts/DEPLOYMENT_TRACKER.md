@@ -19,9 +19,9 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 - **Type**: Direct implementation
 - **Purpose**: Registry for creating Token Bound Accounts (TBAs)
 - **Upgradeable**: No (infrastructure contract)
-- **Deployed Address**: `0xca3f315D82cE6Eecc3b9E29Ecc8654BA61e7508C`
+- **Deployed Address**: `0xE8D519d1C3972Fb8833262333D3152739f9e960b`
 - **Network**: Monad Testnet
-- **Deployment Date**: 2024-01-XX
+- **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
 - **Notes**: Standard ERC-6551 registry implementation
 
@@ -30,9 +30,9 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 - **Type**: Direct implementation
 - **Purpose**: TBA account implementation (deployed via CREATE2)
 - **Upgradeable**: No (implementation contract)
-- **Deployed Address**: `0x9B5980110654dcA57a449e2D6BEc36fE54123B0F`
+- **Deployed Address**: `0x0C829384eDb3E2A79Af1405aE6A43A0292e30548`
 - **Network**: Monad Testnet
-- **Deployment Date**: 2024-01-XX
+- **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
 - **Notes**: Each NFT gets a unique TBA address via CREATE2
 
@@ -40,28 +40,27 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 ### 2. Game Contracts (Need Proxy Conversion)
 
-#### GoldToken (ERC-20)
+#### KeepToken (ERC-20)
 - **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
 - **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: In-game currency token
 - **Upgradeable**: Yes ✅
-- **Proxy Address**: `0x96982EC3625145f098DCe06aB34E99E7207b0520`
-- **Implementation Address**: `0x8788E862023A49a77E8F27277a8b3F07B4E9A7d8`
+- **Proxy Address**: `0x53f7C41787bc45700F2450CAC956F5649f3d986A`
+- **Implementation Address**: `0x5EA8Edb99E9a070c8f4358e0904b7cE63e7d5866`
 - **Network**: Monad Testnet
-- **Deployment Date**: 2024-01-XX
+- **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
-- **Initial Supply**: 1,000,000 GOLD
-- **Notes**: Successfully deployed as UUPS proxy
+- **Notes**: Successfully deployed as UUPS proxy. Minting controlled by TavernKeeper contract.
 
 #### Inventory (ERC-1155)
 - **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
 - **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: ERC-1155 items/inventory contract
 - **Upgradeable**: Yes ✅
-- **Proxy Address**: `0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC`
+- **Proxy Address**: `0xE75948afaAc46E3C456C1023d4c7F00392a92344`
 - **Implementation Address**: `0xc03bC9D0BD59b98535aEBD2102221AeD87c820A6`
 - **Network**: Monad Testnet
-- **Deployment Date**: 2024-01-XX
+- **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
 - **Fee Recipient**: `0xEC4bc7451B9058D42Ea159464C6dA14a322946fD` (deployer)
 - **Notes**:
@@ -74,10 +73,10 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 - **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: Adventurer NFT contract
 - **Upgradeable**: Yes ✅
-- **Proxy Address**: `0x2ABb5F58DE56948dD0E06606B88B43fFe86206c2`
-- **Implementation Address**: `0xC1D9e381dF88841b16e9d01f35802B0583638e07`
+- **Proxy Address**: `0x3F7BBD9373AF9eDdB6b170FFc86479bEaE548407`
+- **Implementation Address**: `0x582bDC81df3c6c78B85D9409987Ab9885A24A2f6`
 - **Network**: Monad Testnet
-- **Deployment Date**: 2024-01-XX
+- **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
 - **Notes**: Successfully deployed as UUPS proxy
 
@@ -86,12 +85,12 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 - **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: TavernKeeper NFT contract
 - **Upgradeable**: Yes ✅
-- **Proxy Address**: `0x4Fff2Ce5144989246186462337F0eE2C086F913E`
-- **Implementation Address**: `0xd8c9C56b1ef231207bAd219A488244aD34576F92`
+- **Proxy Address**: `0x0A773ACfb23f2d6CC919235c134625bAF515c6F8`
+- **Implementation Address**: `0x9A0502c275c807F1B695Ce0266DEabE42b695448`
 - **Network**: Monad Testnet
-- **Deployment Date**: 2024-01-XX
+- **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
-- **Notes**: Successfully deployed as UUPS proxy
+- **Notes**: Successfully deployed as UUPS proxy. Mints KeepToken to office holders.
 
 ---
 
@@ -115,9 +114,9 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
    - [ ] Update this file with addresses
 
 2. **Deploy Game Contracts (as Proxies):**
-   - [ ] Deploy GoldToken implementation
-   - [ ] Deploy GoldToken proxy
-   - [ ] Initialize GoldToken proxy
+   - [ ] Deploy KeepToken implementation
+   - [ ] Deploy KeepToken proxy
+   - [ ] Initialize KeepToken proxy (with treasury and TavernKeeper address)
    - [ ] Update this file
 
    - [ ] Deploy Inventory implementation
@@ -150,16 +149,18 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 | Contract | Type | Address | Deployed | TX Hash | Notes |
 |----------|------|---------|----------|---------|-------|
-| ERC6551Registry | Direct | `0xca3f315D82cE6Eecc3b9E29Ecc8654BA61e7508C` | ✅ 2024-01-XX | See output | |
-| ERC6551Account | Direct | `0x9B5980110654dcA57a449e2D6BEc36fE54123B0F` | ✅ 2024-01-XX | See output | |
-| GoldToken | Proxy | `0x96982EC3625145f098DCe06aB34E99E7207b0520` | ✅ 2024-01-XX | See output | **USE THIS** |
-| GoldToken | Impl | `0x8788E862023A49a77E8F27277a8b3F07B4E9A7d8` | ✅ 2024-01-XX | See output | |
-| Inventory | Proxy | `0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC` | ✅ 2024-01-XX | See output | **USE THIS** |
-| Inventory | Impl | `0xc03bC9D0BD59b98535aEBD2102221AeD87c820A6` | ✅ 2024-01-XX | See output | |
-| Adventurer | Proxy | `0x2ABb5F58DE56948dD0E06606B88B43fFe86206c2` | ✅ 2024-01-XX | See output | **USE THIS** |
-| Adventurer | Impl | `0xC1D9e381dF88841b16e9d01f35802B0583638e07` | ✅ 2024-01-XX | See output | |
-| TavernKeeper | Proxy | `0x4Fff2Ce5144989246186462337F0eE2C086F913E` | ✅ 2024-01-XX | See output | **USE THIS** |
-| TavernKeeper | Impl | `0xd8c9C56b1ef231207bAd219A488244aD34576F92` | ✅ 2024-01-XX | See output | |
+| ERC6551Registry | Direct | `0xE8D519d1C3972Fb8833262333D3152739f9e960b` | ✅ 2025-01-XX | See output | |
+| ERC6551Account | Direct | `0x0C829384eDb3E2A79Af1405aE6A43A0292e30548` | ✅ 2025-01-XX | See output | |
+| KeepToken | Proxy | `0x53f7C41787bc45700F2450CAC956F5649f3d986A` | ✅ 2025-01-XX | See output | **USE THIS** |
+| KeepToken | Impl | `0x5EA8Edb99E9a070c8f4358e0904b7cE63e7d5866` | ✅ 2025-01-XX | See output | |
+| Inventory | Proxy | `0xE75948afaAc46E3C456C1023d4c7F00392a92344` | ✅ 2025-01-XX | See output | **USE THIS** |
+| Inventory | Impl | `0xc03bC9D0BD59b98535aEBD2102221AeD87c820A6` | ✅ 2025-01-XX | See output | |
+| Adventurer | Proxy | `0x3F7BBD9373AF9eDdB6b170FFc86479bEaE548407` | ✅ 2025-01-XX | See output | **USE THIS** |
+| Adventurer | Impl | `0x582bDC81df3c6c78B85D9409987Ab9885A24A2f6` | ✅ 2025-01-XX | See output | |
+| TavernKeeper | Proxy | `0x0A773ACfb23f2d6CC919235c134625bAF515c6F8` | ✅ 2025-01-XX | See output | **USE THIS** |
+| TavernKeeper | Impl | `0xb35B41522abb7ff2318772dce24BbE37a5734Ad9` | ✅ 2025-01-XX | See output | Upgraded to V2.2 (Fee Split + Cellar) |
+| The Cellar | Contract | `0x93A9Ee179171b4C6EDB6ecCCFC34a2d0BF66EAAB` | ✅ 2025-01-XX | See output | Treasury / Second Dutch Auction |
+| Mock LP | Contract | `0xC15694058429884Fd97a668cd84a515d407Af8fF` | ✅ 2025-01-XX | See output | Mock KEEP-MON LP |
 
 ### Monad Mainnet
 
@@ -175,7 +176,7 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 | Contract | Proxy Admin | Multisig? | Notes |
 |----------|-------------|-----------|-------|
-| GoldToken | `TBD` | `TBD` | |
+| KeepToken | `TBD` | `TBD` | |
 | Inventory | `TBD` | `TBD` | |
 | Adventurer | `TBD` | `TBD` | |
 | TavernKeeper | `TBD` | `TBD` | |
@@ -184,7 +185,7 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 ## Upgrade History
 
-### GoldToken
+### KeepToken
 - **v1.0.0** - `TBD` - Initial deployment
 
 ### Inventory
@@ -195,6 +196,7 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 ### TavernKeeper
 - **v1.0.0** - `TBD` - Initial deployment
+- **v2.0.0** - `0x5B7d11a5b4EF317c0A3332F9E1452Ad9d790B833` - Ported Donut Miner mechanics (Dutch Auction, Halving)
 
 ---
 
@@ -235,13 +237,13 @@ NEXT_PUBLIC_ERC6551_REGISTRY_ADDRESS=0x...
 NEXT_PUBLIC_ERC6551_IMPLEMENTATION_ADDRESS=0x...
 
 # Game Contracts (Proxy Addresses)
-NEXT_PUBLIC_ERC20_TOKEN_ADDRESS=0x...              # GoldToken proxy
+NEXT_PUBLIC_KEEP_TOKEN_ADDRESS=0x...               # KeepToken proxy
 NEXT_PUBLIC_INVENTORY_CONTRACT_ADDRESS=0x...       # Inventory proxy
 NEXT_PUBLIC_ADVENTURER_CONTRACT_ADDRESS=0x...      # Adventurer proxy
 NEXT_PUBLIC_TAVERNKEEPER_CONTRACT_ADDRESS=0x...    # TavernKeeper proxy
 
 # Implementation Addresses (for validation)
-NEXT_PUBLIC_ERC20_TOKEN_IMPLEMENTATION_ADDRESS=0x...
+NEXT_PUBLIC_KEEP_TOKEN_IMPLEMENTATION_ADDRESS=0x...
 NEXT_PUBLIC_INVENTORY_IMPLEMENTATION_ADDRESS=0x...
 NEXT_PUBLIC_ADVENTURER_IMPLEMENTATION_ADDRESS=0x...
 NEXT_PUBLIC_TAVERNKEEPER_IMPLEMENTATION_ADDRESS=0x...
@@ -288,7 +290,7 @@ NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS=0x...
 
 ## Last Updated
 
-- **Date**: 2024-01-XX
+- **Date**: 2025-01-XX
 - **Updated By**: Deployment Script
-- **Reason**: Initial deployment to Monad Testnet - All contracts deployed as UUPS proxies
+- **Reason**: Latest deployment to Monad Testnet - All contracts deployed as UUPS proxies with KeepToken integration
 

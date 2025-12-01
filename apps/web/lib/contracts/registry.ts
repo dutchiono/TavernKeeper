@@ -6,7 +6,7 @@
  */
 
 import { type Address, isAddress, getAddress } from 'viem';
-import { monad } from '../wagmi';
+import { monad } from '../chains';
 
 export interface ContractConfig {
   name: string;
@@ -300,44 +300,57 @@ export const CONTRACT_REGISTRY: Record<string, ContractConfig> = {
         stateMutability: 'view',
         type: 'function',
       },
-      // The Office Functions
+      // The Office Functions (V2)
       {
         inputs: [],
-        name: 'currentKing',
-        outputs: [{ name: '', type: 'address' }],
+        name: 'getSlot0',
+        outputs: [
+          {
+            components: [
+              { name: 'locked', type: 'uint8' },
+              { name: 'epochId', type: 'uint16' },
+              { name: 'initPrice', type: 'uint192' },
+              { name: 'startTime', type: 'uint40' },
+              { name: 'dps', type: 'uint256' },
+              { name: 'miner', type: 'address' },
+              { name: 'uri', type: 'string' },
+            ],
+            internalType: 'struct TavernKeeper.Slot0',
+            name: '',
+            type: 'tuple',
+          },
+        ],
         stateMutability: 'view',
         type: 'function',
       },
       {
         inputs: [],
-        name: 'currentPrice',
+        name: 'getPrice',
         outputs: [{ name: '', type: 'uint256' }],
         stateMutability: 'view',
         type: 'function',
       },
       {
         inputs: [],
-        name: 'kingSince',
+        name: 'getDps',
         outputs: [{ name: '', type: 'uint256' }],
         stateMutability: 'view',
         type: 'function',
       },
       {
-        inputs: [],
-        name: 'officeRate',
-        outputs: [{ name: '', type: 'uint256' }],
-        stateMutability: 'view',
-        type: 'function',
-      },
-      {
-        inputs: [],
+        inputs: [
+          { name: 'epochId', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
+          { name: 'maxPrice', type: 'uint256' },
+          { name: 'uri', type: 'string' },
+        ],
         name: 'takeOffice',
-        outputs: [],
+        outputs: [{ name: 'price', type: 'uint256' }],
         stateMutability: 'payable',
         type: 'function',
       },
     ],
-    requiredFunctions: ['ownerOf', 'safeMint', 'claimTokens', 'calculatePendingTokens'],
+    requiredFunctions: ['ownerOf', 'safeMint', 'claimTokens', 'calculatePendingTokens', 'takeOffice', 'getSlot0'],
   },
 };
 

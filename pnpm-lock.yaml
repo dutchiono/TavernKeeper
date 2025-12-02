@@ -165,9 +165,6 @@ importers:
 
   packages/agents:
     dependencies:
-      '@innkeeper/engine':
-        specifier: workspace:*
-        version: link:../engine
       '@innkeeper/lib':
         specifier: workspace:*
         version: link:../lib

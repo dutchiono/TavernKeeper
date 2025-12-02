@@ -50,6 +50,21 @@ const config: HardhatUserConfig = {
             accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
         },
     },
+    etherscan: {
+        apiKey: {
+            monad: "empty" // Monad explorer doesn't require an API key yet, or use any string
+        },
+        customChains: [
+            {
+                network: "monad",
+                chainId: parseInt(process.env.NEXT_PUBLIC_MONAD_CHAIN_ID || "10143"),
+                urls: {
+                    apiURL: "https://testnet-scan.monad.xyz/api", // Verify this URL
+                    browserURL: "https://testnet.monadexplorer.com"
+                }
+            }
+        ]
+    },
     paths: {
         sources: "./contracts",
         tests: "./test",

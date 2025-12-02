@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as iPseudoswapSol from "./IPseudoswap.sol";
+export * as iUniswapV2Router02Sol from "./IUniswapV2Router02.sol";
 export { IERC6551Account__factory } from "./IERC6551Account__factory";
 export { IERC6551Registry__factory } from "./IERC6551Registry__factory";
 export { IUniswapV3Router__factory } from "./IUniswapV3Router__factory";

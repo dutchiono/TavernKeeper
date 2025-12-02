@@ -1,0 +1,42 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy root package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy package files for dependencies
+COPY apps/web/package.json ./apps/web/
+COPY packages/agents/package.json ./packages/agents/
+COPY packages/engine/package.json ./packages/engine/
+COPY packages/lib/package.json ./packages/lib/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY apps/web ./apps/web
+COPY packages/agents ./packages/agents
+COPY packages/engine ./packages/engine
+COPY packages/lib ./packages/lib
+
+# Build packages first
+RUN pnpm --filter "./packages/*" build
+
+# Build web app (Next.js build might be needed if workers import from app code, or just TS compilation)
+# For workers, we might just need to run them with tsx, but let's build to be safe/standard
+# If workers are just TS files, we can run them directly with tsx in production too, or compile them.
+# The dev script uses tsx. Let's use tsx for simplicity or build if needed.
+# Given the dev script: "nodemon --exec tsx workers/index.ts"
+# We can use tsx in production or compile. Let's stick to tsx for now as it's easier, 
+# but for production "node" is better. 
+# Let's assume we can run with tsx or we need to compile. 
+# apps/web/package.json has "start-worker": "tsx workers/index.ts"
+# We'll use that.
+
+# Start
+WORKDIR /app/apps/web
+CMD ["pnpm", "start-worker"]

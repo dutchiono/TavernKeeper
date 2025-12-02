@@ -1,94 +1,161 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import { Bot, Send, User } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../lib/stores/gameStore';
+import { PixelButton } from './PixelComponents';
 
 export const ChatOverlay: React.FC = () => {
     const logs = useGameStore((state) => state.logs);
     const [chatInput, setChatInput] = useState('');
     const chatEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to bottom of chat
+    // Auto-scroll to bottom when new logs arrive
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
     }, [logs]);
 
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
         if (!chatInput.trim()) return;
+
+        const userMessage = chatInput.trim();
+        setChatInput('');
 
         // User Message
         useGameStore.getState().addLog({
             id: Date.now(),
-            message: chatInput,
-            type: 'info',
+            message: userMessage,
+            type: 'info', // 'info' is used for user messages in this codebase
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
 
-        // Simple TavernKeeper Response Logic
-        setTimeout(() => {
-            let response = "I'm just a simple TavernKeeper, I don't know much about that.";
-            const lowerInput = chatInput.toLowerCase();
+        // AI Response Logic
+        try {
+            // Mock TavernKeeper Agent
+            const tavernKeeper = {
+                id: 'tavern-keeper',
+                name: 'TavernKeeper',
+                class: 'Mage' as any,
+                level: 99,
+                traits: ['Friendly', 'Knowledgeable', 'Busy', 'Gossip'],
+                backstory: 'I have run this inn for as long as I can remember.',
+                stats: { hp: 100, maxHp: 100, mp: 100, maxMp: 100, str: 10, int: 18 },
+                currentThought: "Business is booming.",
+                inventory: [],
+                spriteColor: "#855e42",
+                position: { x: 0, y: 0 },
+                lastAction: "Serving drinks"
+            };
 
-            if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
-                response = "Greetings! Can I get you an ale?";
-            } else if (lowerInput.includes('hero') || lowerInput.includes('recruit')) {
-                response = "Ah, looking for muscle? Check the Hero Builder to mint new adventurers.";
-            } else if (lowerInput.includes('party')) {
-                response = "You can manage your party in the Party Manager. Make sure you have a balanced team!";
-            } else if (lowerInput.includes('quest') || lowerInput.includes('adventure')) {
-                response = "The dungeons are dangerous. Make sure you're prepared before you head to the Map.";
-            } else if (lowerInput.includes('ale') || lowerInput.includes('drink')) {
-                response = "Coming right up! That'll be 0.1 KEEP.";
-            }
-
+            // Add "Thinking..." placeholder
+            const thinkingId = Date.now() + 1;
             useGameStore.getState().addLog({
-                id: Date.now() + 1,
+                id: thinkingId,
+                message: "...",
+                type: 'dialogue', // 'dialogue' is used for agent messages
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+
+            const { chatWithAgent } = await import('../app/actions/aiActions');
+            const response = await chatWithAgent(tavernKeeper, userMessage);
+
+            // Add real response
+            useGameStore.getState().addLog({
+                id: Date.now() + 2,
                 message: response,
                 type: 'dialogue',
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
-        }, 500);
 
-        setChatInput('');
+        } catch (error) {
+            console.error("AI Chat Error:", error);
+            useGameStore.getState().addLog({
+                id: Date.now() + 3,
+                message: "*grunts* (Something went wrong...)",
+                type: 'dialogue',
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+        }
     };
 
+    // Filter logs to only show chat-relevant ones if needed, or show all
+    // For now, we show all logs but style them differently
+    const chatLogs = [...logs].reverse(); // logs are stored new-to-old, so reverse for display
+
     return (
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full h-full flex flex-col bg-[#1a120b]/80 backdrop-blur-sm rounded-lg border-2 border-[#4a3b32] shadow-xl overflow-hidden relative">
+            {/* Header */}
+            <div className="bg-[#2a1d17] p-2 border-b-2 border-[#4a3b32] flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[#eaddcf] font-bold text-xs tracking-wider">TAVERN CHAT</span>
+            </div>
+
             {/* Chat History */}
-            <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar p-2 mb-2">
-                {logs.map((log) => (
-                    <div key={log.id} className={`flex flex-col gap-1 ${log.type === 'info' ? 'items-end' : 'items-start'}`}>
-                        <div className={`max-w-[85%] p-2 rounded text-xs leading-relaxed shadow-sm border-b-2 
-                ${log.type === 'info'
-                                ? 'bg-[#d4c5b0] text-[#3e3224] border-[#8c7b63] rounded-tr-none'
-                                : 'bg-[#2a1d17] text-[#eaddcf] border-[#1a120b] rounded-tl-none'
-                            }`}>
-                            {log.message}
-                        </div>
-                        <span className="text-[8px] text-amber-900/40 font-mono px-1">{log.timestamp}</span>
+            <div
+                ref={scrollContainerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#1a120b]"
+            >
+                {chatLogs.length === 0 && (
+                    <div className="text-center text-[#eaddcf]/30 italic mt-10 text-xs">
+                        The tavern is quiet...
                     </div>
-                ))}
+                )}
+
+                {chatLogs.map((log) => {
+                    const isUser = log.type === 'info';
+                    return (
+                        <div key={log.id} className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                            {/* Avatar */}
+                            <div className={`w-8 h-8 rounded border-2 shrink-0 flex items-center justify-center
+                                ${isUser ? 'bg-[#3e3224] border-[#8c7b63]' : 'bg-[#855e42] border-[#eaddcf]'}
+                            `}>
+                                {isUser ? <User size={14} className="text-[#eaddcf]" /> : <Bot size={14} className="text-[#eaddcf]" />}
+                            </div>
+
+                            {/* Message Bubble */}
+                            <div className={`flex flex-col max-w-[80%] ${isUser ? 'items-end' : 'items-start'}`}>
+                                <div className={`px-3 py-2 text-xs leading-relaxed shadow-md relative
+                                    ${isUser
+                                        ? 'bg-[#eaddcf] text-[#2a1d17] rounded-l-lg rounded-tr-lg'
+                                        : 'bg-[#2a1d17] text-[#eaddcf] border border-[#4a3b32] rounded-r-lg rounded-tl-lg'
+                                    }
+                                `}>
+                                    {log.message}
+                                </div>
+                                <span className="text-[9px] text-[#eaddcf]/40 mt-1 px-1 font-mono">
+                                    {log.timestamp}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })}
                 <div ref={chatEndRef} />
             </div>
 
-            {/* Chat Input */}
-            <div className="mt-auto pt-2 border-t-2 border-amber-900/20 flex gap-2 shrink-0">
-                <input
-                    type="text"
+            {/* Input Area */}
+            <div className="p-2 bg-[#2a1d17] border-t-2 border-[#4a3b32] flex gap-2">
+                <textarea
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Ask the TavernKeeper..."
-                    className="flex-1 bg-[#eaddcf] border-2 border-[#855e42] text-amber-950 px-3 py-2 text-xs font-pixel focus:outline-none focus:border-amber-600 placeholder:text-amber-900/40 rounded-sm"
+                    placeholder="Speak thy mind..."
+                    className="flex-1 bg-[#1a120b] border border-[#4a3b32] text-[#eaddcf] px-3 py-2 text-xs font-pixel focus:outline-none focus:border-[#eaddcf] placeholder:text-[#eaddcf]/20 rounded resize-none h-10 custom-scrollbar"
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSendMessage();
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                        }
                     }}
                 />
-                <button
+                <PixelButton
                     onClick={handleSendMessage}
-                    className="bg-[#855e42] text-[#eaddcf] px-3 border-2 border-[#5c4b40] hover:bg-[#5c4b40] active:translate-y-1 transition-all rounded-sm shadow-md"
+                    className="h-10 w-10 flex items-center justify-center !p-0"
+                    variant="wood"
                 >
-                    ➤
-                </button>
+                    <Send size={16} />
+                </PixelButton>
             </div>
         </div>
     );

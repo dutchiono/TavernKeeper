@@ -3,11 +3,8 @@
  * Handles the process of creating and minting new heroes
  */
 
-import { createPublicClient, http } from 'viem';
-import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 import { metadataStorage } from './metadataStorage';
 import { spriteRenderer, type ColorPalette } from './spriteRenderer';
-import { monad } from '../wagmi';
 
 export interface HeroMintData {
     name: string;
@@ -62,39 +59,18 @@ export const uploadMetadata = async (metadata: Record<string, unknown>): Promise
 };
 
 /**
- * Mint a new hero
+ * Mint a new hero with signature-based pricing
  * Supports both client-side (injected wallet) and server-side (testnet wallet) minting.
  */
 export const mintHero = async (
     walletClient: any, // viem WalletClient or similar
     walletAddress: string,
-    metadataUri: string
+    metadataUri: string,
+    tier?: 1 | 2 | 3
 ): Promise<string> => {
-    const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
-    const contractAddress = getContractAddress(contractConfig);
-
-    if (!contractAddress) {
-        throw new Error('Adventurer contract address not found');
-    }
-
-    const publicClient = createPublicClient({
-        chain: monad,
-        transport: http(),
-    });
-
-    const hash = await walletClient.writeContract({
-        address: contractAddress,
-        abi: contractConfig.abi,
-        functionName: 'mintHero',
-        args: [walletAddress, metadataUri],
-        chain: monad,
-        account: walletClient.account,
-    });
-
-    // Wait for transaction
-    await publicClient.waitForTransactionReceipt({ hash });
-
-    return hash;
+    // Use rpgService for signature-based minting
+    const { rpgService } = await import('./rpgService');
+    return await rpgService.mintHero(walletClient, walletAddress, walletAddress, metadataUri, tier);
 };
 
 // Default export object for backward compatibility with API routes if they used it

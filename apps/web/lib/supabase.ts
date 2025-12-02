@@ -36,6 +36,11 @@ interface QueryOptions {
   select?: string;
   eq?: { column: string; value: string | number | boolean }[]; // Support multiple
   in?: { column: string; values: (string | number | boolean)[] };
+  contains?: { column: string; value: unknown }[];
+  gt?: { column: string; value: string | number | boolean }[];
+  gte?: { column: string; value: string | number | boolean }[];
+  lt?: { column: string; value: string | number | boolean }[];
+  lte?: { column: string; value: string | number | boolean }[];
   order?: { column: string; ascending?: boolean };
   limit?: number;
   single?: boolean;
@@ -61,6 +66,32 @@ async function supabaseRequest<T>(
   }
   if (options.in) {
     url.searchParams.set(`${options.in.column}`, `in.(${options.in.values.join(',')})`);
+  }
+  if (options.contains) {
+    options.contains.forEach(filter => {
+      const val = Array.isArray(filter.value) ? `{${filter.value.join(',')}}` : JSON.stringify(filter.value);
+      url.searchParams.set(`${filter.column}`, `cs.${val}`);
+    });
+  }
+  if (options.gt) {
+    options.gt.forEach(filter => {
+      url.searchParams.set(`${filter.column}`, `gt.${filter.value}`);
+    });
+  }
+  if (options.gte) {
+    options.gte.forEach(filter => {
+      url.searchParams.set(`${filter.column}`, `gte.${filter.value}`);
+    });
+  }
+  if (options.lt) {
+    options.lt.forEach(filter => {
+      url.searchParams.set(`${filter.column}`, `lt.${filter.value}`);
+    });
+  }
+  if (options.lte) {
+    options.lte.forEach(filter => {
+      url.searchParams.set(`${filter.column}`, `lte.${filter.value}`);
+    });
   }
   if (options.order) {
     url.searchParams.set('order', `${options.order.column}.${options.order.ascending ? 'asc' : 'desc'}`);
@@ -153,6 +184,36 @@ class SupabaseQueryBuilder<T> {
 
   in(column: string, values: (string | number | boolean)[]) {
     this.options.in = { column, values };
+    return this;
+  }
+
+  contains(column: string, value: unknown) {
+    if (!this.options.contains) this.options.contains = [];
+    this.options.contains.push({ column, value });
+    return this;
+  }
+
+  gt(column: string, value: string | number | boolean) {
+    if (!this.options.gt) this.options.gt = [];
+    this.options.gt.push({ column, value });
+    return this;
+  }
+
+  gte(column: string, value: string | number | boolean) {
+    if (!this.options.gte) this.options.gte = [];
+    this.options.gte.push({ column, value });
+    return this;
+  }
+
+  lt(column: string, value: string | number | boolean) {
+    if (!this.options.lt) this.options.lt = [];
+    this.options.lt.push({ column, value });
+    return this;
+  }
+
+  lte(column: string, value: string | number | boolean) {
+    if (!this.options.lte) this.options.lte = [];
+    this.options.lte.push({ column, value });
     return this;
   }
 

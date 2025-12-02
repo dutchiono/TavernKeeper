@@ -1,0 +1,380 @@
+import { createPublicClient, formatEther, http } from 'viem';
+import { monad } from '../chains';
+import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
+
+export interface TavernKeeperNFT {
+    tokenId: string;
+    tbaAddress: string;
+    tier: number;
+}
+
+export interface HeroNFT {
+    tokenId: string;
+    metadataUri: string;
+    tbaAddress: string; // The TBA that owns this hero (if any)
+}
+
+export const rpgService = {
+    // --- Read Functions ---
+
+    /**
+     * Get all TavernKeeper NFTs owned by a user.
+     * Uses getTokensOfOwner view function.
+     */
+    async getUserTavernKeepers(userAddress: string): Promise<TavernKeeperNFT[]> {
+        const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+        const address = getContractAddress(contractConfig);
+        if (!address) return [];
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(),
+        });
+
+        try {
+            // Fetch token IDs directly from contract
+            const tokenIds = await publicClient.readContract({
+                address,
+                abi: [...contractConfig.abi, {
+                    "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }],
+                    "name": "getTokensOfOwner",
+                    "outputs": [{ "internalType": "uint256[]", "name": "", "type": "uint256[]" }],
+                    "stateMutability": "view",
+                    "type": "function"
+                }],
+                functionName: 'getTokensOfOwner',
+                args: [userAddress as `0x${string}`],
+            }) as bigint[];
+
+            const ownedKeepers: TavernKeeperNFT[] = [];
+
+            for (const idBigInt of tokenIds) {
+                const id = idBigInt.toString();
+                // Calculate TBA
+                const tba = await this.getTBA(id);
+                // Determine Tier (Simple logic based on ID)
+                const idNum = Number(id);
+                let tier = 3;
+                if (idNum <= 100) tier = 1;
+                else if (idNum <= 1000) tier = 2;
+
+                ownedKeepers.push({
+                    tokenId: id,
+                    tbaAddress: tba,
+                    tier
+                });
+            }
+
+            return ownedKeepers.sort((a, b) => Number(a.tokenId) - Number(b.tokenId));
+        } catch (e) {
+            console.error("Failed to fetch user tavern keepers", e);
+            return [];
+        }
+    },
+
+    /**
+     * Get the Token Bound Account (TBA) address for a TavernKeeper NFT.
+     */
+    async getTBA(tokenId: string): Promise<string> {
+        const registryConfig = CONTRACT_REGISTRY.ERC6551_REGISTRY;
+        const registryAddress = getContractAddress(registryConfig);
+        const accountImplConfig = CONTRACT_REGISTRY.ERC6551_IMPLEMENTATION;
+        const accountImplAddress = getContractAddress(accountImplConfig);
+        const tokenContractAddress = getContractAddress(CONTRACT_REGISTRY.TAVERNKEEPER);
+
+        if (!registryAddress || !accountImplAddress || !tokenContractAddress) return '';
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(),
+        });
+
+        const tba = await publicClient.readContract({
+            address: registryAddress,
+            abi: registryConfig.abi,
+            functionName: 'account',
+            args: [
+                accountImplAddress,
+                BigInt(0), // salt
+                BigInt(monad.id),
+                tokenContractAddress,
+                BigInt(tokenId)
+            ]
+        });
+
+        return tba as string;
+    },
+
+    /**
+     * Get all Heroes owned by a specific address (usually a TBA).
+     */
+    async getHeroes(ownerAddress: string): Promise<HeroNFT[]> {
+        const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
+        const address = getContractAddress(contractConfig);
+        if (!address) return [];
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(),
+        });
+
+        try {
+            // Fetch token IDs directly from contract
+            const tokenIds = await publicClient.readContract({
+                address,
+                abi: [...contractConfig.abi, {
+                    "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }],
+                    "name": "getTokensOfOwner",
+                    "outputs": [{ "internalType": "uint256[]", "name": "", "type": "uint256[]" }],
+                    "stateMutability": "view",
+                    "type": "function"
+                }],
+                functionName: 'getTokensOfOwner',
+                args: [ownerAddress as `0x${string}`],
+            }) as bigint[];
+
+            const ownedHeroes: HeroNFT[] = [];
+            for (const idBigInt of tokenIds) {
+                const id = idBigInt.toString();
+                // Fetch metadata URI
+                const uri = await publicClient.readContract({
+                    address,
+                    abi: contractConfig.abi,
+                    functionName: 'tokenURI',
+                    args: [BigInt(id)],
+                });
+
+                // Calculate TBA for the Hero (Recursive!)
+                // Heroes can also have inventories
+                const tba = await this.getHeroTBA(id);
+
+                ownedHeroes.push({
+                    tokenId: id,
+                    metadataUri: uri as string,
+                    tbaAddress: tba
+                });
+            }
+
+            return ownedHeroes.sort((a, b) => Number(a.tokenId) - Number(b.tokenId));
+        } catch (e) {
+            console.error("Failed to fetch heroes", e);
+            return [];
+        }
+    },
+
+    async getHeroTBA(tokenId: string): Promise<string> {
+        const registryConfig = CONTRACT_REGISTRY.ERC6551_REGISTRY;
+        const registryAddress = getContractAddress(registryConfig);
+        const accountImplConfig = CONTRACT_REGISTRY.ERC6551_IMPLEMENTATION;
+        const accountImplAddress = getContractAddress(accountImplConfig);
+        const tokenContractAddress = getContractAddress(CONTRACT_REGISTRY.ADVENTURER);
+
+        if (!registryAddress || !accountImplAddress || !tokenContractAddress) return '';
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(),
+        });
+
+        const tba = await publicClient.readContract({
+            address: registryAddress,
+            abi: registryConfig.abi,
+            functionName: 'account',
+            args: [
+                accountImplAddress,
+                BigInt(0),
+                BigInt(monad.id),
+                tokenContractAddress,
+                BigInt(tokenId)
+            ]
+        });
+
+        return tba as string;
+    },
+
+    // --- Write Functions ---
+
+    /**
+     * Get price signature from backend API
+     */
+    async getPriceSignature(
+        contractType: 'tavernkeeper' | 'adventurer',
+        tier: 1 | 2 | 3,
+        userAddress: string
+    ): Promise<{
+        amount: string;
+        amountWei: string;
+        deadline: string;
+        signature: `0x${string}`;
+        monPrice: number;
+        usdPrice: number;
+        tier: number;
+    }> {
+        const response = await fetch('/api/pricing/sign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contractType,
+                tier,
+                userAddress,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to get price signature');
+        }
+
+        return await response.json();
+    },
+
+    /**
+     * Determine tier based on current token count
+     */
+    async getCurrentTier(contractType: 'tavernkeeper' | 'adventurer'): Promise<1 | 2 | 3> {
+        const contractConfig = contractType === 'tavernkeeper'
+            ? CONTRACT_REGISTRY.TAVERNKEEPER
+            : CONTRACT_REGISTRY.ADVENTURER;
+        const address = getContractAddress(contractConfig);
+        if (!address) return 1; // Default to tier 1
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(),
+        });
+
+        try {
+            // Get total supply or next token ID
+            // We'll use a workaround - try to get the next token ID from the contract
+            // For now, we'll estimate based on user's tokens or default to tier 1
+            // In practice, you might want to track this differently
+            return 1; // Default to tier 1 for first mint
+        } catch (e) {
+            console.error('Failed to determine tier:', e);
+            return 1; // Default to tier 1
+        }
+    },
+
+    async mintTavernKeeper(
+        walletClient: any,
+        address: string,
+        uri: string,
+        tier?: 1 | 2 | 3
+    ) {
+        const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+        const contractAddress = getContractAddress(contractConfig);
+        if (!contractAddress) throw new Error("Contract not found");
+
+        // Determine tier if not provided
+        const mintTier = tier || await this.getCurrentTier('tavernkeeper');
+
+        // Get price signature from API
+        const priceSig = await this.getPriceSignature('tavernkeeper', mintTier, address);
+
+        return await walletClient.writeContract({
+            address: contractAddress,
+            abi: contractConfig.abi,
+            functionName: 'mintTavernKeeper',
+            args: [
+                uri,
+                BigInt(priceSig.amountWei),
+                BigInt(priceSig.deadline),
+                priceSig.signature,
+            ],
+            value: BigInt(priceSig.amountWei),
+            account: address as `0x${string}`,
+            chain: monad
+        });
+    },
+
+    async claimFreeHero(walletClient: any, address: string, tavernKeeperId: string, heroUri: string) {
+        const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
+        const contractAddress = getContractAddress(contractConfig);
+        if (!contractAddress) throw new Error("Contract not found");
+
+        return await walletClient.writeContract({
+            address: contractAddress,
+            abi: contractConfig.abi,
+            functionName: 'claimFreeHero',
+            args: [BigInt(tavernKeeperId), heroUri],
+            account: address as `0x${string}`,
+            chain: monad
+        });
+    },
+
+    async mintHero(
+        walletClient: any,
+        address: string,
+        to: string,
+        uri: string,
+        tier?: 1 | 2 | 3
+    ) {
+        const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
+        const contractAddress = getContractAddress(contractConfig);
+        if (!contractAddress) throw new Error("Contract not found");
+
+        // Determine tier if not provided
+        const mintTier = tier || await this.getCurrentTier('adventurer');
+
+        // Get price signature from API
+        const priceSig = await this.getPriceSignature('adventurer', mintTier, address);
+
+        return await walletClient.writeContract({
+            address: contractAddress,
+            abi: contractConfig.abi,
+            functionName: 'mintHero',
+            args: [
+                to,
+                uri,
+                BigInt(priceSig.amountWei),
+                BigInt(priceSig.deadline),
+                priceSig.signature,
+            ],
+            value: BigInt(priceSig.amountWei),
+            account: address as `0x${string}`,
+            chain: monad
+        });
+    },
+
+    async getTavernKeeperPrice(tokenId: number): Promise<string> {
+        const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+        const address = getContractAddress(contractConfig);
+        if (!address) return '0';
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(),
+        });
+
+        const price = await publicClient.readContract({
+            address,
+            abi: contractConfig.abi,
+            functionName: 'getMintPrice',
+            args: [BigInt(tokenId)],
+        });
+
+        return formatEther(price as bigint);
+    },
+
+    async getHeroPrice(tokenId: number): Promise<string> {
+        const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
+        const address = getContractAddress(contractConfig);
+        if (!address) return '0';
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(),
+        });
+
+        const price = await publicClient.readContract({
+            address,
+            abi: contractConfig.abi,
+            functionName: 'getMintPrice',
+            args: [BigInt(tokenId)],
+        });
+
+        return formatEther(price as bigint);
+    }
+};

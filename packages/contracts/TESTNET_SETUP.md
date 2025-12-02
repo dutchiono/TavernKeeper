@@ -11,8 +11,8 @@ All contracts have been successfully deployed to Monad Testnet as UUPS upgradeab
 - **ERC6551Account Implementation**: `0x9B5980110654dcA57a449e2D6BEc36fE54123B0F`
 
 ### Game Contracts (UUPS Proxies)
-- **GoldToken Proxy**: `0x96982EC3625145f098DCe06aB34E99E7207b0520` ⭐ **USE THIS**
-- **GoldToken Implementation**: `0x8788E862023A49a77E8F27277a8b3F07B4E9A7d8`
+- **KeepToken Proxy**: `0x96982EC3625145f098DCe06aB34E99E7207b0520` ⭐ **USE THIS**
+- **KeepToken Implementation**: `0x8788E862023A49a77E8F27277a8b3F07B4E9A7d8`
 
 - **Inventory Proxy**: `0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC` ⭐ **USE THIS**
 - **Inventory Implementation**: `0xc03bC9D0BD59b98535aEBD2102221AeD87c820A6`
@@ -63,7 +63,7 @@ npx hardhat test test/testnet.test.ts --network monad
 ### Test Coverage
 
 - ✅ Contract verification (name, symbol, initialization)
-- ✅ GoldToken operations (mint, burn)
+- ✅ KeepToken operations (mint via TavernKeeper)
 - ✅ Inventory operations (mint items, fee collection)
 - ✅ NFT operations (mint Adventurer, mint TavernKeeper)
 - ✅ ERC-6551 TBA operations (create TBA for NFTs)
@@ -80,7 +80,7 @@ This tests the complete game workflow:
 2. Create TBAs
 3. Mint items to TBAs
 4. Transfer items with fee collection
-5. Mint GoldToken
+5. Mint KeepToken
 
 ## Fee Collection
 
@@ -93,7 +93,7 @@ This tests the complete game workflow:
 
 1. **Always use PROXY addresses** in your frontend/API, not implementation addresses
 2. **Fees go back to deployer** - this ensures we don't lose testnet MON
-3. **GoldToken operations are cheap** - designed to work with minimal MON balance
+3. **KeepToken operations are cheap** - designed to work with minimal MON balance
 4. **Test wallets have 1 MON each** - enough for extensive testing
 5. **All contracts are UUPS upgradeable** - can be upgraded in the future
 

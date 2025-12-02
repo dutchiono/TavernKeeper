@@ -1,3 +1,4 @@
+import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 import { supabase } from '../supabase';
 
 export interface Party {
@@ -20,13 +21,24 @@ export interface PartyMember {
     joined_at: string;
 }
 
-export async function createParty(ownerId: string, dungeonId?: string): Promise<Party | null> {
+export async function createParty(
+    ownerId: string,
+    dungeonId?: string,
+    initialHeroTokenIds?: string[]
+): Promise<Party | null> {
+    // Get Adventurer contract address from registry
+    const heroContractAddress = getContractAddress(CONTRACT_REGISTRY.ADVENTURER);
+    if (!heroContractAddress) {
+        console.error('Adventurer contract address not configured');
+        return null;
+    }
     const { data, error } = await supabase
-        .from<Party>('parties')
+        .from('parties')
         .insert({
             owner_id: ownerId,
             dungeon_id: dungeonId,
             status: 'waiting',
+            max_members: 5,
         })
         .select()
         .single();
@@ -35,7 +47,34 @@ export async function createParty(ownerId: string, dungeonId?: string): Promise<
         console.error('Error creating party:', error);
         return null;
     }
-    return data as Party | null;
+
+    if (!data || Array.isArray(data)) {
+        console.error('Party creation returned invalid data');
+        return null;
+    }
+
+    const party = data as Party;
+
+    // Add initial members if provided
+    if (initialHeroTokenIds && initialHeroTokenIds.length > 0) {
+        const memberInserts = initialHeroTokenIds.map(tokenId => ({
+            party_id: party.id,
+            user_id: ownerId,
+            hero_token_id: tokenId,
+            hero_contract_address: heroContractAddress,
+        }));
+
+        const { error: membersError } = await supabase
+            .from('party_members')
+            .insert(memberInserts);
+
+        if (membersError) {
+            console.error('Error adding initial members:', membersError);
+            // Party created but members failed - still return party
+        }
+    }
+
+    return party as Party | null;
 }
 
 export async function getParty(partyId: string): Promise<Party | null> {
@@ -110,13 +149,17 @@ export async function joinParty(
     userId: string,
     heroTokenId: string,
     heroContract: string
-): Promise<boolean> {
+): Promise<{ success: boolean; autoStarted?: boolean; runId?: string }> {
     // Check if party exists and is not full
     const party = await getParty(partyId);
-    if (!party) return false;
+    if (!party) return { success: false };
+
+    if (party.status !== 'waiting') {
+        return { success: false }; // Party already started or cancelled
+    }
 
     const members = await getPartyMembers(partyId);
-    if (members.length >= party.max_members) return false;
+    if (members.length >= party.max_members) return { success: false };
 
     // Add member
     const { error } = await supabase
@@ -130,9 +173,51 @@ export async function joinParty(
 
     if (error) {
         console.error('Error joining party:', error);
-        return false;
+        return { success: false };
     }
-    return true;
+
+    // Check if party is now full (5 members) and auto-start
+    const updatedMembers = await getPartyMembers(partyId);
+    if (updatedMembers.length >= 5 && party.dungeon_id) {
+        // Auto-start the run
+        const allTokenIds = updatedMembers.map(m => m.hero_token_id);
+
+        // Create run
+        const { runQueue } = await import('../queue');
+        const { supabase: supabaseClient } = await import('../supabase');
+
+        const { data: run, error: runError } = await supabaseClient
+            .from('runs')
+            .insert({
+                dungeon_id: party.dungeon_id,
+                party: allTokenIds,
+                seed: `party-${partyId}-${Date.now()}`,
+                start_time: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+        if (!runError && run) {
+            // Enqueue simulation
+            await runQueue.add('simulate-run', {
+                runId: run.id,
+                dungeonId: party.dungeon_id,
+                party: allTokenIds,
+                seed: run.seed as string,
+                startTime: new Date(run.start_time as string).getTime(),
+            });
+
+            // Update party status and store run ID
+            await updateParty(partyId, {
+                status: 'in_progress',
+                // Store run_id in a metadata field if available, or we'll fetch it separately
+            });
+
+            return { success: true, autoStarted: true, runId: run.id };
+        }
+    }
+
+    return { success: true };
 }
 
 export async function leaveParty(partyId: string, userId: string): Promise<boolean> {

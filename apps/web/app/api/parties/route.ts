@@ -4,13 +4,13 @@ import { createParty, getUserParties } from '../../../lib/services/partyService'
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { ownerId, dungeonId } = body;
+        const { ownerId, dungeonId, initialHeroTokenIds } = body;
 
         if (!ownerId) {
             return NextResponse.json({ error: 'Owner ID is required' }, { status: 400 });
         }
 
-        const party = await createParty(ownerId, dungeonId);
+        const party = await createParty(ownerId, dungeonId, initialHeroTokenIds);
 
         if (!party) {
             return NextResponse.json({ error: 'Failed to create party' }, { status: 500 });

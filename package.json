@@ -16,6 +16,8 @@
     "test:all": "powershell -ExecutionPolicy Bypass -File scripts/test-all.ps1 run && pnpm --filter @innkeeper/web test:e2e",
     "test:output": "pnpm --filter @innkeeper/web test:output",
     "test:watch:file": "pnpm --filter @innkeeper/web test:watch:file",
+    "network:local": "pnpm --filter @innkeeper/web network:local",
+    "network:testnet": "pnpm --filter @innkeeper/web network:testnet",
     "lint": "pnpm -r lint"
   },
   "devDependencies": {
@@ -27,4 +29,3 @@
     "pnpm": ">=8.0.0"
   }
 }
-

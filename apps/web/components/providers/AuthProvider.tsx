@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 import { AuthKitProvider } from '@farcaster/auth-kit';
 import '@farcaster/auth-kit/styles.css';
 
@@ -10,6 +12,14 @@ const config = {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+    const [isMounted, setIsMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) return null;
+
     return (
         <AuthKitProvider config={config}>
             {children}

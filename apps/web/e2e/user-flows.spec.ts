@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
  * User Flow Tests - Test complete user journeys
@@ -58,8 +58,8 @@ test.describe('Complete User Flows', () => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
-    // Test all pages on mobile
-    const pages = ['/', '/party', '/map'];
+    // Test all pages on mobile (including new pages)
+    const pages = ['/', '/party', '/map', '/marketplace', '/hero-builder', '/miniapp'];
 
     for (const path of pages) {
       await page.goto(path);

@@ -1,6 +1,6 @@
-import { defineConfig } from 'vitest/config';
-import path from 'path';
 import { existsSync, rmSync } from 'fs';
+import path from 'path';
+import { defineConfig } from 'vitest/config';
 
 // Clean vitest results before each run
 const testResultsFile = path.join(__dirname, 'test-results', 'vitest-results.json');
@@ -13,7 +13,15 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
-    exclude: ['**/node_modules/**', '**/e2e/**', '**/.{idea,git,cache,output,temp}/**'],
+    exclude: [
+      '**/node_modules/**',
+      '**/e2e/**',
+      '**/.{idea,git,cache,output,temp}/**',
+      // Exclude contract integration tests that make real calls (require testnet setup)
+      '**/__tests__/services/tavernKeeperService.test.ts', // Makes real contract calls
+    ],
+    // Separate test suites - contract tests are isolated
+    include: ['**/__tests__/**/*.test.ts'],
     reporters: [
       'default',
       ['json', { outputFile: 'test-results/vitest-results.json' }], // Overwrites previous file

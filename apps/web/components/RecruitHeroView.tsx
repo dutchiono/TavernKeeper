@@ -1,0 +1,288 @@
+'use client';
+
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useEffect, useState } from 'react';
+import { ethers } from 'ethers';
+import { createWalletClient, custom } from 'viem';
+import { useBalance } from 'wagmi';
+import { monad } from '../lib/chains';
+import { uploadMetadata } from '../lib/services/heroMinting';
+import { rpgService } from '../lib/services/rpgService';
+import { HeroClass, generateSpriteURI } from '../lib/services/spriteService';
+import { ForgeButton, ForgePanel } from './heroes/ForgeComponents';
+import HeroEditor, { HeroData } from './heroes/HeroEditor';
+
+interface RecruitHeroViewProps {
+    tbaAddress: string;
+    onSuccess?: () => void;
+    onCancel?: () => void;
+}
+
+export default function RecruitHeroView({ tbaAddress, onSuccess, onCancel }: RecruitHeroViewProps) {
+    const { user } = usePrivy();
+    const { wallets } = useWallets();
+    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
+    const address = user?.wallet?.address;
+
+    // Fetch Balance
+    const { data: balanceData } = useBalance({
+        address: address as `0x${string}`,
+        chainId: monad.id,
+    });
+
+    const [heroData, setHeroData] = useState<HeroData>({
+        name: '',
+        heroClass: 'Warrior',
+        colors: {
+            skin: '#fdbcb4',
+            hair: '#8b4513',
+            clothing: '#ef4444',
+            accent: '#ffffff',
+        }
+    });
+
+    const [activeTab, setActiveTab] = useState<'design' | 'recruit'>('design');
+    const [status, setStatus] = useState<'idle' | 'uploading' | 'minting' | 'success' | 'error'>('idle');
+    const [statusMessage, setStatusMessage] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [priceSignature, setPriceSignature] = useState<{
+        amount: string;
+        amountWei: string;
+        deadline: string;
+        signature: string;
+        monPrice: number;
+        usdPrice: number;
+        tier: number;
+    } | null>(null);
+
+    useEffect(() => {
+        // Fetch price signature (Tier 1 = $1 for first hero)
+        if (!address) return;
+        const fetchPrice = async () => {
+            try {
+                const sig = await rpgService.getPriceSignature('adventurer', 1, address);
+                setPriceSignature(sig);
+            } catch (e) {
+                console.error('Failed to fetch price signature:', e);
+                setPriceSignature(null);
+            }
+        };
+        fetchPrice();
+    }, [address]);
+
+    const handleMint = async () => {
+        if (!address || !wallet || !heroData.name) return;
+
+        setStatus('uploading');
+        setStatusMessage('Preparing Hero Metadata...');
+        setError(null);
+
+        try {
+            const provider = await wallet.getEthereumProvider();
+            const walletClient = createWalletClient({
+                account: address as `0x${string}`,
+                chain: monad,
+                transport: custom(provider)
+            });
+
+            // 1. Upload Metadata
+            const imageUri = generateSpriteURI(heroData.heroClass as HeroClass, heroData.colors, false);
+            const metadata = {
+                name: heroData.name,
+                description: `A brave ${heroData.heroClass} adventurer.`,
+                image: imageUri,
+                attributes: [
+                    { trait_type: 'Class', value: heroData.heroClass },
+                    { trait_type: 'Level', value: 1 },
+                ],
+                hero: {
+                    class: heroData.heroClass,
+                    colorPalette: heroData.colors,
+                    spriteSheet: heroData.heroClass.toLowerCase(),
+                    animationFrames: {
+                        idle: [0, 1, 2, 3],
+                        walk: [4, 5, 6, 7],
+                        emote: [8],
+                        talk: [9, 10],
+                    },
+                },
+            };
+            const metadataUri = await uploadMetadata(metadata);
+
+            // 2. Get fresh price signature (in case price changed)
+            if (!priceSignature) {
+                throw new Error('Price signature not available. Please refresh and try again.');
+            }
+
+            // Check if signature is still valid (not expired)
+            const deadline = BigInt(priceSignature.deadline);
+            const now = BigInt(Math.floor(Date.now() / 1000));
+            if (now >= deadline) {
+                // Signature expired, fetch new one
+                const newSig = await rpgService.getPriceSignature('adventurer', 1, address);
+                setPriceSignature(newSig);
+                if (BigInt(newSig.deadline) <= now) {
+                    throw new Error('Price signature expired. Please try again.');
+                }
+            }
+
+            // 3. Mint Hero to TBA with signature
+            setStatus('minting');
+            setStatusMessage(`Recruiting Hero ($${priceSignature.usdPrice.toFixed(2)} = ${priceSignature.amount} MON)... Check Wallet`);
+
+            const hash = await rpgService.mintHero(walletClient, address, tbaAddress, metadataUri, 1);
+
+            setStatus('success');
+            setStatusMessage(`Hero Recruited! Tx: ${hash}`);
+
+            if (onSuccess) onSuccess();
+
+        } catch (e) {
+            console.error(e);
+            setStatus('error');
+            setError((e as Error).message);
+        }
+    };
+
+    if (status === 'success') {
+        return (
+            <ForgePanel title="Recruitment Successful!" variant="paper" className="text-center max-w-md mx-auto">
+                <h2 className="text-xl font-bold text-green-800 mb-4">Welcome to the Party!</h2>
+                <p className="text-amber-900 mb-6">{heroData.name} has joined your ranks.</p>
+                <ForgeButton onClick={onSuccess} className="w-full">Return to Party</ForgeButton>
+            </ForgePanel>
+        );
+    }
+
+    return (
+        <div className="w-full max-w-4xl mx-auto">
+            {/* Tabs */}
+            <div className="flex border-b-4 border-[#5c3a1e] mb-6">
+                <button
+                    onClick={() => setActiveTab('design')}
+                    className={`flex-1 py-3 text-center font-bold uppercase tracking-wider transition-colors ${activeTab === 'design'
+                        ? 'bg-[#8b5a2b] text-[#fcdfa6]'
+                        : 'bg-[#2a1d17] text-[#8b7355] hover:bg-[#3e2613]'
+                        }`}
+                >
+                    1. Design Hero
+                </button>
+                <button
+                    onClick={() => setActiveTab('recruit')}
+                    className={`flex-1 py-3 text-center font-bold uppercase tracking-wider transition-colors ${activeTab === 'recruit'
+                        ? 'bg-[#8b5a2b] text-[#fcdfa6]'
+                        : 'bg-[#2a1d17] text-[#8b7355] hover:bg-[#3e2613]'
+                        }`}
+                >
+                    2. Recruit
+                </button>
+            </div>
+
+            {/* Content */}
+            <div className="min-h-[500px]">
+                {activeTab === 'design' && (
+                    <div className="animate-fade-in">
+                        <div className="mb-4 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl text-yellow-400 drop-shadow-md mb-1">Recruit New Hero</h2>
+                                <p className="text-[#d4c5b0] text-xs">Design a new adventurer for your party.</p>
+                            </div>
+                            {onCancel && (
+                                <button onClick={onCancel} className="text-[#d4c5b0] hover:text-white text-xs underline">
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
+                        <HeroEditor
+                            initialData={heroData}
+                            onChange={setHeroData}
+                        />
+                        <div className="mt-8 flex justify-center">
+                            <ForgeButton
+                                onClick={() => setActiveTab('recruit')}
+                                className="w-full max-w-md py-4 text-lg"
+                            >
+                                Next: Review Contract &rarr;
+                            </ForgeButton>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'recruit' && (
+                    <div className="animate-fade-in max-w-md mx-auto">
+                        <div className="mb-6 text-center">
+                            <h2 className="text-2xl text-yellow-400 drop-shadow-md mb-2">Review Contract</h2>
+                            <p className="text-[#d4c5b0]">Sign the contract to recruit this hero.</p>
+                        </div>
+
+                        <ForgePanel title="Recruitment Cost" variant="wood">
+                            <div className="space-y-4 p-4">
+                                <div className="flex justify-between items-center text-[#d4c5b0]">
+                                    <span>Hero Name</span>
+                                    <span className="font-bold text-[#fcdfa6]">{heroData.name || 'Unknown'}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[#d4c5b0]">
+                                    <span>Class</span>
+                                    <span className="font-bold text-[#fcdfa6]">{heroData.heroClass}</span>
+                                </div>
+
+                                <div className="border-t border-[#5c3a1e] my-4" />
+
+                                <div className="flex justify-between text-sm text-[#d4c5b0]">
+                                    <span>Signing Bonus (Tier 1)</span>
+                                    <span className="text-yellow-400">
+                                        {priceSignature ? `$${priceSignature.usdPrice.toFixed(2)} (~${priceSignature.amount} MON)` : 'Loading...'}
+                                    </span>
+                                </div>
+                                {priceSignature && (
+                                    <div className="text-[10px] text-[#8b7355] pl-2">
+                                        MON @ ${priceSignature.monPrice.toFixed(5)} = {priceSignature.amount} MON
+                                    </div>
+                                )}
+                                <div className="border-t border-[#5c3a1e] my-4" />
+                                <div className="flex justify-between font-bold text-xl text-[#fcdfa6]">
+                                    <span>Total</span>
+                                    <span>{priceSignature ? `$${priceSignature.usdPrice.toFixed(2)} (~${priceSignature.amount} MON)` : '...'}</span>
+                                </div>
+
+                                {/* Balance Display */}
+                                <div className="mt-2 text-right text-xs text-[#8b7355]">
+                                    Wallet Balance: {balanceData ? `${Number(ethers.formatUnits(balanceData.value, balanceData.decimals)).toFixed(4)} ${balanceData.symbol}` : 'Loading...'}
+                                </div>
+                            </div>
+
+                            <div className="mt-8 space-y-4">
+                                <ForgeButton
+                                    onClick={handleMint}
+                                    disabled={status !== 'idle' && status !== 'error' || !priceSignature || !heroData.name}
+                                    className="w-full py-4 text-lg"
+                                >
+                                    {status === 'idle' || status === 'error' ? 'Recruit Hero' : 'Processing...'}
+                                </ForgeButton>
+
+                                {status !== 'idle' && (
+                                    <div className="text-center bg-[#2a1d17]/50 p-4 rounded border border-[#5c3a1e]">
+                                        <p className="text-sm text-yellow-200 animate-pulse">{statusMessage}</p>
+                                    </div>
+                                )}
+
+                                {error && (
+                                    <div className="bg-red-900/50 border border-red-500 p-4 rounded text-center">
+                                        <p className="text-sm text-red-200">{error}</p>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => setActiveTab('design')}
+                                    className="w-full text-[#8b7355] hover:text-[#d4c5b0] text-sm underline"
+                                >
+                                    &larr; Back to Design
+                                </button>
+                            </div>
+                        </ForgePanel>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

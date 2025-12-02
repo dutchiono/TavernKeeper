@@ -26,14 +26,24 @@ import type {
 export interface AdventurerInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "TIER1_MAX_ID"
+      | "TIER2_MAX_ID"
       | "UPGRADE_INTERFACE_VERSION"
       | "approve"
       | "balanceOf"
+      | "claimFreeHero"
+      | "erc6551AccountImpl"
+      | "erc6551Registry"
+      | "freeHeroClaimed"
       | "getApproved"
+      | "getMintPrice"
+      | "getTokensOfOwner"
       | "initialize"
+      | "initializeRPG"
       | "isApprovedForAll"
       | "mintHero"
       | "name"
+      | "nonces"
       | "owner"
       | "ownerOf"
       | "proxiableUUID"
@@ -43,9 +53,17 @@ export interface AdventurerInterface extends Interface {
       | "safeTransferFrom(address,address,uint256)"
       | "safeTransferFrom(address,address,uint256,bytes)"
       | "setApprovalForAll"
+      | "setContracts"
       | "setPublicMintingEnabled"
+      | "setSigner"
+      | "setTierPrices"
+      | "signer"
       | "supportsInterface"
       | "symbol"
+      | "tavernKeeperContract"
+      | "tier1Price"
+      | "tier2Price"
+      | "tier3Price"
       | "tokenURI"
       | "transferFrom"
       | "transferOwnership"
@@ -58,16 +76,29 @@ export interface AdventurerInterface extends Interface {
       | "Approval"
       | "ApprovalForAll"
       | "BatchMetadataUpdate"
+      | "ContractsUpdated"
+      | "HeroClaimed"
       | "HeroMinted"
+      | "HeroMintedWithSignature"
       | "Initialized"
       | "MetadataUpdate"
       | "MetadataUpdated"
       | "OwnershipTransferred"
       | "PublicMintingToggled"
+      | "SignerUpdated"
+      | "TierPricesUpdated"
       | "Transfer"
       | "Upgraded"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "TIER1_MAX_ID",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "TIER2_MAX_ID",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "UPGRADE_INTERFACE_VERSION",
     values?: undefined
@@ -81,11 +112,39 @@ export interface AdventurerInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "claimFreeHero",
+    values: [BigNumberish, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "erc6551AccountImpl",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "erc6551Registry",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "freeHeroClaimed",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getApproved",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "getMintPrice",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getTokensOfOwner",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "initialize",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "initializeRPG",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -94,9 +153,10 @@ export interface AdventurerInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "mintHero",
-    values: [AddressLike, string]
+    values: [AddressLike, string, BigNumberish, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
+  encodeFunctionData(functionFragment: "nonces", values: [AddressLike]): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "ownerOf",
@@ -131,14 +191,43 @@ export interface AdventurerInterface extends Interface {
     values: [AddressLike, boolean]
   ): string;
   encodeFunctionData(
+    functionFragment: "setContracts",
+    values: [AddressLike, AddressLike, AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setPublicMintingEnabled",
     values: [boolean]
   ): string;
+  encodeFunctionData(
+    functionFragment: "setSigner",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setTierPrices",
+    values: [BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(functionFragment: "signer", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "supportsInterface",
     values: [BytesLike]
   ): string;
   encodeFunctionData(functionFragment: "symbol", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "tavernKeeperContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "tier1Price",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "tier2Price",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "tier3Price",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "tokenURI",
     values: [BigNumberish]
@@ -161,22 +250,59 @@ export interface AdventurerInterface extends Interface {
   ): string;
 
   decodeFunctionResult(
+    functionFragment: "TIER1_MAX_ID",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "TIER2_MAX_ID",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "UPGRADE_INTERFACE_VERSION",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "claimFreeHero",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "erc6551AccountImpl",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "erc6551Registry",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "freeHeroClaimed",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getApproved",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "getMintPrice",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getTokensOfOwner",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "initializeRPG",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "isApprovedForAll",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "mintHero", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "nonces", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(
@@ -205,14 +331,31 @@ export interface AdventurerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "setContracts",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setPublicMintingEnabled",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "setSigner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setTierPrices",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "signer", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "supportsInterface",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "symbol", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "tavernKeeperContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "tier1Price", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "tier2Price", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "tier3Price", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "tokenURI", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "transferFrom",
@@ -288,6 +431,50 @@ export namespace BatchMetadataUpdateEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace ContractsUpdatedEvent {
+  export type InputTuple = [
+    tavernKeeper: AddressLike,
+    registry: AddressLike,
+    accountImpl: AddressLike
+  ];
+  export type OutputTuple = [
+    tavernKeeper: string,
+    registry: string,
+    accountImpl: string
+  ];
+  export interface OutputObject {
+    tavernKeeper: string;
+    registry: string;
+    accountImpl: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace HeroClaimedEvent {
+  export type InputTuple = [
+    tavernKeeperId: BigNumberish,
+    heroTokenId: BigNumberish,
+    tba: AddressLike
+  ];
+  export type OutputTuple = [
+    tavernKeeperId: bigint,
+    heroTokenId: bigint,
+    tba: string
+  ];
+  export interface OutputObject {
+    tavernKeeperId: bigint;
+    heroTokenId: bigint;
+    tba: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace HeroMintedEvent {
   export type InputTuple = [
     to: AddressLike,
@@ -299,6 +486,31 @@ export namespace HeroMintedEvent {
     to: string;
     tokenId: bigint;
     metadataUri: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace HeroMintedWithSignatureEvent {
+  export type InputTuple = [
+    to: AddressLike,
+    tokenId: BigNumberish,
+    price: BigNumberish,
+    nonce: BigNumberish
+  ];
+  export type OutputTuple = [
+    to: string,
+    tokenId: bigint,
+    price: bigint,
+    nonce: bigint
+  ];
+  export interface OutputObject {
+    to: string;
+    tokenId: bigint;
+    price: bigint;
+    nonce: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -361,6 +573,36 @@ export namespace PublicMintingToggledEvent {
   export type OutputTuple = [enabled: boolean];
   export interface OutputObject {
     enabled: boolean;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace SignerUpdatedEvent {
+  export type InputTuple = [newSigner: AddressLike];
+  export type OutputTuple = [newSigner: string];
+  export interface OutputObject {
+    newSigner: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace TierPricesUpdatedEvent {
+  export type InputTuple = [
+    t1: BigNumberish,
+    t2: BigNumberish,
+    t3: BigNumberish
+  ];
+  export type OutputTuple = [t1: bigint, t2: bigint, t3: bigint];
+  export interface OutputObject {
+    t1: bigint;
+    t2: bigint;
+    t3: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -441,6 +683,10 @@ export interface Adventurer extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  TIER1_MAX_ID: TypedContractMethod<[], [bigint], "view">;
+
+  TIER2_MAX_ID: TypedContractMethod<[], [bigint], "view">;
+
   UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], "view">;
 
   approve: TypedContractMethod<
@@ -451,9 +697,31 @@ export interface Adventurer extends BaseContract {
 
   balanceOf: TypedContractMethod<[owner: AddressLike], [bigint], "view">;
 
+  claimFreeHero: TypedContractMethod<
+    [tavernKeeperTokenId: BigNumberish, metadataUri: string],
+    [bigint],
+    "nonpayable"
+  >;
+
+  erc6551AccountImpl: TypedContractMethod<[], [string], "view">;
+
+  erc6551Registry: TypedContractMethod<[], [string], "view">;
+
+  freeHeroClaimed: TypedContractMethod<[arg0: BigNumberish], [boolean], "view">;
+
   getApproved: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
 
+  getMintPrice: TypedContractMethod<[tokenId: BigNumberish], [bigint], "view">;
+
+  getTokensOfOwner: TypedContractMethod<
+    [owner: AddressLike],
+    [bigint[]],
+    "view"
+  >;
+
   initialize: TypedContractMethod<[], [void], "nonpayable">;
+
+  initializeRPG: TypedContractMethod<[], [void], "nonpayable">;
 
   isApprovedForAll: TypedContractMethod<
     [owner: AddressLike, operator: AddressLike],
@@ -462,12 +730,20 @@ export interface Adventurer extends BaseContract {
   >;
 
   mintHero: TypedContractMethod<
-    [to: AddressLike, metadataUri: string],
+    [
+      to: AddressLike,
+      metadataUri: string,
+      amount: BigNumberish,
+      deadline: BigNumberish,
+      signature: BytesLike
+    ],
     [bigint],
-    "nonpayable"
+    "payable"
   >;
 
   name: TypedContractMethod<[], [string], "view">;
+
+  nonces: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
   owner: TypedContractMethod<[], [string], "view">;
 
@@ -508,8 +784,26 @@ export interface Adventurer extends BaseContract {
     "nonpayable"
   >;
 
+  setContracts: TypedContractMethod<
+    [
+      _tavernKeeper: AddressLike,
+      _registry: AddressLike,
+      _accountImpl: AddressLike
+    ],
+    [void],
+    "nonpayable"
+  >;
+
   setPublicMintingEnabled: TypedContractMethod<
     [enabled: boolean],
+    [void],
+    "nonpayable"
+  >;
+
+  setSigner: TypedContractMethod<[_signer: AddressLike], [void], "nonpayable">;
+
+  setTierPrices: TypedContractMethod<
+    [_t1: BigNumberish, _t2: BigNumberish, _t3: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -521,6 +815,14 @@ export interface Adventurer extends BaseContract {
   >;
 
   symbol: TypedContractMethod<[], [string], "view">;
+
+  tavernKeeperContract: TypedContractMethod<[], [string], "view">;
+
+  tier1Price: TypedContractMethod<[], [bigint], "view">;
+
+  tier2Price: TypedContractMethod<[], [bigint], "view">;
+
+  tier3Price: TypedContractMethod<[], [bigint], "view">;
 
   tokenURI: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
 
@@ -553,6 +855,12 @@ export interface Adventurer extends BaseContract {
   ): T;
 
   getFunction(
+    nameOrSignature: "TIER1_MAX_ID"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "TIER2_MAX_ID"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "UPGRADE_INTERFACE_VERSION"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
@@ -566,10 +874,35 @@ export interface Adventurer extends BaseContract {
     nameOrSignature: "balanceOf"
   ): TypedContractMethod<[owner: AddressLike], [bigint], "view">;
   getFunction(
+    nameOrSignature: "claimFreeHero"
+  ): TypedContractMethod<
+    [tavernKeeperTokenId: BigNumberish, metadataUri: string],
+    [bigint],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "erc6551AccountImpl"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "erc6551Registry"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "freeHeroClaimed"
+  ): TypedContractMethod<[arg0: BigNumberish], [boolean], "view">;
+  getFunction(
     nameOrSignature: "getApproved"
   ): TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
   getFunction(
+    nameOrSignature: "getMintPrice"
+  ): TypedContractMethod<[tokenId: BigNumberish], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "getTokensOfOwner"
+  ): TypedContractMethod<[owner: AddressLike], [bigint[]], "view">;
+  getFunction(
     nameOrSignature: "initialize"
+  ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "initializeRPG"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "isApprovedForAll"
@@ -581,13 +914,22 @@ export interface Adventurer extends BaseContract {
   getFunction(
     nameOrSignature: "mintHero"
   ): TypedContractMethod<
-    [to: AddressLike, metadataUri: string],
+    [
+      to: AddressLike,
+      metadataUri: string,
+      amount: BigNumberish,
+      deadline: BigNumberish,
+      signature: BytesLike
+    ],
     [bigint],
-    "nonpayable"
+    "payable"
   >;
   getFunction(
     nameOrSignature: "name"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "nonces"
+  ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
@@ -637,14 +979,50 @@ export interface Adventurer extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "setContracts"
+  ): TypedContractMethod<
+    [
+      _tavernKeeper: AddressLike,
+      _registry: AddressLike,
+      _accountImpl: AddressLike
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "setPublicMintingEnabled"
   ): TypedContractMethod<[enabled: boolean], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setSigner"
+  ): TypedContractMethod<[_signer: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setTierPrices"
+  ): TypedContractMethod<
+    [_t1: BigNumberish, _t2: BigNumberish, _t3: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "signer"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "supportsInterface"
   ): TypedContractMethod<[interfaceId: BytesLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "symbol"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "tavernKeeperContract"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "tier1Price"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "tier2Price"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "tier3Price"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "tokenURI"
   ): TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
@@ -695,11 +1073,32 @@ export interface Adventurer extends BaseContract {
     BatchMetadataUpdateEvent.OutputObject
   >;
   getEvent(
+    key: "ContractsUpdated"
+  ): TypedContractEvent<
+    ContractsUpdatedEvent.InputTuple,
+    ContractsUpdatedEvent.OutputTuple,
+    ContractsUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "HeroClaimed"
+  ): TypedContractEvent<
+    HeroClaimedEvent.InputTuple,
+    HeroClaimedEvent.OutputTuple,
+    HeroClaimedEvent.OutputObject
+  >;
+  getEvent(
     key: "HeroMinted"
   ): TypedContractEvent<
     HeroMintedEvent.InputTuple,
     HeroMintedEvent.OutputTuple,
     HeroMintedEvent.OutputObject
+  >;
+  getEvent(
+    key: "HeroMintedWithSignature"
+  ): TypedContractEvent<
+    HeroMintedWithSignatureEvent.InputTuple,
+    HeroMintedWithSignatureEvent.OutputTuple,
+    HeroMintedWithSignatureEvent.OutputObject
   >;
   getEvent(
     key: "Initialized"
@@ -735,6 +1134,20 @@ export interface Adventurer extends BaseContract {
     PublicMintingToggledEvent.InputTuple,
     PublicMintingToggledEvent.OutputTuple,
     PublicMintingToggledEvent.OutputObject
+  >;
+  getEvent(
+    key: "SignerUpdated"
+  ): TypedContractEvent<
+    SignerUpdatedEvent.InputTuple,
+    SignerUpdatedEvent.OutputTuple,
+    SignerUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "TierPricesUpdated"
+  ): TypedContractEvent<
+    TierPricesUpdatedEvent.InputTuple,
+    TierPricesUpdatedEvent.OutputTuple,
+    TierPricesUpdatedEvent.OutputObject
   >;
   getEvent(
     key: "Transfer"
@@ -785,6 +1198,28 @@ export interface Adventurer extends BaseContract {
       BatchMetadataUpdateEvent.OutputObject
     >;
 
+    "ContractsUpdated(address,address,address)": TypedContractEvent<
+      ContractsUpdatedEvent.InputTuple,
+      ContractsUpdatedEvent.OutputTuple,
+      ContractsUpdatedEvent.OutputObject
+    >;
+    ContractsUpdated: TypedContractEvent<
+      ContractsUpdatedEvent.InputTuple,
+      ContractsUpdatedEvent.OutputTuple,
+      ContractsUpdatedEvent.OutputObject
+    >;
+
+    "HeroClaimed(uint256,uint256,address)": TypedContractEvent<
+      HeroClaimedEvent.InputTuple,
+      HeroClaimedEvent.OutputTuple,
+      HeroClaimedEvent.OutputObject
+    >;
+    HeroClaimed: TypedContractEvent<
+      HeroClaimedEvent.InputTuple,
+      HeroClaimedEvent.OutputTuple,
+      HeroClaimedEvent.OutputObject
+    >;
+
     "HeroMinted(address,uint256,string)": TypedContractEvent<
       HeroMintedEvent.InputTuple,
       HeroMintedEvent.OutputTuple,
@@ -794,6 +1229,17 @@ export interface Adventurer extends BaseContract {
       HeroMintedEvent.InputTuple,
       HeroMintedEvent.OutputTuple,
       HeroMintedEvent.OutputObject
+    >;
+
+    "HeroMintedWithSignature(address,uint256,uint256,uint256)": TypedContractEvent<
+      HeroMintedWithSignatureEvent.InputTuple,
+      HeroMintedWithSignatureEvent.OutputTuple,
+      HeroMintedWithSignatureEvent.OutputObject
+    >;
+    HeroMintedWithSignature: TypedContractEvent<
+      HeroMintedWithSignatureEvent.InputTuple,
+      HeroMintedWithSignatureEvent.OutputTuple,
+      HeroMintedWithSignatureEvent.OutputObject
     >;
 
     "Initialized(uint64)": TypedContractEvent<
@@ -849,6 +1295,28 @@ export interface Adventurer extends BaseContract {
       PublicMintingToggledEvent.InputTuple,
       PublicMintingToggledEvent.OutputTuple,
       PublicMintingToggledEvent.OutputObject
+    >;
+
+    "SignerUpdated(address)": TypedContractEvent<
+      SignerUpdatedEvent.InputTuple,
+      SignerUpdatedEvent.OutputTuple,
+      SignerUpdatedEvent.OutputObject
+    >;
+    SignerUpdated: TypedContractEvent<
+      SignerUpdatedEvent.InputTuple,
+      SignerUpdatedEvent.OutputTuple,
+      SignerUpdatedEvent.OutputObject
+    >;
+
+    "TierPricesUpdated(uint256,uint256,uint256)": TypedContractEvent<
+      TierPricesUpdatedEvent.InputTuple,
+      TierPricesUpdatedEvent.OutputTuple,
+      TierPricesUpdatedEvent.OutputObject
+    >;
+    TierPricesUpdated: TypedContractEvent<
+      TierPricesUpdatedEvent.InputTuple,
+      TierPricesUpdatedEvent.OutputTuple,
+      TierPricesUpdatedEvent.OutputObject
     >;
 
     "Transfer(address,address,uint256)": TypedContractEvent<

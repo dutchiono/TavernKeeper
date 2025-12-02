@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../../lib/stores/gameStore';
-import { generateAgentThought } from '../../services/geminiService';
+import { generateAgentThought } from '../../app/actions/aiActions';
 import { AgentDetailModal } from '../AgentDetailModal';
 
 export const InnScene: React.FC = () => {

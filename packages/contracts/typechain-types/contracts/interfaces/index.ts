@@ -3,6 +3,8 @@
 /* eslint-disable */
 import type * as iPseudoswapSol from "./IPseudoswap.sol";
 export type { iPseudoswapSol };
+import type * as iUniswapV2Router02Sol from "./IUniswapV2Router02.sol";
+export type { iUniswapV2Router02Sol };
 export type { IERC6551Account } from "./IERC6551Account";
 export type { IERC6551Registry } from "./IERC6551Registry";
 export type { IUniswapV3Router } from "./IUniswapV3Router";

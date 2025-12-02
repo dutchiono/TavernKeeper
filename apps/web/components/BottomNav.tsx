@@ -45,6 +45,16 @@ export const BottomNav: React.FC = () => {
             </button>
 
             <button
+                onClick={() => handleNavigation(GameView.CELLAR)}
+                className="flex flex-col items-center gap-1 p-2 group"
+            >
+                <div className={`w-10 h-10 border-2 rounded-sm flex items-center justify-center text-xl shadow-md transition-all group-hover:-translate-y-1 ${isActive(GameView.CELLAR) ? 'bg-[#5c4b40] border-[#eaddcf]' : 'bg-[#4a3b32] border-[#855e42] group-hover:border-[#eaddcf] group-hover:bg-[#5c4b40]'}`}>
+                    🪜
+                </div>
+                <span className={`text-[8px] uppercase font-bold tracking-widest drop-shadow-md ${isActive(GameView.CELLAR) ? 'text-white' : 'text-[#eaddcf] group-hover:text-white'}`}>Cellar</span>
+            </button>
+
+            <button
                 onClick={() => handleNavigation(GameView.MAP)}
                 className="flex flex-col items-center gap-1 p-2 group"
             >
@@ -72,6 +82,26 @@ export const BottomNav: React.FC = () => {
                     👥
                 </div>
                 <span className={`text-[8px] uppercase font-bold tracking-widest drop-shadow-md ${isPartyPage ? 'text-white' : 'text-[#eaddcf] group-hover:text-white'}`}>Party</span>
+            </button>
+
+            <button
+                onClick={() => router.push('/tavern-regulars')}
+                className="flex flex-col items-center gap-1 p-2 group"
+            >
+                <div className={`w-10 h-10 border-2 rounded-sm flex items-center justify-center text-xl shadow-md transition-all group-hover:-translate-y-1 ${pathname === '/tavern-regulars' ? 'bg-[#5c4b40] border-[#eaddcf]' : 'bg-[#4a3b32] border-[#855e42] group-hover:border-[#eaddcf] group-hover:bg-[#5c4b40]'}`}>
+                    🍻
+                </div>
+                <span className={`text-[8px] uppercase font-bold tracking-widest drop-shadow-md ${pathname === '/tavern-regulars' ? 'text-white' : 'text-[#eaddcf] group-hover:text-white'}`}>Regulars</span>
+            </button>
+
+            <button
+                onClick={() => router.push('/town-posse')}
+                className="flex flex-col items-center gap-1 p-2 group"
+            >
+                <div className={`w-10 h-10 border-2 rounded-sm flex items-center justify-center text-xl shadow-md transition-all group-hover:-translate-y-1 ${pathname === '/town-posse' ? 'bg-[#5c4b40] border-[#eaddcf]' : 'bg-[#4a3b32] border-[#855e42] group-hover:border-[#eaddcf] group-hover:bg-[#5c4b40]'}`}>
+                    🤠
+                </div>
+                <span className={`text-[8px] uppercase font-bold tracking-widest drop-shadow-md ${pathname === '/town-posse' ? 'text-white' : 'text-[#eaddcf] group-hover:text-white'}`}>Posse</span>
             </button>
         </nav>
     );

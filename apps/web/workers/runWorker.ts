@@ -1,8 +1,9 @@
-import { Worker, Job } from 'bullmq';
-import Redis from 'ioredis';
 import { simulateRun } from '@innkeeper/engine';
-import { supabase } from '../lib/supabase';
 import type { Entity } from '@innkeeper/lib';
+import { Job, Worker } from 'bullmq';
+import Redis from 'ioredis';
+import { getHeroByTokenId } from '../lib/services/heroOwnership';
+import { supabase } from '../lib/supabase';
 
 const connection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null, // Required by BullMQ
@@ -33,22 +34,18 @@ export const runWorker = new Worker<RunJobData>(
         throw new Error(`Dungeon ${dungeonId} not found`);
       }
 
-      // Load characters for party
-      const { data: characters, error: charsError } = (await supabase
-        .from('characters')
-        .select('*')
-        .in('id', party)) as unknown as { data: { id: string; stats: unknown }[] | null, error: any };
+      // Load heroes from Adventurer NFTs (party is array of token IDs)
+      const heroPromises = party.map(tokenId => getHeroByTokenId(tokenId));
+      const heroData = await Promise.all(heroPromises);
 
-      if (charsError) {
-        throw charsError;
-      }
-
-      // Convert characters to entities
-      const entities: Entity[] = (characters || []).map((char) => ({
-        id: char.id,
-        name: `Character-${char.id}`,
-        stats: char.stats as Entity['stats'],
+      // Convert heroes to entities for engine
+      const entities: Entity[] = heroData.map((hero) => ({
+        id: hero.id,
+        name: hero.name,
+        stats: hero.stats,
         position: undefined,
+        isPlayer: true,
+        inventory: [],
       }));
 
       // Run simulation

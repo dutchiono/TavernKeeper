@@ -12,7 +12,7 @@ The current contracts are **NOT upgradeable**. They must be converted to UUPS be
 
 ### 1. Convert Contracts to UUPS
 
-All game contracts (GoldToken, Inventory, Adventurer, TavernKeeper) need to be converted to use OpenZeppelin's UUPS upgradeable pattern.
+All game contracts (KeepToken, Inventory, Adventurer, TavernKeeper) need to be converted to use OpenZeppelin's UUPS upgradeable pattern.
 
 **Required Changes:**
 - Use `@openzeppelin/contracts-upgradeable` instead of `@openzeppelin/contracts`
@@ -27,12 +27,25 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract GoldToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
-    function initialize() public initializer {
-        __ERC20_init("InnKeeper Gold", "GOLD");
-        __Ownable_init();
+contract KeepToken is ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
+    address public treasury;
+    address public tavernKeeperContract;
+
+    function initialize(address _treasury, address _tavernKeeperContract) public initializer {
+        __ERC20_init("Tavern Keeper", "KEEP");
+        __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
-        _mint(msg.sender, 1000000 * 10 ** decimals());
+        treasury = _treasury;
+        tavernKeeperContract = _tavernKeeperContract;
+    }
+
+    modifier onlyTavernKeeper() {
+        require(msg.sender == tavernKeeperContract, "Caller is not TavernKeeper");
+        _;
+    }
+
+    function mint(address to, uint256 amount) public onlyTavernKeeper {
+        _mint(to, amount);
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
@@ -62,6 +75,7 @@ cd packages/contracts
 export FEE_RECIPIENT_ADDRESS=0x...  # Treasury wallet
 export DEPLOYER_PRIVATE_KEY=0x...   # Deployer wallet private key
 export MONAD_RPC_URL=https://testnet-rpc.monad.xyz
+export PRICING_SIGNER_ADDRESS=0x...  # Address of wallet that will sign prices (must match PRICING_SIGNER_PRIVATE_KEY)
 ```
 
 ### Step 2: Compile Contracts
@@ -72,65 +86,26 @@ npx hardhat compile
 
 ### Step 3: Run Tests
 
-```bash
-npx hardhat test
-```
+### Step 4: Upgrade to Signature-Based Pricing (if upgrading existing contracts)
 
-### Step 4: Deploy Contracts
+If upgrading existing contracts to signature-based pricing:
 
 ```bash
-npx hardhat run scripts/deploy.ts --network monad
+# Set pricing signer address (must match PRICING_SIGNER_PRIVATE_KEY in backend)
+export PRICING_SIGNER_ADDRESS=0x...  # Address derived from PRICING_SIGNER_PRIVATE_KEY
+
+# Run upgrade script
+npx hardhat run scripts/upgrade_signature_pricing.ts --network monad
 ```
 
-### Step 5: Verify Deployments
+**Critical**: The signer address MUST be set after upgrade, or contracts will not work.
 
-1. Check all addresses on block explorer
-2. Verify proxy points to implementation
-3. Test contract functions
-4. Run validation tests
-
-### Step 6: Update Documentation
-
-**MANDATORY:** Update `DEPLOYMENT_TRACKER.md` with:
-- All deployed addresses
-- Deployment transaction hashes
-- Deployment dates
-- Proxy admin addresses
-
----
-
-## Post-Deployment Checklist
-
-- [ ] All contracts deployed successfully
-- [ ] Proxies point to correct implementations
-- [ ] Contracts initialized correctly
-- [ ] Fee recipient set for Inventory contract
-- [ ] All addresses verified on block explorer
-- [ ] `DEPLOYMENT_TRACKER.md` updated
-- [ ] `.env` files updated with addresses
-- [ ] `lib/contracts/registry.ts` updated
-- [ ] Contract validation tests passing
-- [ ] Proxy admin addresses documented and secured
-
----
-
-## Upgrade Process
-
-When upgrading contracts:
-
-1. **Deploy new implementation:**
-   ```bash
-   npx hardhat run scripts/upgrade.ts --network monad
-   ```
-
-2. **Verify new implementation:**
-   - Test all functions
-   - Check storage layout compatibility
-   - Run tests
+### Step 5: Upgrade Process (General)
 
 3. **Upgrade proxy:**
    - Call `upgradeTo(newImplementation)` from proxy admin
    - Verify upgrade successful
+   - **For signature-based pricing**: Set signer address via `setSigner()`
 
 4. **Update documentation:**
    - Add entry to Upgrade History in `DEPLOYMENT_TRACKER.md`
@@ -160,6 +135,14 @@ When upgrading contracts:
    - Use secure treasury wallet
    - Verify address before deployment
    - Test fee collection
+
+5. **Pricing Signer (for signature-based pricing):**
+   - Generate a dedicated wallet for signing prices
+   - Store private key securely (use `PRICING_SIGNER_PRIVATE_KEY` in backend .env)
+   - Set signer address on contracts after deployment/upgrade
+   - **CRITICAL**: Contracts will NOT work until signer is set
+   - Use a secure, dedicated wallet (not the deployer wallet)
+   - Consider using a hardware wallet or secure key management service
 
 ---
 

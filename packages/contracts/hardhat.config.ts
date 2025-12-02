@@ -9,22 +9,40 @@ const MONAD_RPC_URL = process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://testnet-
 
 const config: HardhatUserConfig = {
     solidity: {
-        version: "0.8.24",
-        settings: {
-            optimizer: {
-                enabled: true,
-                runs: 200,
+        compilers: [
+            {
+                version: "0.8.24",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200,
+                    },
+                    evmVersion: "cancun",
+                },
             },
-            evmVersion: "cancun",
-        },
+            {
+                version: "0.8.26",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200,
+                    },
+                    evmVersion: "cancun",
+                },
+            },
+        ],
     },
     networks: {
         hardhat: {
             chainId: 31337,
             forking: {
                 url: MONAD_RPC_URL,
-                enabled: true,
+                enabled: false,
             },
+        },
+        localhost: {
+            url: "http://127.0.0.1:8545",
+            accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
         },
         monad: {
             url: MONAD_RPC_URL,

@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: innkeeper-web
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter './packages/*' build && pnpm --filter @innkeeper/web build
+    startCommand: cd apps/web && pnpm start
+    rootDir: ./
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_USE_LOCALHOST
+        value: "false"
+
+  - type: worker
+    name: innkeeper-workers
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter './packages/*' build
+    startCommand: cd apps/web && pnpm start-worker
+    rootDir: ./
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  - type: web
+    name: innkeeper-discord-bot
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @innkeeper/discord-bot build
+    startCommand: cd packages/discord-bot && node dist/index.js
+    rootDir: ./
+    envVars:
+      - key: NODE_ENV
+        value: production

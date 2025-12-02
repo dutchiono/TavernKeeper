@@ -34,6 +34,12 @@ NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS=0xEC4bc7451B9058D42Ea159464C6dA14a322946fD  # 
 # WARNING: Never use this in production. Only for testnet.
 TESTNET_PRIVATE_KEY=0x...  # Your testnet wallet private key (without 0x prefix is also fine)
 # Note: If NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS is not set, fees will go to the testnet wallet address
+
+# Pricing Signer (for signature-based pricing)
+# CRITICAL: This wallet signs prices for TavernKeeper and Adventurer mints
+PRICING_SIGNER_PRIVATE_KEY=0x...  # Private key of wallet that signs prices (backend only, never expose)
+NEXT_PUBLIC_PRICING_SIGNER_ADDRESS=0x...  # Public address derived from PRICING_SIGNER_PRIVATE_KEY
+# Note: The signer address must be set on contracts via setSigner() after deployment/upgrade
 ```
 
 ## Notes

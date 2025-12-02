@@ -1,6 +1,12 @@
+import { usePrivy } from '@privy-io/react-auth';
 import React, { useEffect, useState } from 'react';
-import { PixelButton } from '../PixelComponents';
+import { useRunStatus } from '../../lib/hooks/useRunStatus';
+import { runService } from '../../lib/services/runService';
 import { useGameStore } from '../../lib/stores/gameStore';
+import { GameView } from '../../lib/types';
+import { PartySelector } from '../party/PartySelector';
+import { PublicPartyLobby } from '../party/PublicPartyLobby';
+import { PixelButton } from '../PixelComponents';
 
 interface Room {
     id: string;
@@ -18,9 +24,19 @@ interface DungeonMap {
 }
 
 export const MapScene: React.FC = () => {
+    const { selectedPartyTokenIds, setSelectedPartyTokenIds, currentRunId, setCurrentRunId, switchView } = useGameStore();
+    const { user, authenticated } = usePrivy();
+    const address = user?.wallet?.address;
+
     const [map, setMap] = useState<DungeonMap | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showPartySelector, setShowPartySelector] = useState(false);
+    const [creatingRun, setCreatingRun] = useState(false);
+    const [currentPartyId, setCurrentPartyId] = useState<string | null>(null);
+
+    // Poll run status if we have a current run
+    const { status: runStatus } = useRunStatus(currentRunId);
 
     useEffect(() => {
         const fetchMap = async () => {
@@ -41,8 +57,42 @@ export const MapScene: React.FC = () => {
         fetchMap();
     }, []);
 
-    if (loading) return <div className="w-full h-full flex items-center justify-center text-white font-pixel">Loading Map...</div>;
-    if (error) return <div className="w-full h-full flex items-center justify-center text-red-500 font-pixel">{error}</div>;
+    // Transition to battle when run starts (has start_time but no end_time means it's running)
+    useEffect(() => {
+        if (runStatus && runStatus.start_time && !runStatus.end_time && currentRunId) {
+            switchView(GameView.BATTLE);
+        }
+    }, [runStatus, currentRunId, switchView]);
+
+    if (loading) {
+        return (
+            <div className="w-full h-full flex items-center justify-center text-white font-pixel">
+                <div className="text-center">
+                    <div className="text-2xl mb-4">🗺️</div>
+                    <div>Loading Map...</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="w-full h-full flex items-center justify-center text-red-400 font-pixel">
+                <div className="text-center">
+                    <div className="text-2xl mb-4">⚠️</div>
+                    <div>{error}</div>
+                    <PixelButton
+                        variant="primary"
+                        onClick={() => window.location.reload()}
+                        className="mt-4"
+                    >
+                        Retry
+                    </PixelButton>
+                </div>
+            </div>
+        );
+    }
+
     if (!map) return null;
 
     // Simple vertical layout for now, filtering for main rooms
@@ -135,13 +185,112 @@ export const MapScene: React.FC = () => {
                 <PixelButton
                     variant="primary"
                     className="w-full py-4 text-sm tracking-widest shadow-[0_0_20px_rgba(0,0,0,0.5)] border-amber-600"
+                    onClick={handleEnterArea}
+                    disabled={creatingRun || !authenticated || !address}
                 >
                     <div className="flex items-center justify-center gap-3">
                         <span className="text-xl">⚔️</span>
-                        <span>ENTER AREA</span>
+                        <span>{creatingRun ? 'CREATING RUN...' : 'ENTER AREA'}</span>
                     </div>
                 </PixelButton>
+                {!authenticated && (
+                    <div className="text-xs text-red-400 text-center mt-2">
+                        Please connect your wallet to start a run
+                    </div>
+                )}
+                {authenticated && selectedPartyTokenIds.length === 0 && !currentPartyId && (
+                    <div className="text-xs text-amber-400 text-center mt-2">
+                        Select a party to begin
+                    </div>
+                )}
+                {error && (
+                    <div className="text-xs text-red-400 text-center mt-2 bg-red-900/20 p-2 border border-red-800 rounded">
+                        {error}
+                    </div>
+                )}
             </div>
+
+            {/* Party Selector Modal */}
+            {showPartySelector && address && !currentPartyId && (
+                <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                    <div className="w-full max-w-2xl">
+                        <PartySelector
+                            walletAddress={address}
+                            dungeonId={map?.id || 'abandoned-cellar'}
+                            onConfirm={async (tokenIds, mode, partyId) => {
+                                if (mode === 'public' && partyId) {
+                                    // Show public lobby
+                                    setCurrentPartyId(partyId);
+                                    setShowPartySelector(false);
+                                } else {
+                                    // Solo or own-party: create run immediately
+                                    setSelectedPartyTokenIds(tokenIds);
+                                    setShowPartySelector(false);
+                                    // Create run
+                                    await handleCreateRun(tokenIds);
+                                }
+                            }}
+                            onCancel={() => setShowPartySelector(false)}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Public Party Lobby */}
+            {currentPartyId && address && (
+                <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                    <div className="w-full max-w-2xl">
+                        <PublicPartyLobby
+                            partyId={currentPartyId}
+                            walletAddress={address}
+                            onPartyStart={(runId) => {
+                                setCurrentRunId(runId);
+                                setCurrentPartyId(null);
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
+
+    async function handleEnterArea() {
+        if (!authenticated || !address) {
+            setError('Please connect your wallet');
+            return;
+        }
+
+        // If no party selected, show party selector
+        if (selectedPartyTokenIds.length === 0 && !currentPartyId) {
+            setShowPartySelector(true);
+            return;
+        }
+
+        // If we have a party selected, create run
+        if (selectedPartyTokenIds.length > 0) {
+            await handleCreateRun(selectedPartyTokenIds);
+        }
+    }
+
+    async function handleCreateRun(tokenIds: string[]) {
+        setCreatingRun(true);
+        setError(null);
+
+        try {
+            const result = await runService.createRun({
+                dungeonId: map?.id || 'abandoned-cellar',
+                party: tokenIds,
+            });
+
+            setCurrentRunId(result.id);
+
+            // Transition to battle view (will be handled by run status polling)
+            switchView(GameView.BATTLE);
+        } catch (err) {
+            console.error('Failed to create run:', err);
+            setError(err instanceof Error ? err.message : 'Failed to create run');
+        } finally {
+            setCreatingRun(false);
+        }
+    }
 };

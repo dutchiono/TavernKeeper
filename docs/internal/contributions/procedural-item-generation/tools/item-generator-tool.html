@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnKeeper - Procedural Item Generator Test Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .controls-panel {
+            background: #16213e;
+            border: 2px solid #0f3460;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 4px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        select {
+            padding: 8px 12px;
+            background: #1a1a2e;
+            border: 2px solid #0f3460;
+            color: #eee;
+            font-family: 'Courier New', monospace;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #ffd700;
+        }
+
+        input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            display: inline-block;
+            min-width: 50px;
+            padding: 5px 10px;
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            border-radius: 3px;
+            text-align: center;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .button {
+            padding: 12px 30px;
+            background: #ffd700;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        }
+
+        .button:hover {
+            background: #ffed4e;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .generate-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+
+        .results-panel {
+            background: #16213e;
+            border: 2px solid #0f3460;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #0f3460;
+        }
+
+        .results-count {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .items-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 10px;
+        }
+
+        .item-card {
+            background: #0f3460;
+            border: 2px solid #16213e;
+            padding: 8px 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .item-card:hover {
+            border-color: #ffd700;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(255,215,0,0.2);
+        }
+
+        .item-rarity-common { border-left: 3px solid #9d9d9d; }
+        .item-rarity-uncommon { border-left: 3px solid #1eff00; }
+        .item-rarity-rare { border-left: 3px solid #0070dd; }
+        .item-rarity-epic { border-left: 3px solid #a335ee; }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .item-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #fff;
+        }
+
+        .item-rarity-badge {
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .rarity-common { background: #9d9d9d; color: #000; }
+        .rarity-uncommon { background: #1eff00; color: #000; }
+        .rarity-rare { background: #0070dd; color: #fff; }
+        .rarity-epic { background: #a335ee; color: #fff; }
+
+        .item-type {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+        }
+
+        .item-stats {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-top: 4px;
+        }
+
+        .item-stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 1px 0;
+        }
+
+        .item-properties {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #16213e;
+            font-size: 0.85em;
+            color: #bbb;
+        }
+
+        .item-property {
+            margin: 2px 0;
+        }
+
+        .item-provenance {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #16213e;
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .item-provenance-label {
+            color: #ffd700;
+            font-weight: bold;
+            margin-right: 4px;
+        }
+
+        .item-description {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #16213e;
+            font-style: italic;
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 4px;
+        }
+
+        .stat-summary-item {
+            text-align: center;
+        }
+
+        .stat-summary-label {
+            color: #aaa;
+            font-size: 0.85em;
+        }
+
+        .stat-summary-value {
+            color: #ffd700;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #ffd700;
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .items-list {
+                grid-template-columns: 1fr;
+            }
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚔️ InnKeeper Item Generator ⚔️</h1>
+        <p class="subtitle">Test Tool for Procedural Item Generation System</p>
+
+        <div class="controls-panel">
+            <div class="control-group">
+                <label>Number of Items to Generate</label>
+                <div class="control-row">
+                    <input type="number" id="itemCount" min="1" max="100" value="10">
+                    <span style="color: #aaa;">(1-100)</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Generation Context</label>
+                <div class="control-row">
+                    <select id="context">
+                        <option value="dungeon_loot">Dungeon Loot</option>
+                        <option value="monster_drop">Monster Drop</option>
+                        <option value="boss_drop">Boss Drop</option>
+                        <option value="vendor">Vendor Stock</option>
+                        <option value="quest_reward">Quest Reward</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Level</label>
+                <div class="control-row">
+                    <input type="range" id="level" min="1" max="20" value="5">
+                    <span class="slider-value" id="levelValue">5</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Class Preference</label>
+                <div class="control-row">
+                    <select id="classPreference">
+                        <option value="any">Any</option>
+                        <option value="warrior">Warrior</option>
+                        <option value="mage">Mage</option>
+                        <option value="rogue">Rogue</option>
+                        <option value="cleric">Cleric</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Rarity Modifier (affects drop chances)</label>
+                <div class="control-row">
+                    <input type="range" id="rarityModifier" min="0" max="200" value="100">
+                    <span class="slider-value" id="rarityModValue">100%</span>
+                    <span style="color: #aaa; font-size: 0.85em;">Lower = more common items, Higher = more rare items</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Seed (for deterministic generation)</label>
+                <div class="control-row">
+                    <input type="text" id="seed" placeholder="Leave empty for random" style="flex: 1;">
+                    <button class="button" onclick="generateRandomSeed()" style="padding: 8px 15px; font-size: 0.9em;">Random</button>
+                </div>
+            </div>
+
+            <button class="button generate-button" onclick="generateItems()">Generate Items</button>
+            
+            <!-- SCARCITY SYSTEM UI - TO REMOVE: Delete this entire div if removing scarcity system -->
+            <div class="control-group" style="margin-top: 20px; border-top: 2px solid #0f3460; padding-top: 20px;">
+                <label>Scarcity System (Optional Feature)</label>
+                <div class="control-row">
+                    <button class="button" onclick="resetScarcityCounts()" style="padding: 8px 15px; font-size: 0.9em; background: #a335ee;">Reset All Counts</button>
+                    <button class="button" onclick="showScarcityCounts()" style="padding: 8px 15px; font-size: 0.9em; background: #0070dd;">Show Counts</button>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.85em; color: #aaa;">
+                    Each item type is capped at 100. As items are generated, remaining availability decreases, making rare items even rarer.
+                    <br><strong>Note:</strong> This is an optional feature. See DESIGN.md for removal instructions.
+                </div>
+            </div>
+            <!-- END SCARCITY SYSTEM UI -->
+        </div>
+
+        <div class="results-panel" id="resultsPanel" style="display: none;">
+            <div class="results-header">
+                <h2>Generated Items</h2>
+                <div class="results-count" id="resultsCount"></div>
+            </div>
+            <div class="stats-summary" id="statsSummary"></div>
+            <div class="items-list" id="itemsList"></div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            Generating items...
+        </div>
+    </div>
+
+    <script>
+        // Simple seeded random number generator (Mulberry32)
+        class SeededRNG {
+            constructor(seed) {
+                this.seed = seed || Math.floor(Math.random() * 0xFFFFFFFF);
+            }
+
+            next() {
+                let t = this.seed += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+
+            random() {
+                return this.next();
+            }
+
+            range(min, max) {
+                return Math.floor(this.next() * (max - min + 1)) + min;
+            }
+
+            choice(array) {
+                return array[Math.floor(this.next() * array.length)];
+            }
+        }
+
+        /**
+         * Item Generator Class
+         * 
+         * INTEGRATION NOTES FOR MAIN DEV:
+         * =================================
+         * 
+         * All generated items include a `requiredClass` property that MUST be checked
+         * during equipment validation. This ensures class-specific items can only be
+         * equipped by the correct class.
+         * 
+         * Equipment Validation Pseudocode:
+         * ---------------------------------
+         * function canEquipItem(agent, item) {
+         *     if (item.requiredClass && item.requiredClass !== agent.class) {
+         *         return false; // Class mismatch - cannot equip
+         *     }
+         *     return true; // Class matches or no restriction
+         * }
+         * 
+         * Example Usage:
+         * --------------
+         * const item = generator.generateItem(...);
+         * if (item.requiredClass === 'warrior' && agent.class !== 'warrior') {
+         *     // Reject equip attempt
+         *     throw new Error('Only warriors can equip this item');
+         * }
+         * 
+         * Class-Specific Items:
+         * ---------------------
+         * Weapons:
+         *   - Longsword → requiredClass: 'warrior'
+         *   - Staff → requiredClass: 'mage'
+         *   - Dagger → requiredClass: 'rogue'
+         *   - Mace → requiredClass: 'cleric'
+         * 
+         * Armor:
+         *   - Full Plate, Chain Mail → requiredClass: 'warrior'
+         *   - Mage Robes, Enchanted Cloak → requiredClass: 'mage'
+         *   - Leather Armor, Studded Leather → requiredClass: 'rogue'
+         *   - Scale Mail, Breastplate → requiredClass: 'cleric'
+         */
+        class ItemGenerator {
+            constructor(seed) {
+                this.rng = new SeededRNG(seed);
+                this.SCARCITY_CAP = 100; // Maximum items of each type that can exist
+                this.STORAGE_KEY = 'innkeeper_item_counts'; // localStorage key for persistence
+            }
+
+            /**
+             * ============================================================================
+             * SCARCITY SYSTEM - WEIGHTED POOL AVAILABILITY
+             * ============================================================================
+             * 
+             * OPTIONAL FEATURE: This system can be removed if not desired.
+             * 
+             * How it works:
+             * - Tracks how many of each item type have been generated (capped at 100 per type)
+             * - When selecting items, weights are based on remaining availability
+             * - Example: If 99 Staves exist, only 1 is left, so Staff weight = 1 (very low)
+             * - Example: If 0 Longswords exist, all 100 are available, so weight = 100 (high)
+             * 
+             * To REMOVE this system:
+             * 1. Remove all methods: getItemCounts(), saveItemCounts(), incrementItemCount(), 
+             *    getAvailabilityWeight(), resetItemCounts()
+             * 2. Remove scarcity weighting logic in generateWeapon() and generateArmor()
+             * 3. Remove the incrementItemCount() call in generateItem()
+             * 4. Remove UI buttons for reset/show counts
+             * 5. Replace weighted selection with simple random choice
+             * 
+             * Search for "SCARCITY" in this file to find all related code.
+             * ============================================================================
+             */
+            
+            // Get current item counts from storage
+            getItemCounts() {
+                try {
+                    const stored = localStorage.getItem(this.STORAGE_KEY);
+                    if (stored) {
+                        return JSON.parse(stored);
+                    }
+                } catch (e) {
+                    console.warn('Failed to load item counts from storage:', e);
+                }
+                // Initialize with all zeros
+                return {
+                    // Weapons
+                    'Longsword': 0,
+                    'Staff': 0,
+                    'Dagger': 0,
+                    'Mace': 0,
+                    // Armor
+                    'Full Plate': 0,
+                    'Chain Mail': 0,
+                    'Mage Robes': 0,
+                    'Enchanted Cloak': 0,
+                    'Leather Armor': 0,
+                    'Studded Leather': 0,
+                    'Scale Mail': 0,
+                    'Breastplate': 0,
+                };
+            }
+
+            // Save item counts to storage
+            saveItemCounts(counts) {
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(counts));
+                } catch (e) {
+                    console.warn('Failed to save item counts to storage:', e);
+                }
+            }
+
+            // Increment count for a specific item type
+            incrementItemCount(itemType) {
+                const counts = this.getItemCounts();
+                if (counts[itemType] !== undefined && counts[itemType] < this.SCARCITY_CAP) {
+                    counts[itemType]++;
+                    this.saveItemCounts(counts);
+                }
+            }
+
+            // Get availability weight for an item type (remaining items / cap)
+            getAvailabilityWeight(itemType) {
+                const counts = this.getItemCounts();
+                const current = counts[itemType] || 0;
+                const remaining = Math.max(0, this.SCARCITY_CAP - current);
+                return remaining; // Weight = how many are left available
+            }
+
+            // Reset all item counts (for testing)
+            resetItemCounts() {
+                const counts = this.getItemCounts();
+                for (const key in counts) {
+                    counts[key] = 0;
+                }
+                this.saveItemCounts(counts);
+            }
+
+            // Rarity distribution (can be modified by rarity modifier) - 4 tiers only
+            getRarityDistribution(rarityModifier = 100) {
+                const mod = rarityModifier / 100;
+                return {
+                    common: Math.max(0, 60 - (mod - 1) * 15),
+                    uncommon: Math.max(0, 28 + (mod - 1) * 8),
+                    rare: Math.max(0, 10 + (mod - 1) * 5),
+                    epic: Math.max(0, 2 + (mod - 1) * 2),
+                };
+            }
+
+            determineRarity(rarityModifier = 100) {
+                const dist = this.getRarityDistribution(rarityModifier);
+                const roll = this.rng.random() * 100;
+                let cumulative = 0;
+
+                const rarities = ['common', 'uncommon', 'rare', 'epic'];
+                for (const rarity of rarities) {
+                    cumulative += dist[rarity];
+                    if (roll <= cumulative) {
+                        return rarity;
+                    }
+                }
+                return 'common';
+            }
+
+            generateItem(context, level, classPreference, rarityModifier) {
+                const rarity = this.determineRarity(rarityModifier);
+                const category = this.selectCategory(context, classPreference);
+                
+                let item;
+                switch (category) {
+                    case 'weapon':
+                        item = this.generateWeapon(rarity, level, classPreference);
+                        break;
+                    case 'armor':
+                        item = this.generateArmor(rarity, level, classPreference);
+                        break;
+                    default:
+                        item = this.generateWeapon(rarity, level, classPreference);
+                }
+
+                item.id = `item-${Date.now()}-${this.rng.range(1000, 9999)}`;
+                item.rarity = rarity;
+                item.category = category;
+                item.level = level;
+                item.context = context;
+                item.seed = this.rng.seed;
+
+                // SCARCITY SYSTEM: Increment counter for this item type
+                // TO REMOVE: Delete this block if removing scarcity system
+                if (item.itemType) {
+                    this.incrementItemCount(item.itemType);
+                }
+                // END SCARCITY SYSTEM
+
+                return item;
+            }
+
+            selectCategory(context, classPreference) {
+                const contextWeights = {
+                    dungeon_loot: { weapon: 50, armor: 50 },
+                    monster_drop: { weapon: 50, armor: 50 },
+                    boss_drop: { weapon: 50, armor: 50 },
+                    vendor: { weapon: 50, armor: 50 },
+                    quest_reward: { weapon: 50, armor: 50 },
+                };
+
+                const weights = contextWeights[context] || contextWeights.dungeon_loot;
+                const roll = this.rng.random() * 100;
+                let cumulative = 0;
+
+                for (const [cat, weight] of Object.entries(weights)) {
+                    cumulative += weight;
+                    if (roll <= cumulative) return cat;
+                }
+                return 'weapon';
+            }
+
+            generateWeapon(rarity, level, classPreference) {
+                /**
+                 * CLASS-SPECIFIC WEAPON MAPPING WITH SCARCITY WEIGHTING
+                 * IMPORTANT FOR EQUIPMENT VALIDATION:
+                 * Each weapon type is restricted to its specific class.
+                 * When integrating with the agent/equipment system, check:
+                 * - item.requiredClass === agent.class before allowing equip
+                 * - item.class (deprecated, use requiredClass)
+                 * 
+                 * Weapon → Class mappings:
+                 * - Longsword → Warrior ONLY
+                 * - Staff → Mage ONLY
+                 * - Dagger → Rogue ONLY
+                 * - Mace → Cleric ONLY
+                 * 
+                 * SCARCITY: Selection is weighted by remaining availability (100 - current count)
+                 */
+                const allWeapons = {
+                    warrior: { 
+                        type: 'Longsword', 
+                        damage: 8, 
+                        isMagic: false,
+                        requiredClass: 'warrior'
+                    },
+                    mage: { 
+                        type: 'Staff', 
+                        damage: 6, 
+                        isMagic: true,
+                        requiredClass: 'mage'
+                    },
+                    rogue: { 
+                        type: 'Dagger', 
+                        damage: 4, 
+                        isMagic: false,
+                        requiredClass: 'rogue'
+                    },
+                    cleric: { 
+                        type: 'Mace', 
+                        damage: 6, 
+                        isMagic: false,
+                        requiredClass: 'cleric'
+                    },
+                };
+
+                // SCARCITY SYSTEM: Weighted selection based on availability
+                // TO REMOVE: Replace this block with: const weapon = weaponMap[classPreference] || weaponMap.warrior;
+                let candidateWeapons;
+                if (classPreference === 'any') {
+                    candidateWeapons = Object.values(allWeapons);
+                } else {
+                    candidateWeapons = [allWeapons[classPreference] || allWeapons.warrior];
+                }
+
+                // Apply scarcity weighting: weight = remaining availability
+                const weightedWeapons = candidateWeapons.map(weapon => ({
+                    ...weapon,
+                    weight: this.getAvailabilityWeight(weapon.type)
+                }));
+
+                // Select weapon based on weighted random
+                const totalWeight = weightedWeapons.reduce((sum, w) => sum + w.weight, 0);
+                let weapon;
+                if (totalWeight === 0) {
+                    // All weapons are at cap, select randomly
+                    weapon = this.rng.choice(candidateWeapons);
+                } else {
+                    let roll = this.rng.random() * totalWeight;
+                    let cumulative = 0;
+                    for (const w of weightedWeapons) {
+                        cumulative += w.weight;
+                        if (roll <= cumulative) {
+                            weapon = w;
+                            break;
+                        }
+                    }
+                    if (!weapon) weapon = weightedWeapons[0]; // Fallback
+                }
+                // END SCARCITY SYSTEM
+
+                const baseType = weapon.type;
+                
+                const rarityStats = {
+                    common: { attackBonus: 0, enhancementCount: 0 },
+                    uncommon: { attackBonus: 1, enhancementCount: 0 },
+                    rare: { attackBonus: 2, enhancementCount: 1 },
+                    epic: { attackBonus: 3, enhancementCount: 2 },
+                };
+
+                const stats = rarityStats[rarity];
+                const attackBonus = stats.attackBonus + Math.floor(level / 5);
+                const damageDice = `1d${weapon.damage} + ${attackBonus}`;
+
+                const enhancements = this.generateEnhancements(stats.enhancementCount, rarity, level);
+
+                return {
+                    name: this.generateWeaponName(baseType, rarity, enhancements),
+                    type: weapon.isMagic ? 'weapon (magic)' : 'weapon (melee)',
+                    itemType: baseType, // Store base type for scarcity tracking
+                    class: classPreference, // Deprecated - use requiredClass instead
+                    requiredClass: weapon.requiredClass, // USE THIS for equipment validation
+                    damage: damageDice,
+                    attackBonus: `+${attackBonus}`,
+                    properties: this.getWeaponProperties(baseType),
+                    enhancements: enhancements,
+                    description: this.generateWeaponDescription(baseType, rarity, enhancements),
+                };
+            }
+
+            generateArmor(rarity, level, classPreference) {
+                /**
+                 * CLASS-SPECIFIC ARMOR KIT MAPPING WITH SCARCITY WEIGHTING
+                 * IMPORTANT FOR EQUIPMENT VALIDATION:
+                 * Each armor kit is restricted to its specific class.
+                 * When integrating with the agent/equipment system, check:
+                 * - item.requiredClass === agent.class before allowing equip
+                 * - item.class (deprecated, use requiredClass)
+                 * 
+                 * Armor → Class mappings:
+                 * - Full Plate, Chain Mail → Warrior ONLY
+                 * - Mage Robes, Enchanted Cloak → Mage ONLY
+                 * - Leather Armor, Studded Leather → Rogue ONLY
+                 * - Scale Mail, Breastplate → Cleric ONLY
+                 * 
+                 * Each armor represents a COMPLETE ARMOR SET (not individual pieces)
+                 * 
+                 * SCARCITY: Selection is weighted by remaining availability (100 - current count)
+                 */
+                const allArmorKits = {
+                    warrior: [
+                        { 
+                            type: 'Full Plate', 
+                            baseAC: 8, 
+                            armorType: 'Heavy',
+                            requiredClass: 'warrior'
+                        },
+                        { 
+                            type: 'Chain Mail', 
+                            baseAC: 6, 
+                            armorType: 'Medium',
+                            requiredClass: 'warrior'
+                        }
+                    ],
+                    mage: [
+                        { 
+                            type: 'Mage Robes', 
+                            baseAC: 3, 
+                            armorType: 'Light',
+                            requiredClass: 'mage'
+                        },
+                        { 
+                            type: 'Enchanted Cloak', 
+                            baseAC: 2, 
+                            armorType: 'Light',
+                            requiredClass: 'mage'
+                        }
+                    ],
+                    rogue: [
+                        { 
+                            type: 'Leather Armor', 
+                            baseAC: 3, 
+                            armorType: 'Light',
+                            requiredClass: 'rogue'
+                        },
+                        { 
+                            type: 'Studded Leather', 
+                            baseAC: 4, 
+                            armorType: 'Light',
+                            requiredClass: 'rogue'
+                        }
+                    ],
+                    cleric: [
+                        { 
+                            type: 'Scale Mail', 
+                            baseAC: 6, 
+                            armorType: 'Medium',
+                            requiredClass: 'cleric'
+                        },
+                        { 
+                            type: 'Breastplate', 
+                            baseAC: 5, 
+                            armorType: 'Medium',
+                            requiredClass: 'cleric'
+                        }
+                    ],
+                };
+
+                // SCARCITY SYSTEM: Weighted selection based on availability
+                // TO REMOVE: Replace this block with: const armor = this.rng.choice(allArmorKits[classPreference] || allArmorKits.warrior);
+                let candidateArmor;
+                if (classPreference === 'any') {
+                    candidateArmor = Object.values(allArmorKits).flat();
+                } else {
+                    candidateArmor = allArmorKits[classPreference] || allArmorKits.warrior;
+                }
+
+                // Apply scarcity weighting: weight = remaining availability
+                const weightedArmor = candidateArmor.map(armor => ({
+                    ...armor,
+                    weight: this.getAvailabilityWeight(armor.type)
+                }));
+
+                // Select armor based on weighted random
+                const totalWeight = weightedArmor.reduce((sum, a) => sum + a.weight, 0);
+                let armor;
+                if (totalWeight === 0) {
+                    // All armor is at cap, select randomly
+                    armor = this.rng.choice(candidateArmor);
+                } else {
+                    let roll = this.rng.random() * totalWeight;
+                    let cumulative = 0;
+                    for (const a of weightedArmor) {
+                        cumulative += a.weight;
+                        if (roll <= cumulative) {
+                            armor = a;
+                            break;
+                        }
+                    }
+                    if (!armor) armor = weightedArmor[0]; // Fallback
+                }
+                // END SCARCITY SYSTEM
+
+                const baseType = armor.type;
+
+                const rarityStats = {
+                    common: { acBonus: 0, enhancementCount: 0 },
+                    uncommon: { acBonus: 1, enhancementCount: 0 },
+                    rare: { acBonus: 2, enhancementCount: 1 },
+                    epic: { acBonus: 3, enhancementCount: 2 },
+                };
+
+                const stats = rarityStats[rarity];
+                const acBonus = armor.baseAC + stats.acBonus + Math.floor(level / 5);
+
+                const enhancements = this.generateEnhancements(stats.enhancementCount, rarity, level);
+
+                return {
+                    name: this.generateArmorName(baseType, rarity, enhancements),
+                    type: 'armor',
+                    itemType: baseType, // Store base type for scarcity tracking
+                    class: classPreference, // Deprecated - use requiredClass instead
+                    requiredClass: armor.requiredClass, // USE THIS for equipment validation
+                    ac: `+${acBonus}`,
+                    properties: this.getArmorProperties(baseType, armor.armorType),
+                    enhancements: enhancements,
+                    description: this.generateArmorDescription(baseType, rarity, enhancements),
+                };
+            }
+
+            generateEnhancements(count, rarity, level) {
+                const enhancements = [];
+                const allEnhancements = ['Flaming', 'Frost', 'Shock', 'Venomous', 'Regeneration', 'Lifesteal', 'Fortified', 'Swift'];
+                
+                for (let i = 0; i < count; i++) {
+                    enhancements.push(this.rng.choice(allEnhancements));
+                }
+                return enhancements;
+            }
+
+            generateWeaponName(baseType, rarity, enhancements) {
+                let name = baseType;
+                
+                if (enhancements.length > 0) {
+                    name = `${enhancements[0]} ${name}`;
+                }
+                
+                if (rarity !== 'common') {
+                    const rarityPrefixes = {
+                        uncommon: '+1',
+                        rare: '+2',
+                        epic: '+3',
+                    };
+                    name += ` ${rarityPrefixes[rarity] || ''}`;
+                }
+
+                return name.trim();
+            }
+
+            generateArmorName(baseType, rarity, enhancements) {
+                let name = baseType;
+                
+                if (enhancements.length > 0) {
+                    name = `${baseType} of ${enhancements[0]}`;
+                }
+
+                if (rarity === 'epic') {
+                    const suffixes = ['Protection', 'the Guardian', 'Valor'];
+                    name = `${name} ${this.rng.choice(suffixes)}`;
+                }
+
+                return name;
+            }
+
+            getWeaponProperties(baseType) {
+                if (baseType === 'Dagger') return 'Finesse, Light';
+                if (baseType === 'Staff') return 'Spell Focus, Two-handed';
+                if (baseType === 'Longsword') return 'Versatile';
+                if (baseType === 'Mace') return 'Standard';
+                return 'Standard';
+            }
+
+            getArmorProperties(baseType, armorType) {
+                let props = `${armorType} Armor`;
+                if (armorType === 'Heavy') {
+                    props += ', Stealth Disadvantage';
+                }
+                return props;
+            }
+
+            generateWeaponDescription(baseType, rarity, enhancements) {
+                let desc = `A ${rarity} ${baseType.toLowerCase()}.`;
+                if (enhancements.length > 0) {
+                    desc += ` It glows with ${enhancements[0].toLowerCase()} energy.`;
+                }
+                return desc;
+            }
+
+            generateArmorDescription(baseType, rarity, enhancements) {
+                return `A ${rarity} piece of ${baseType.toLowerCase()} that provides excellent protection.`;
+            }
+        }
+
+        // UI Functions
+        function updateSliderValue(sliderId, valueId, suffix = '') {
+            const slider = document.getElementById(sliderId);
+            const value = document.getElementById(valueId);
+            slider.addEventListener('input', (e) => {
+                value.textContent = e.target.value + suffix;
+            });
+        }
+
+        function generateRandomSeed() {
+            document.getElementById('seed').value = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+
+        // Global generator instance to maintain scarcity counts across generations
+        let globalGenerator = null;
+
+        function generateItems() {
+            const itemCount = parseInt(document.getElementById('itemCount').value) || 10;
+            const context = document.getElementById('context').value;
+            const level = parseInt(document.getElementById('level').value) || 5;
+            const classPreference = document.getElementById('classPreference').value;
+            const rarityModifier = parseInt(document.getElementById('rarityModifier').value) || 100;
+            const seed = document.getElementById('seed').value || null;
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultsPanel').style.display = 'none';
+
+            setTimeout(() => {
+                const items = [];
+
+                // Use a single generator instance to maintain scarcity counts
+                // Each item gets its own seed for deterministic generation, but shares the scarcity system
+                for (let i = 0; i < itemCount; i++) {
+                    const itemSeed = seed ? hashString(seed + '-' + i) : null;
+                    const itemGen = new ItemGenerator(itemSeed);
+                    items.push(itemGen.generateItem(context, level, classPreference, rarityModifier));
+                }
+
+                displayResults(items);
+                document.getElementById('loading').style.display = 'none';
+            }, 100);
+        }
+
+        function hashString(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash);
+        }
+
+        function displayResults(items) {
+            const resultsPanel = document.getElementById('resultsPanel');
+            const itemsList = document.getElementById('itemsList');
+            const resultsCount = document.getElementById('resultsCount');
+            const statsSummary = document.getElementById('statsSummary');
+
+            resultsCount.textContent = `${items.length} items generated`;
+            itemsList.innerHTML = '';
+
+            // Count rarities
+            const rarityCounts = {};
+            items.forEach(item => {
+                rarityCounts[item.rarity] = (rarityCounts[item.rarity] || 0) + 1;
+            });
+
+            // Display stats summary
+            statsSummary.innerHTML = Object.entries(rarityCounts).map(([rarity, count]) => `
+                <div class="stat-summary-item">
+                    <div class="stat-summary-label">${rarity.charAt(0).toUpperCase() + rarity.slice(1)}</div>
+                    <div class="stat-summary-value">${count}</div>
+                </div>
+            `).join('');
+
+            // Display items
+            items.forEach(item => {
+                const itemCard = document.createElement('div');
+                itemCard.className = `item-card item-rarity-${item.rarity}`;
+
+                let statsHtml = '';
+                if (item.damage) statsHtml += `<div class="item-stat-row"><span>Damage:</span><span>${item.damage}</span></div>`;
+                if (item.attackBonus) statsHtml += `<div class="item-stat-row"><span>Attack Bonus:</span><span>${item.attackBonus}</span></div>`;
+                if (item.ac) statsHtml += `<div class="item-stat-row"><span>AC Bonus:</span><span>${item.ac}</span></div>`;
+
+                let propertiesHtml = '';
+                if (item.requiredClass) {
+                    propertiesHtml += `<div class="item-property"><strong>Required Class:</strong> ${item.requiredClass.charAt(0).toUpperCase() + item.requiredClass.slice(1)}</div>`;
+                } else if (item.class) {
+                    propertiesHtml += `<div class="item-property"><strong>Class:</strong> ${item.class.charAt(0).toUpperCase() + item.class.slice(1)}</div>`;
+                }
+                if (item.properties) {
+                    propertiesHtml += `<div class="item-property"><strong>Properties:</strong> ${item.properties}</div>`;
+                }
+                if (item.enhancements && item.enhancements.length > 0) {
+                    propertiesHtml += `<div class="item-property"><strong>Enhancements:</strong> ${item.enhancements.join(', ')}</div>`;
+                }
+
+                // Generate provenance information
+                const creationMethod = item.category === 'weapon' ? 'forged' : 'crafted';
+                const contextLabels = {
+                    dungeon_loot: 'Dungeon Loot',
+                    monster_drop: 'Monster Drop',
+                    boss_drop: 'Boss Drop',
+                    vendor: 'Vendor Stock',
+                    quest_reward: 'Quest Reward'
+                };
+                const contextLabel = contextLabels[item.context] || item.context;
+                const seedShort = item.seed ? String(item.seed).slice(-8) : 'N/A';
+                
+                const provenanceHtml = `
+                    <div class="item-provenance">
+                        <div><span class="item-provenance-label">Seed:</span>${seedShort}</div>
+                        <div><span class="item-provenance-label">Method:</span>${creationMethod}</div>
+                        <div><span class="item-provenance-label">Context:</span>${contextLabel}</div>
+                        <div><span class="item-provenance-label">Integration:</span>Links to world-content-hierarchy for provenance chain & lore</div>
+                    </div>
+                `;
+
+                itemCard.innerHTML = `
+                    <div class="item-header">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-rarity-badge rarity-${item.rarity}">${item.rarity}</div>
+                    </div>
+                    <div class="item-type">${item.type}</div>
+                    ${statsHtml ? `<div class="item-stats">${statsHtml}</div>` : ''}
+                    ${propertiesHtml ? `<div class="item-properties">${propertiesHtml}</div>` : ''}
+                    ${provenanceHtml}
+                    ${item.description ? `<div class="item-description">${item.description}</div>` : ''}
+                `;
+
+                itemsList.appendChild(itemCard);
+            });
+
+            resultsPanel.style.display = 'block';
+            resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Initialize sliders
+        updateSliderValue('level', 'levelValue');
+        updateSliderValue('rarityModifier', 'rarityModValue', '%');
+
+        // SCARCITY SYSTEM UI FUNCTIONS - TO REMOVE: Delete these functions if removing scarcity system
+        function resetScarcityCounts() {
+            if (confirm('Reset all item scarcity counts to 0? This will make all item types available again.')) {
+                // Create a temporary generator to access the reset method
+                const tempGen = new ItemGenerator();
+                tempGen.resetItemCounts();
+                alert('Scarcity counts have been reset!');
+            }
+        }
+
+        function showScarcityCounts() {
+            const tempGen = new ItemGenerator();
+            const counts = tempGen.getItemCounts();
+            
+            let message = 'Current Item Scarcity Counts (out of 100):\n\n';
+            message += 'WEAPONS:\n';
+            message += `  Longsword: ${counts['Longsword']}/100\n`;
+            message += `  Staff: ${counts['Staff']}/100\n`;
+            message += `  Dagger: ${counts['Dagger']}/100\n`;
+            message += `  Mace: ${counts['Mace']}/100\n\n`;
+            message += 'ARMOR:\n';
+            message += `  Full Plate: ${counts['Full Plate']}/100\n`;
+            message += `  Chain Mail: ${counts['Chain Mail']}/100\n`;
+            message += `  Mage Robes: ${counts['Mage Robes']}/100\n`;
+            message += `  Enchanted Cloak: ${counts['Enchanted Cloak']}/100\n`;
+            message += `  Leather Armor: ${counts['Leather Armor']}/100\n`;
+            message += `  Studded Leather: ${counts['Studded Leather']}/100\n`;
+            message += `  Scale Mail: ${counts['Scale Mail']}/100\n`;
+            message += `  Breastplate: ${counts['Breastplate']}/100\n`;
+            
+            alert(message);
+        }
+        // END SCARCITY SYSTEM UI FUNCTIONS
+    </script>
+</body>
+</html>
+

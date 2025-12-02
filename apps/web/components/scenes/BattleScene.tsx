@@ -1,84 +1,149 @@
-import React, { useState, useEffect } from 'react';
-import { Agent } from '../../lib/types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useRunEvents } from '../../lib/hooks/useRunEvents';
+import { useRunStatus } from '../../lib/hooks/useRunStatus';
+import { getEntityName, parseCombatEvent } from '../../lib/services/eventParser';
+import { useGameStore } from '../../lib/stores/gameStore';
+import { GameView } from '../../lib/types';
 import { PixelBox, PixelButton } from '../PixelComponents';
 
 interface BattleSceneProps {
-    party: Agent[];
+    party: any[]; // Keep for compatibility, but we'll use token IDs from store
     onComplete: (success: boolean) => void;
 }
 
-export const BattleScene: React.FC<BattleSceneProps> = ({ party, onComplete }) => {
-    const [turn, setTurn] = useState(0);
-    const [enemyHp, setEnemyHp] = useState(100);
-    const [battleLog, setBattleLog] = useState<string[]>(['A wild SLIME BLOCK appears!']);
+interface EntityState {
+    id: string;
+    name: string;
+    hp: number;
+    maxHp: number;
+    isPlayer: boolean;
+}
+
+export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
+    const { currentRunId, selectedPartyTokenIds, switchView } = useGameStore();
+    const { combatEvents, events } = useRunEvents(currentRunId);
+    const { status: runStatus } = useRunStatus(currentRunId);
+
+    const [battleLog, setBattleLog] = useState<string[]>(['Battle begins!']);
     const [shake, setShake] = useState(false);
     const [flash, setFlash] = useState(false);
+    const [entityStates, setEntityStates] = useState<Map<string, EntityState>>(new Map());
+    const [processedEventIds, setProcessedEventIds] = useState<Set<string>>(new Set());
 
-    // Simulate Battle Loop
+    // Initialize entity states from party token IDs
     useEffect(() => {
-        if (!party || party.length === 0) {
-            return;
+        if (selectedPartyTokenIds.length > 0) {
+            const newStates = new Map<string, EntityState>();
+            selectedPartyTokenIds.forEach(tokenId => {
+                newStates.set(tokenId, {
+                    id: tokenId,
+                    name: `Hero #${tokenId}`,
+                    hp: 100, // Will be updated from events
+                    maxHp: 100,
+                    isPlayer: true,
+                });
+            });
+            setEntityStates(newStates);
         }
+    }, [selectedPartyTokenIds]);
 
-        if (enemyHp <= 0) {
-            setTimeout(() => onComplete(true), 2000);
-            return;
-        }
+    // Process new combat events
+    useEffect(() => {
+        combatEvents.forEach(event => {
+            if (processedEventIds.has(event.id)) return;
 
-        const timer = setTimeout(() => {
-            // Simple Turn Logic: Party Member -> Enemy -> Party Member -> ...
-            const isPlayerTurn = turn % 2 === 0;
+            const parsed = parseCombatEvent(event);
+            if (!parsed) return;
 
-            if (isPlayerTurn) {
-                // Player attacks
-                const partyIndex = Math.floor(turn / 2) % party.length;
-                const actor = party[partyIndex];
+            setProcessedEventIds(prev => new Set([...prev, event.id]));
+            setBattleLog(prev => [parsed.message, ...prev.slice(0, 9)]);
 
-                // Fallback if actor is somehow undefined
-                if (!actor) {
-                    setTurn(t => t + 1);
-                    return;
-                }
-
-                const damage = Math.floor(Math.random() * 20) + 10;
-                setEnemyHp(prev => Math.max(0, prev - damage));
-                setBattleLog(prev => [`${actor.name} attacks for ${damage} dmg!`, ...prev.slice(0, 3)]);
-
-                // Visual Effects
-                setShake(true);
-                setFlash(true);
-            } else {
-                // Enemy attacks
-                const targetIndex = Math.floor(Math.random() * party.length);
-                const target = party[targetIndex];
-                const damage = Math.floor(Math.random() * 10) + 5;
-
-                // TODO: Update party HP in store (mocking visual only for now)
-                setBattleLog(prev => [`Slime attacks ${target.name} for ${damage} dmg!`, ...prev.slice(0, 3)]);
-                setShake(true);
+            // Update entity HP
+            if (parsed.damage && parsed.targetId) {
+                setEntityStates(prev => {
+                    const newStates = new Map(prev);
+                    const target = newStates.get(parsed.targetId!);
+                    if (target) {
+                        const newHp = Math.max(0, target.hp - parsed.damage!);
+                        newStates.set(parsed.targetId!, {
+                            ...target,
+                            hp: newHp,
+                        });
+                    } else {
+                        // New entity (enemy)
+                        newStates.set(parsed.targetId!, {
+                            id: parsed.targetId!,
+                            name: getEntityName(parsed.targetId!, selectedPartyTokenIds),
+                            hp: 100 - parsed.damage!,
+                            maxHp: 100,
+                            isPlayer: false,
+                        });
+                    }
+                    return newStates;
+                });
             }
 
-            setTurn(t => t + 1);
+            // Visual effects
+            if (parsed.type === 'attack' && parsed.hit) {
+                setShake(true);
+                if (parsed.damage && parsed.damage > 0) {
+                    setFlash(true);
+                }
+                setTimeout(() => {
+                    setShake(false);
+                    setFlash(false);
+                }, 300);
+            }
+        });
+    }, [combatEvents, processedEventIds, selectedPartyTokenIds]);
 
-            // Reset effects
+    // Check for victory/defeat
+    useEffect(() => {
+        if (!runStatus) return;
+
+        if (runStatus.result === 'victory') {
             setTimeout(() => {
-                setShake(false);
-                setFlash(false);
-            }, 300);
+                onComplete(true);
+                switchView(GameView.INN);
+            }, 2000);
+        } else if (runStatus.result === 'defeat') {
+            setTimeout(() => {
+                onComplete(false);
+                switchView(GameView.INN);
+            }, 2000);
+        }
+    }, [runStatus, onComplete, switchView]);
 
-        }, 1500); // Slow turns for retro feel
+    // Separate players and enemies
+    const players = useMemo(() => {
+        return Array.from(entityStates.values()).filter(e => e.isPlayer);
+    }, [entityStates]);
 
-        return () => clearTimeout(timer);
-    }, [turn, party, enemyHp, onComplete]);
+    const enemies = useMemo(() => {
+        return Array.from(entityStates.values()).filter(e => !e.isPlayer);
+    }, [entityStates]);
 
-    if (!party || party.length === 0) {
+    const primaryEnemy = enemies[0] || { id: 'unknown', name: 'Enemy', hp: 100, maxHp: 100, isPlayer: false };
+
+    if (!currentRunId) {
         return (
             <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4">
                 <div className="text-4xl">⚠️</div>
-                <div className="text-xl">You need a party to battle!</div>
-                <PixelButton variant="primary" onClick={() => window.location.href = '/party'}>
-                    Assemble Party
+                <div className="text-xl">No active run</div>
+                <div className="text-sm text-slate-400">Please start a run from the map</div>
+                <PixelButton variant="primary" onClick={() => switchView(GameView.MAP)}>
+                    Go to Map
                 </PixelButton>
+            </div>
+        );
+    }
+
+    if (players.length === 0) {
+        return (
+            <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4">
+                <div className="text-4xl animate-pulse">⚔️</div>
+                <div className="text-xl">Loading battle...</div>
+                <div className="text-xs text-slate-400">Waiting for run events...</div>
             </div>
         );
     }
@@ -98,7 +163,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ party, onComplete }) =
 
                 {/* Enemy Side */}
                 <div className="absolute top-1/4 left-10 flex flex-col items-center">
-                    <div className={`w-32 h-32 bg-green-600 border-4 border-green-800 shadow-xl transition-all duration-100 relative ${enemyHp < 100 ? 'animate-bounce' : ''}`}>
+                    <div className={`w-32 h-32 bg-green-600 border-4 border-green-800 shadow-xl transition-all duration-100 relative ${primaryEnemy.hp < primaryEnemy.maxHp ? 'animate-bounce' : ''}`}>
                         <div className="absolute inset-0 border-4 border-green-400 opacity-50"></div>
                         <div className="w-8 h-8 bg-black/40 absolute top-8 left-6"></div>
                         <div className="w-8 h-8 bg-black/40 absolute top-8 right-6"></div>
@@ -110,43 +175,36 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ party, onComplete }) =
                         <div className="h-3 bg-red-900 w-full absolute top-1 left-1" />
                         <div
                             className="h-3 bg-red-500 transition-all duration-300 relative z-10"
-                            style={{ width: `${enemyHp}%` }}
+                            style={{ width: `${Math.max(0, Math.min(100, (primaryEnemy.hp / primaryEnemy.maxHp) * 100))}%` }}
                         />
                     </div>
                     <span className="mt-2 text-[#eaddcf] text-xs uppercase tracking-widest drop-shadow-md font-bold">
-                        Slime Block <span className="text-yellow-500">Lv.5</span>
+                        {primaryEnemy.name} <span className="text-yellow-500">HP: {primaryEnemy.hp}/{primaryEnemy.maxHp}</span>
                     </span>
                 </div>
 
                 {/* Party Side */}
                 <div className="absolute bottom-10 right-10 flex gap-6">
-                    {party.map((agent, i) => (
-                        <div key={agent.id} className={`transition-all duration-300 flex flex-col items-center gap-2 ${turn % party.length === i ? '-translate-y-4 scale-110 z-10' : 'opacity-80'}`}>
+                    {players.map((player) => (
+                        <div key={player.id} className="transition-all duration-300 flex flex-col items-center gap-2 opacity-80">
                             {/* PFP / Sprite */}
-                            <div
-                                className={`w-24 h-24 border-4 shadow-lg relative group transition-colors duration-300 ${turn % party.length === i ? 'border-yellow-400 bg-amber-900/20' : 'border-[#8c7b63] bg-[#2a1d17]'}`}
-                            >
+                            <div className="w-24 h-24 border-4 shadow-lg relative group transition-colors duration-300 border-[#8c7b63] bg-[#2a1d17]">
                                 {/* Placeholder Sprite */}
                                 <div className="w-full h-full flex items-center justify-center text-4xl">
-                                    {agent.class === 'Warrior' ? '⚔️' : agent.class === 'Mage' ? '杖' : '🏹'}
+                                    ⚔️
                                 </div>
-
-                                {/* Selection Indicator */}
-                                {turn % party.length === i && (
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-yellow-400 animate-bounce text-xl">▼</div>
-                                )}
                             </div>
 
                             {/* HP Bar */}
                             <div className="w-24 h-2 bg-[#2a1d17] border border-[#8c7b63] p-0.5">
                                 <div
                                     className="h-full bg-emerald-500"
-                                    style={{ width: `${(agent.stats.hp / agent.stats.maxHp) * 100}%` }}
+                                    style={{ width: `${Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100))}%` }}
                                 />
                             </div>
 
-                            <div className={`text-[10px] uppercase font-bold tracking-wider ${turn % party.length === i ? 'text-yellow-400' : 'text-[#eaddcf]'}`}>
-                                {agent.name}
+                            <div className="text-[10px] uppercase font-bold tracking-wider text-[#eaddcf]">
+                                {player.name}
                             </div>
                         </div>
                     ))}

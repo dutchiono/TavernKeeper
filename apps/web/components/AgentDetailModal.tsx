@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Agent } from '../lib/types';
 import { useGameStore } from '../lib/stores/gameStore';
 import { PixelBox, PixelButton, PixelBadge } from './PixelComponents';
-import { chatWithAgent } from '../services/geminiService';
+import { chatWithAgent } from '../app/actions/aiActions';
 import { X, Send } from 'lucide-react';
 
 interface AgentDetailModalProps {

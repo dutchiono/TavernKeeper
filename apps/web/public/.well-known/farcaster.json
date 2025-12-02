@@ -1,0 +1,18 @@
+{
+    "accountAssociation": {
+        "header": "eyJmaWQiOiA8RklEPiwgInR5cGUiOiAiY3VzdG9keSIsICJrZXkiOiA8QUREUkVTUz59",
+        "payload": "eyJkb21haW4iOiAiaW5ua2VlcGVyLmdhbWUifQ==",
+        "signature": "MHh..."
+    },
+    "frame": {
+        "version": "1",
+        "name": "InnKeeper",
+        "iconUrl": "https://innkeeper.game/icon.png",
+        "homeUrl": "https://innkeeper.game/miniapp",
+        "imageUrl": "https://innkeeper.game/image.png",
+        "buttonTitle": "Play InnKeeper",
+        "splashImageUrl": "https://innkeeper.game/splash.png",
+        "splashBackgroundColor": "#2a1d17",
+        "webhookUrl": "https://innkeeper.game/api/webhook"
+    }
+}

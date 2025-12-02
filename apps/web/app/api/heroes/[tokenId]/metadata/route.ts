@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createPublicClient, http } from 'viem';
-import { monad } from '../../../../../lib/wagmi';
+import { monad } from '../../../../../lib/chains';
 import { CONTRACT_REGISTRY, getContractAddress } from '../../../../../lib/contracts/registry';
 
 export async function GET(

@@ -1,0 +1,27 @@
+{
+  "network": "Monad Testnet",
+  "date": "2025-12-01T18:42:51.504Z",
+  "contracts": {
+    "registry": "0xF53245E95FAc1286b42Fd2231018fd8e62c4B126",
+    "accountImpl": "0x13400f8A9E3Cc2b973538acB6527E3425D2AaF6c",
+    "mockLP": "0x513052D84071a724629d40Fa5611864233725489",
+    "cellar": "0xF00D3495861c6859c13E4C52CfA6a14Ce9ED133d",
+    "tavernKeeper": {
+      "proxy": "0xE072f8E98ea7654c3B729ba461c72c29232C283E",
+      "impl": "0xA4f51633445AAb969a20b070212aC11F0e180601"
+    },
+    "keepToken": {
+      "proxy": "0xfAf5810e20fCBcfA784E7e92BF660690002892af",
+      "impl": "0x5EA8Edb99E9a070c8f4358e0904b7cE63e7d5866"
+    },
+    "inventory": {
+      "proxy": "0x777b17Bda9B9438e67bd155fEfC04Dc184F004C7",
+      "impl": "0xc03bC9D0BD59b98535aEBD2102221AeD87c820A6"
+    },
+    "adventurer": {
+      "proxy": "0x67e27a22B64385e0110e69Dceae7d394D2C87B06",
+      "impl": "0x582bDC81df3c6c78B85D9409987Ab9885A24A2f6"
+    },
+    "dungeonGatekeeper": "0xd210f0a82A2c29aAd68A9b09162EeF365522D595"
+  }
+}

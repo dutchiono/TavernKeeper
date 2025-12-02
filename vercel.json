@@ -1,0 +1,16 @@
+{
+    "buildCommand": "pnpm install && pnpm build --filter './packages/*' && pnpm --filter @innkeeper/web build",
+    "outputDirectory": "apps/web/.next",
+    "installCommand": "pnpm install",
+    "framework": "nextjs",
+    "ignoreCommand": "git diff --quiet HEAD^ HEAD apps/web packages/",
+    "env": {
+        "DATABASE_URL": "@database-url",
+        "REDIS_URL": "@redis-url",
+        "ELIZA_URL": "@eliza-url",
+        "ELIZA_API_KEY": "@eliza-api-key",
+        "OPENAI_API_KEY": "@openai-api-key",
+        "NEXTAUTH_SECRET": "@nextauth-secret",
+        "NEXTAUTH_URL": "@nextauth-url"
+    }
+}

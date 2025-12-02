@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http } from 'viem';
-import { monad } from '@/lib/wagmi';
+import { monad } from '@/lib/chains';
 import { unequipItem } from '@/lib/services/inventoryTransfer';
 import { createTestnetWallet } from '@/lib/wallet/testnetWallet';
 

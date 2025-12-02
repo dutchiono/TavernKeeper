@@ -17,7 +17,7 @@ export const ForgePanel: React.FC<ForgePanelProps> = ({
     const baseStyles = "relative border-4 p-6 shadow-xl";
 
     const variants = {
-        wood: "bg-[#8b5a2b] border-[#5c3a1e] text-[#fcdfa6]", // Dark wood
+        wood: "bg-[#2a1d17] border-[#5c3a1e] text-[#fcdfa6]", // Dark wood (matching demo)
         paper: "bg-[#eaddcf] border-[#8c7b63] text-[#3e3224]", // Parchment
     };
 
@@ -27,14 +27,14 @@ export const ForgePanel: React.FC<ForgePanelProps> = ({
 
     return (
         <div className={`${baseStyles} ${variants[variant]} ${className}`}>
-            {/* Corner Decorations */}
-            <div className="absolute top-0 left-0 w-2 h-2 bg-black opacity-20"></div>
-            <div className="absolute top-0 right-0 w-2 h-2 bg-black opacity-20"></div>
-            <div className="absolute bottom-0 left-0 w-2 h-2 bg-black opacity-20"></div>
-            <div className="absolute bottom-0 right-0 w-2 h-2 bg-black opacity-20"></div>
+            {/* Corner Rivets (matching demo style) */}
+            <div className="absolute top-1 left-1 w-1.5 h-1.5 bg-black/40 rounded-full"></div>
+            <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-black/40 rounded-full"></div>
+            <div className="absolute bottom-1 left-1 w-1.5 h-1.5 bg-black/40 rounded-full"></div>
+            <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-black/40 rounded-full"></div>
 
             {title && (
-                <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-1 text-xs uppercase font-bold tracking-widest shadow-md ${titleStyles}`}>
+                <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-1 text-[10px] uppercase font-bold tracking-widest shadow-md whitespace-nowrap z-10 ${titleStyles}`}>
                     {title}
                 </div>
             )}

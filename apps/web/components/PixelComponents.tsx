@@ -33,7 +33,7 @@ export const PixelBox: React.FC<PixelBoxProps> = ({ children, className = '', ti
       <div className="absolute bottom-0 right-0 w-1 h-1 bg-black/20" />
 
       {title && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-black border-2 border-slate-600 text-[10px] uppercase tracking-wider text-yellow-400 shadow-md whitespace-nowrap z-10">
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-black border-2 border-slate-600 text-[10px] uppercase tracking-wider text-yellow-400 shadow-md whitespace-nowrap z-20">
           {title}
         </div>
       )}
@@ -43,7 +43,7 @@ export const PixelBox: React.FC<PixelBoxProps> = ({ children, className = '', ti
 };
 
 interface PixelButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'danger' | 'success' | 'neutral' | 'secondary';
+  variant?: 'primary' | 'danger' | 'success' | 'neutral' | 'secondary' | 'wood';
   isActive?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -61,6 +61,8 @@ export const PixelButton: React.FC<PixelButtonProps> = ({ children, className = 
         return `bg-slate-200 border-slate-400 hover:bg-white text-slate-800 shadow-[0_4px_0_#94a3b8] active:shadow-none active:translate-y-[4px] ${isActive ? 'bg-white translate-y-[4px] shadow-none ring-2 ring-yellow-400' : ''}`;
       case 'secondary': // Added for backward compatibility
         return 'bg-slate-600 border-slate-800 hover:bg-slate-500 text-white shadow-[0_4px_0_#334155] active:shadow-none active:translate-y-[4px]';
+      case 'wood':
+        return 'bg-[#5c4033] border-[#2a1d17] hover:bg-[#6d4c3d] text-[#eaddcf] shadow-[0_4px_0_#3e2b22] active:shadow-none active:translate-y-[4px]';
       case 'primary':
       default:
         return `bg-blue-600 border-blue-800 hover:bg-blue-500 text-white shadow-[0_4px_0_#1e3a8a] active:shadow-none active:translate-y-[4px] ${isActive ? 'bg-blue-500 translate-y-[4px] shadow-none ring-2 ring-yellow-400' : ''}`;

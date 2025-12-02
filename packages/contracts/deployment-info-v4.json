@@ -1,0 +1,14 @@
+{
+  "contracts": {
+    "poolManager": "0x1998A902dEca90968bd6F54199873731b43C12Ee",
+    "keepToken": "0x1a5b890F29832a63FC88594Df8b7147Da0a0Cca0",
+    "cellarHook": "0x297434683Feb6F7ca16Ab4947eDf547e2c67dB44",
+    "dungeonGatekeeper": "0xB05352575F0CdA6cb3a69E9E98Ea092dE8d4c9B4",
+    "cellarZap": "0xEb2e080453f70637E29C0D78158Ef88B3b20548c",
+    "create2Factory": "0x68d39BFe03cc25C17d538E87A5a0a715561D5B4C",
+    "cellarHookImpl": "0xCE16E1617e344A4786971e3fFD0009f15020C503",
+    "cellarZapImpl": "0x3c25cCAfDb2448bB5Dc33818b37c3ECD8c10AfC3"
+  },
+  "network": "monad",
+  "timestamp": "2025-12-01T20:30:35.597Z"
+}

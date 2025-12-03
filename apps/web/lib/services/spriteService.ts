@@ -94,7 +94,7 @@ const shadeColor = (color: string, percent: number) => {
 // LEGEND (Enhanced with 5-level shading):
 // . = Transparent
 // X = Outline (Black/Dark)
-// 
+//
 // SKIN (5 levels):
 // S = Skin Base, s = Skin Dark, s1 = Skin Darkest, Y = Skin Light, Y1 = Skin Lightest
 //
@@ -359,8 +359,8 @@ const CLERIC_MAP = [
     "..................XCCCCCCCCCCCCCCCCCCCCCCCCCX.......XllX........",
     "..................XCCCCCCCCCCCCCCCCCCCCCCCCCX.......XllX........",
     "..................XCCCCCCCCCCCCCCCCCCCCCCCCCX.......XllX........",
-    "..................XCCCKKKKKKKKKKKKKKKKKKCCCX........XllX........",
-    "..................XCCCKKKKKKKKKKKKKKKKKKCCCX........XllX........",
+    "..................XCCCKK1KKKKKKKKKKKKKKKK1KCCCX........XllX........",
+    "..................XCCCKK1KKKKKKKKKKKKKKKK1KCCCX........XllX........",
     "..................XCCCCCCCCCCCCCCCCCCCCCCCCCX.......XllX........",
     "..................XCCCCCCCCCCCCCCCCCCCCCCCCCX.......XllX........",
     "..................XCCCCCCCCCCCCCCCCCCCCCCCCCX.......XllX........",
@@ -768,11 +768,11 @@ export const drawSpriteFrame = (
   const hairShades = generateShadeLevels(colors.hair);
   const clothingShades = generateShadeLevels(colors.clothing);
   const accentShades = generateShadeLevels(colors.accent);
-  
+
   // Metal shades (high contrast for metallic look)
   const metalBase = '#9ca3af';
   const metalShades = generateShadeLevels(metalBase);
-  
+
   // Leather shades
   const leatherBase = '#5c3a1e';
   const leatherShades = generateShadeLevels(leatherBase);
@@ -871,6 +871,7 @@ export const generateSpriteURI = (type: HeroClass | Gender, colors: HeroColors, 
     if (!ctx) return '';
 
     ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingQuality = 'high';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     drawSpriteFrame(ctx, type, colors, 'idle', 0, exportScale, 0, 0, isKeeper);

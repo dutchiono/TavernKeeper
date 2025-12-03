@@ -1,5 +1,6 @@
 import type {
   WorldContent,
+  WorldContentType,
   WorldContentEntry,
   Provenance,
   Lore,
@@ -287,8 +288,8 @@ export class WorldManager {
    */
   async getProvenanceChain(
     contentId: string,
-    getParent: (id: string) => Promise<{ id: string; name: string; type: string; parentId: string | null } | null>
-  ): Promise<Array<{ id: string; name: string; type: string; relationship: string }>> {
+    getParent: (id: string) => Promise<{ id: string; name: string; type: WorldContentType; parentId: string | null } | null>
+  ): Promise<Array<{ id: string; name: string; type: WorldContentType; relationship: string }>> {
     return this.provenanceTracker.getProvenanceChain(contentId, getParent);
   }
 

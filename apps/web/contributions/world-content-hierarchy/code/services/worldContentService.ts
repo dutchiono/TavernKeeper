@@ -69,7 +69,7 @@ export class WorldContentService {
     const chain = rawChain.map((item) => ({
       contentId: item.id,
       name: item.name,
-      type: item.type as any,
+      type: item.type,
       relationship: item.relationship,
     }));
 

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const mapStorage = new MapStorage(supabase);
+    const mapStorage = new MapStorage(supabase as any);
     const cell = await mapStorage.getCell(x, y);
 
     if (!cell) {

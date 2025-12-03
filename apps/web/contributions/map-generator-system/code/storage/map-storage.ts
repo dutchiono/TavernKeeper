@@ -6,21 +6,24 @@
  */
 
 import type {
-    Dungeon,
-    MapCell,
-    MapQuery,
-    MapQueryResult
+  Dungeon,
+  MapCell,
+  MapQuery,
+  MapQueryResult
 } from '../types/map-generation';
 
 // Supabase-like client interface
+// Supabase-like client interface
+interface SupabaseBuilder extends PromiseLike<{ data: any; error: unknown }> {
+  eq(column: string, value: unknown): SupabaseBuilder;
+  single(): PromiseLike<{ data: any; error: unknown }>;
+}
+
 interface SupabaseClient {
   from<T = any>(table: string): {
-    select(columns?: string): {
-      eq(column: string, value: unknown): { single(): Promise<{ data: T | null; error: unknown }> };
-      eq(column: string, value: unknown): Promise<{ data: T[] | null; error: unknown }>;
-    };
-    upsert(data: unknown, config?: { onConflict?: string }): Promise<{ data: T | null; error: unknown }>;
-    insert(data: unknown): Promise<{ data: T | null; error: unknown }>;
+    select(columns?: string): SupabaseBuilder;
+    upsert(data: unknown, config?: { onConflict?: string }): PromiseLike<{ data: any; error: unknown }>;
+    insert(data: unknown): PromiseLike<{ data: any; error: unknown }>;
   };
 }
 

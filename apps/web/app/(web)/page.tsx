@@ -158,7 +158,7 @@ function HomeContent() {
 
                         {/* TAVERNKEEPER CHAT OVERLAY & THE OFFICE */}
                         {(currentView === GameView.INN || currentView === GameView.CELLAR) && (
-                            <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[95%] h-[calc(100%-5rem)] z-30 pointer-events-none flex flex-col gap-4">
+                            <div className="absolute top-14 left-1/2 -translate-x-1/2 w-[95%] h-[calc(100%-4rem)] z-30 pointer-events-none flex flex-col gap-4">
 
                                 {/* The Office (King of the Hill) wrapping the Chat */}
                                 <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">

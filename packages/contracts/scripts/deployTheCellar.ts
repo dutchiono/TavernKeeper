@@ -20,7 +20,7 @@ async function main() {
     const PAYMENT_RECEIVER = "0x000000000000000000000000000000000000dEaD";
     const EPOCH_PERIOD = 3600; // 1 hour
     const PRICE_MULTIPLIER = ethers.parseEther("2"); // 2x
-    const MIN_INIT_PRICE = ethers.parseEther("0.0001");
+    const MIN_INIT_PRICE = ethers.parseEther("1"); // 1 LP token minimum floor
 
     const theCellar = await TheCellar.deploy(
         INIT_PRICE,

@@ -23,6 +23,8 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     const [isClaiming, setIsClaiming] = useState(false);
     const [lpBalance, setLpBalance] = useState<bigint>(0n);
     const [isMinting, setIsMinting] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showMintModal, setShowMintModal] = useState(false);
 
     const wallet = wallets.find((w) => w.address === user?.wallet?.address);
     const address = user?.wallet?.address;
@@ -48,9 +50,14 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
         return () => clearInterval(interval);
     }, [address]);
 
+    const handleClaimClick = () => {
+        setShowConfirmModal(true);
+    };
+
     const handleClaim = async () => {
         if (!address || !isConnected || !wallet) return;
 
+        setShowConfirmModal(false);
         setIsClaiming(true);
         try {
             const provider = await wallet.getEthereumProvider();
@@ -61,12 +68,24 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
             });
 
             await theCellarService.claim(client, address);
+            alert("Raid successful! You claimed the pot.");
         } catch (error) {
             console.error("Claim failed:", error);
+            alert("Raid failed. See console for details.");
         } finally {
             setIsClaiming(false);
             fetchData();
         }
+    };
+
+    const handleMintLPClick = () => {
+        const input = document.getElementById('mintAmount') as HTMLInputElement;
+        const amount = input.value || "1";
+        if (!amount || parseFloat(amount) <= 0) {
+            alert("Please enter a valid amount");
+            return;
+        }
+        setShowMintModal(true);
     };
 
     const handleMintLP = async () => {
@@ -74,6 +93,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
         const input = document.getElementById('mintAmount') as HTMLInputElement;
         const amount = input.value || "1";
 
+        setShowMintModal(false);
         setIsMinting(true);
         try {
             const provider = await wallet.getEthereumProvider();
@@ -158,7 +178,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
 
             <div className="mt-4 pb-20"> {/* Added padding-bottom for sticky footer */}
                 <PixelButton
-                    onClick={handleClaim}
+                    onClick={handleClaimClick}
                     disabled={!isConnected || isClaiming || isPotEmpty || !hasEnoughLP}
                     variant="danger"
                     className={`w-full h-12 text-lg font-bold uppercase tracking-widest transition-all flex items-center justify-center ${(!isConnected || isClaiming || isPotEmpty || !hasEnoughLP) ? "opacity-50 cursor-not-allowed" : ""}`}
@@ -209,7 +229,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                     </div>
 
                     <PixelButton
-                        onClick={handleMintLP}
+                        onClick={handleMintLPClick}
                         disabled={isMinting}
                         variant="primary"
                         className="w-full h-10 text-sm font-bold uppercase tracking-widest flex items-center justify-center"
@@ -229,6 +249,166 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                     >
                         ← BACK TO OFFICE
                     </PixelButton>
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {showConfirmModal && state && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+                    <PixelBox variant="dark" className="max-w-md w-full p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-orange-400">Confirm Raid</h3>
+                            <button
+                                onClick={() => setShowConfirmModal(false)}
+                                className="text-zinc-400 hover:text-white transition-colors"
+                                disabled={isClaiming}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="bg-[#2a1d17] rounded p-4 border border-[#5c4033]">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-zinc-400 text-sm">Pot Size (You'll Receive):</span>
+                                    <span className="text-xl font-bold text-yellow-400">
+                                        {parseFloat(state.potSize).toFixed(6)} MON
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-zinc-400 text-sm">LP Tokens (You'll Spend):</span>
+                                    <span className="text-xl font-bold text-orange-400">
+                                        {parseFloat(state.currentPrice).toFixed(2)} LP
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-amber-50/10 border border-amber-800/50 rounded p-3">
+                                <p className="text-xs text-amber-200">
+                                    <strong>Note:</strong> You will also pay gas fees for this transaction. The wallet popup will show the gas cost.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-2 mt-4">
+                                <PixelButton
+                                    onClick={() => setShowConfirmModal(false)}
+                                    variant="secondary"
+                                    className="flex-1"
+                                    disabled={isClaiming}
+                                >
+                                    Cancel
+                                </PixelButton>
+                                <PixelButton
+                                    onClick={handleClaim}
+                                    variant="danger"
+                                    className="flex-1"
+                                    disabled={isClaiming}
+                                >
+                                    {isClaiming ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin mr-2 inline" />
+                                            Raiding...
+                                        </>
+                                    ) : (
+                                        "Confirm Raid 🔥"
+                                    )}
+                                </PixelButton>
+                            </div>
+                        </div>
+                    </PixelBox>
+                </div>
+            )}
+
+            {/* Mint LP Confirmation Modal */}
+            {showMintModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+                    <PixelBox variant="dark" className="max-w-md w-full p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-orange-400">Confirm Mint LP</h3>
+                            <button
+                                onClick={() => setShowMintModal(false)}
+                                className="text-zinc-400 hover:text-white transition-colors"
+                                disabled={isMinting}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {(() => {
+                            const input = document.getElementById('mintAmount') as HTMLInputElement;
+                            const amount = input?.value || "1";
+                            const amountMON = parseFloat(amount);
+                            const amountKEEP = amountMON * 3;
+                            const needsApproval = true; // We'll check this, but show the modal anyway
+
+                            return (
+                                <div className="space-y-4">
+                                    <div className="bg-[#2a1d17] rounded p-4 border border-[#5c4033]">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-zinc-400 text-sm">MON (You'll Pay):</span>
+                                            <span className="text-xl font-bold text-orange-400">
+                                                {amountMON.toFixed(4)} MON
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-zinc-400 text-sm">KEEP (You'll Pay):</span>
+                                            <span className="text-xl font-bold text-orange-400">
+                                                {amountKEEP.toFixed(2)} KEEP
+                                            </span>
+                                        </div>
+                                        <div className="mt-3 pt-3 border-t border-[#5c4033]">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-zinc-400 text-xs">LP Tokens (You'll Receive):</span>
+                                                <span className="text-yellow-400 text-sm font-semibold">
+                                                    ~{amountMON.toFixed(4)} LP
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {needsApproval && (
+                                        <div className="bg-blue-50/10 border border-blue-800/50 rounded p-3">
+                                            <p className="text-xs text-blue-200">
+                                                <strong>Note:</strong> If this is your first time, you'll need to approve KEEP spending. This requires a separate transaction.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="bg-amber-50/10 border border-amber-800/50 rounded p-3">
+                                        <p className="text-xs text-amber-200">
+                                            <strong>Note:</strong> You will pay gas fees for this transaction (and approval if needed). The wallet popup will show the gas cost.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex gap-2 mt-4">
+                                        <PixelButton
+                                            onClick={() => setShowMintModal(false)}
+                                            variant="secondary"
+                                            className="flex-1"
+                                            disabled={isMinting}
+                                        >
+                                            Cancel
+                                        </PixelButton>
+                                        <PixelButton
+                                            onClick={handleMintLP}
+                                            variant="primary"
+                                            className="flex-1"
+                                            disabled={isMinting}
+                                        >
+                                            {isMinting ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin mr-2 inline" />
+                                                    Minting...
+                                                </>
+                                            ) : (
+                                                "Confirm Mint LP"
+                                            )}
+                                        </PixelButton>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </PixelBox>
                 </div>
             )}
         </div >

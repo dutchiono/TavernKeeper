@@ -1,5 +1,6 @@
 'use client';
 
+import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatEther } from 'viem';
 import { getMonPrice } from '../lib/services/monPriceService';
@@ -53,6 +54,9 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
     const [cellarState, setCellarState] = React.useState<CellarState | null>(propCellarState || null);
     const [monPrice, setMonPrice] = useState<string>('Loading...');
     const [monPriceUsd, setMonPriceUsd] = useState<number>(0);
+    const [showTakeOfficeModal, setShowTakeOfficeModal] = useState(false);
+    const [showClaimModal, setShowClaimModal] = useState(false);
+    const [isHeaderMinimized, setIsHeaderMinimized] = useState(false);
 
     React.useEffect(() => {
         setMounted(true);
@@ -152,7 +156,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                 />
 
                 {/* Content Overlay - Chat positioned between header and bottom panel */}
-                <div className="absolute inset-0 z-30 p-4 pt-[8.5rem] pb-24">
+                <div className={`absolute inset-0 z-30 p-4 pb-24 transition-all duration-300 ${isHeaderMinimized ? 'pt-20' : 'pt-[8.5rem]'}`}>
                     {children}
                 </div>
 
@@ -204,7 +208,17 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                         </div>
                     </div>
 
-                    {/* Row 2: Stats Grid (Office & Cellar) */}
+                    {/* Minimize Toggle */}
+                    <button
+                        onClick={() => setIsHeaderMinimized(!isHeaderMinimized)}
+                        className="text-[#a8a29e] hover:text-[#eaddcf] transition-colors p-1"
+                    >
+                        {isHeaderMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                    </button>
+                </div>
+
+                {/* Row 2: Stats Grid (Office & Cellar) - Hidden when minimized */}
+                {!isHeaderMinimized && (
                     <div className="grid grid-cols-3 gap-1">
                         {/* Office Stats */}
                         <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
@@ -251,78 +265,243 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                             <div className={`font-bold text-[10px] ${isCellarProfitable ? 'text-green-400' : 'text-red-400'}`}>{cellarPnL}</div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
+        </div>
 
-            {/* Bottom Control Panel - Only show in Office Mode */}
-            <div className="shrink-0 z-20">
-                <PixelBox variant="wood" className="!p-0 overflow-hidden shadow-2xl">
+            {/* Bottom Control Panel - Only show in Office Mode */ }
+    <div className="shrink-0 z-20">
+        <PixelBox variant="wood" className="!p-0 overflow-hidden shadow-2xl">
 
-                    {/* Player Stats & Action Area */}
-                    <div className="bg-[#3e2b22] p-2 shrink-0 flex flex-col gap-2">
+            {/* Player Stats & Action Area */}
+            <div className="bg-[#3e2b22] p-2 shrink-0 flex flex-col gap-2">
 
-                        {/* Player Stats Bar */}
-                        <div className="flex justify-between items-center bg-[#2a1d17] rounded p-1.5 border border-[#5c4033]">
-                            <div className="flex flex-col justify-center">
-                                <span className="text-[6px] text-[#a8a29e] uppercase leading-none mb-0.5">Your Balance</span>
-                                <div className="flex gap-2">
-                                    <span className="text-[#eaddcf] font-bold text-[10px] leading-none">KEEP {parseFloat(formatEther(BigInt(keepBalance))).toFixed(2)}</span>
-                                    <span className="text-[#eaddcf] font-bold text-[10px] leading-none">MON {parseFloat(formatEther(BigInt(monBalance))).toFixed(4)}</span>
-                                </div>
-                            </div>
-                            <div className="h-6 w-px bg-[#5c4033]"></div>
-                            <div className="flex flex-col items-end justify-center">
-                                <span className="text-[6px] text-[#a8a29e] uppercase leading-none mb-0.5">
-                                    Pending Rewards
+                {/* Player Stats Bar */}
+                <div className="flex justify-between items-center bg-[#2a1d17] rounded p-1.5 border border-[#5c4033]">
+                    <div className="flex flex-col justify-center">
+                        <span className="text-[6px] text-[#a8a29e] uppercase leading-none mb-0.5">Your Balance</span>
+                        <div className="flex gap-2">
+                            <span className="text-[#eaddcf] font-bold text-[10px] leading-none">KEEP {parseFloat(formatEther(BigInt(keepBalance))).toFixed(2)}</span>
+                            <span className="text-[#eaddcf] font-bold text-[10px] leading-none">MON {parseFloat(formatEther(BigInt(monBalance))).toFixed(4)}</span>
+                        </div>
+                    </div>
+                    <div className="h-6 w-px bg-[#5c4033]"></div>
+                    <div className="flex flex-col items-end justify-center">
+                        <span className="text-[6px] text-[#a8a29e] uppercase leading-none mb-0.5">
+                            Pending Rewards
+                        </span>
+                        <div className="flex items-center gap-1">
+                            <span className="text-[#eaddcf] font-bold text-[10px] leading-none">
+                                KEEP {isKing ? (state.totalEarned || '0.00') : '0.00'}
+                            </span>
+                            {isKing && onClaim && (
+                                <PixelButton
+                                    onClick={() => setShowClaimModal(true)}
+                                    disabled={isLoading}
+                                    variant="primary"
+                                    className="!py-0.5 !px-1.5 !text-[8px] !h-auto"
+                                >
+                                    CLAIM
+                                </PixelButton>
+                            )}
+                        </div>
+                        {isKing && (
+                            <span className="text-[6px] text-green-400 leading-none mt-0.5">(You)</span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Action Buttons - Split Take Office / Raid Cellar */}
+                {isWalletConnected ? (
+                    <div className="flex gap-2">
+                        <PixelButton
+                            onClick={() => setShowTakeOfficeModal(true)}
+                            disabled={isLoading || !walletReady}
+                            variant="danger"
+                            className="flex-1 !py-2 !text-xs shadow-lg flex items-center justify-center"
+                        >
+                            {buttonText}
+                        </PixelButton>
+                        <PixelButton
+                            onClick={() => onViewSwitch?.('cellar')}
+                            variant="secondary"
+                            className="flex-1 !py-2 !text-xs shadow-lg flex items-center justify-center"
+                        >
+                            RAID CELLAR
+                        </PixelButton>
+                    </div>
+                ) : (
+                    <div className="text-center py-1">
+                        <span className="text-[10px] text-[#a8a29e] italic">Connect wallet to play</span>
+                    </div>
+                )}
+            </div>
+        </PixelBox>
+    </div>
+
+    {/* Take Office Confirmation Modal */ }
+    {
+        showTakeOfficeModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+                <PixelBox variant="dark" className="max-w-md w-full p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold text-orange-400">Confirm Take Office</h3>
+                        <button
+                            onClick={() => setShowTakeOfficeModal(false)}
+                            className="text-zinc-400 hover:text-white transition-colors"
+                            disabled={isLoading}
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="bg-[#2a1d17] rounded p-4 border border-[#5c4033]">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-zinc-400 text-sm">Office Price (You'll Pay):</span>
+                                <span className="text-xl font-bold text-orange-400">
+                                    {Math.max(1.0, parseFloat(state.currentPrice || '1.0')).toFixed(4)} MON
                                 </span>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-[#eaddcf] font-bold text-[10px] leading-none">
-                                        KEEP {isKing ? (state.totalEarned || '0.00') : '0.00'}
+                            </div>
+                            {monPriceUsd > 0 && (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-zinc-400 text-xs">USD Value:</span>
+                                    <span className="text-green-400 text-sm font-semibold">
+                                        ${(Math.max(1.0, parseFloat(state.currentPrice || '1.0')) * monPriceUsd).toFixed(2)}
                                     </span>
-                                    {isKing && onClaim && (
-                                        <PixelButton
-                                            onClick={onClaim}
-                                            disabled={isLoading}
-                                            variant="primary"
-                                            className="!py-0.5 !px-1.5 !text-[8px] !h-auto"
-                                        >
-                                            CLAIM
-                                        </PixelButton>
-                                    )}
                                 </div>
-                                {isKing && (
-                                    <span className="text-[6px] text-green-400 leading-none mt-0.5">(You)</span>
-                                )}
+                            )}
+                            <div className="mt-3 pt-3 border-t border-[#5c4033]">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-zinc-400 text-xs">You'll Receive (80%):</span>
+                                    <span className="text-yellow-400 text-sm font-semibold">
+                                        {(Math.max(1.0, parseFloat(state.currentPrice || '1.0')) * 0.8).toFixed(4)} MON
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-zinc-400 text-xs">Office Rate:</span>
+                                    <span className="text-[#fbbf24] text-sm font-semibold">
+                                        {state.officeRate && !isNaN(parseFloat(state.officeRate)) ? parseFloat(state.officeRate).toFixed(4) : '0.0000'} KEEP/s
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Action Buttons - Split Take Office / Raid Cellar */}
-                        {isWalletConnected ? (
-                            <div className="flex gap-2">
-                                <PixelButton
-                                    onClick={onTakeOffice}
-                                    disabled={isLoading || !walletReady}
-                                    variant="danger"
-                                    className="flex-1 !py-2 !text-xs shadow-lg flex items-center justify-center"
-                                >
-                                    {buttonText}
-                                </PixelButton>
-                                <PixelButton
-                                    onClick={() => onViewSwitch?.('cellar')}
-                                    variant="secondary"
-                                    className="flex-1 !py-2 !text-xs shadow-lg flex items-center justify-center"
-                                >
-                                    RAID CELLAR
-                                </PixelButton>
-                            </div>
-                        ) : (
-                            <div className="text-center py-1">
-                                <span className="text-[10px] text-[#a8a29e] italic">Connect wallet to play</span>
-                            </div>
-                        )}
+                        <div className="bg-amber-50/10 border border-amber-800/50 rounded p-3">
+                            <p className="text-xs text-amber-200">
+                                <strong>Note:</strong> You will also pay gas fees for this transaction. The wallet popup will show the gas cost.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-2 mt-4">
+                            <PixelButton
+                                onClick={() => setShowTakeOfficeModal(false)}
+                                variant="secondary"
+                                className="flex-1"
+                                disabled={isLoading}
+                            >
+                                Cancel
+                            </PixelButton>
+                            <PixelButton
+                                onClick={async () => {
+                                    setShowTakeOfficeModal(false);
+                                    await onTakeOffice();
+                                }}
+                                variant="danger"
+                                className="flex-1"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin mr-2 inline" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    "Confirm Take Office 👑"
+                                )}
+                            </PixelButton>
+                        </div>
                     </div>
                 </PixelBox>
             </div>
-        </div>
+        )
+    }
+
+    {/* Claim Rewards Confirmation Modal */ }
+    {
+        showClaimModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+                <PixelBox variant="dark" className="max-w-md w-full p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold text-green-400">Confirm Claim Rewards</h3>
+                        <button
+                            onClick={() => setShowClaimModal(false)}
+                            className="text-zinc-400 hover:text-white transition-colors"
+                            disabled={isLoading}
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="bg-[#2a1d17] rounded p-4 border border-[#5c4033]">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-zinc-400 text-sm">KEEP Rewards (You'll Receive):</span>
+                                <span className="text-xl font-bold text-green-400">
+                                    {state.totalEarned || '0.00'} KEEP
+                                </span>
+                            </div>
+                            {state.totalEarnedUsd && (
+                                <div className="flex justify-between items-center mt-2">
+                                    <span className="text-zinc-400 text-xs">USD Value:</span>
+                                    <span className="text-green-400 text-sm font-semibold">
+                                        {state.totalEarnedUsd}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-amber-50/10 border border-amber-800/50 rounded p-3">
+                            <p className="text-xs text-amber-200">
+                                <strong>Note:</strong> You will pay gas fees for this transaction. The wallet popup will show the gas cost.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-2 mt-4">
+                            <PixelButton
+                                onClick={() => setShowClaimModal(false)}
+                                variant="secondary"
+                                className="flex-1"
+                                disabled={isLoading}
+                            >
+                                Cancel
+                            </PixelButton>
+                            <PixelButton
+                                onClick={async () => {
+                                    setShowClaimModal(false);
+                                    if (onClaim) {
+                                        await onClaim();
+                                    }
+                                }}
+                                variant="success"
+                                className="flex-1"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin mr-2 inline" />
+                                        Claiming...
+                                    </>
+                                ) : (
+                                    "Confirm Claim"
+                                )}
+                            </PixelButton>
+                        </div>
+                    </div>
+                </PixelBox>
+            </div>
+        )
+    }
+        </div >
     );
 };

@@ -51,19 +51,26 @@ export class WorldContentService {
    * Get provenance chain
    */
   async getProvenanceChain(contentId: string): Promise<ProvenanceChain> {
-    const chain = await this.worldManager.getProvenanceChain(
+    const rawChain = await this.worldManager.getProvenanceChain(
       contentId,
       async (id) => {
         const entry = await this.getContent(id);
         if (!entry) return null;
         return {
-          contentId: entry.content.id,
+          id: entry.content.id,
           name: entry.content.name,
           type: entry.content.type,
-          relationship: 'parent', // Default relationship
+          parentId: entry.content.parentId,
         };
       }
     );
+
+    const chain = rawChain.map((item) => ({
+      contentId: item.id,
+      name: item.name,
+      type: item.type as any,
+      relationship: item.relationship,
+    }));
 
     return {
       contentId,

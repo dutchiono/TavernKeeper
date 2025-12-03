@@ -215,57 +215,57 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                     >
                         {isHeaderMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
                     </button>
-                </div>
 
-                {/* Row 2: Stats Grid (Office & Cellar) - Hidden when minimized */}
-                {!isHeaderMinimized && (
-                    <div className="grid grid-cols-3 gap-1">
-                        {/* Office Stats */}
-                        <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
-                            <div className="text-[6px] text-[#a8a29e] uppercase tracking-widest mb-0.5">Office Rate</div>
-                            <div className="text-[#fbbf24] font-bold text-[10px]">
-                                {state.officeRate && !isNaN(parseFloat(state.officeRate)) ? parseFloat(state.officeRate).toFixed(4) : '0.0000'}
-                                <span className="text-[6px] text-[#78716c]">/s</span>
+                    {/* Row 2: Stats Grid (Office & Cellar) - Hidden when minimized */}
+                    {!isHeaderMinimized && (
+                        <div className="grid grid-cols-3 gap-1">
+                            {/* Office Stats */}
+                            <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
+                                <div className="text-[6px] text-[#a8a29e] uppercase tracking-widest mb-0.5">Office Rate</div>
+                                <div className="text-[#fbbf24] font-bold text-[10px]">
+                                    {state.officeRate && !isNaN(parseFloat(state.officeRate)) ? parseFloat(state.officeRate).toFixed(4) : '0.0000'}
+                                    <span className="text-[6px] text-[#78716c]">/s</span>
+                                </div>
                             </div>
-                        </div>
-                        <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
-                            <div className="text-[6px] text-[#fca5a5] uppercase tracking-widest mb-0.5">Office Price</div>
-                            <div className="text-[#f87171] font-bold text-[10px]">
-                                <span className="text-purple-400">{Math.max(1.0, parseFloat(state.currentPrice || '1.0')).toFixed(4)} MON</span>
-                                {monPriceUsd > 0 && (
-                                    <>
-                                        <span className="text-[#78716c]"> (~</span>
-                                        <span className="text-green-400">${(Math.max(1.0, parseFloat(state.currentPrice || '1.0')) * monPriceUsd).toFixed(2)}</span>
-                                        <span className="text-[#78716c]">)</span>
-                                    </>
+                            <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
+                                <div className="text-[6px] text-[#fca5a5] uppercase tracking-widest mb-0.5">Office Price</div>
+                                <div className="text-[#f87171] font-bold text-[10px]">
+                                    <span className="text-purple-400">{Math.max(1.0, parseFloat(state.currentPrice || '1.0')).toFixed(4)} MON</span>
+                                    {monPriceUsd > 0 && (
+                                        <>
+                                            <span className="text-[#78716c]"> (~</span>
+                                            <span className="text-green-400">${(Math.max(1.0, parseFloat(state.currentPrice || '1.0')) * monPriceUsd).toFixed(2)}</span>
+                                            <span className="text-[#78716c]">)</span>
+                                        </>
+                                    )}
+                                </div>
+                                {monPriceUsd > 0 && parseFloat(state.currentPrice || '1.0') >= 1.0 && (
+                                    <div className="text-[4px] text-[#78716c] mt-0.5 text-center leading-tight">
+                                        1 MON = {monPrice}
+                                    </div>
                                 )}
                             </div>
-                            {monPriceUsd > 0 && parseFloat(state.currentPrice || '1.0') >= 1.0 && (
-                                <div className="text-[4px] text-[#78716c] mt-0.5 text-center leading-tight">
-                                    1 MON = {monPrice}
-                                </div>
-                            )}
-                        </div>
-                        <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
-                            <div className="text-[6px] text-[#86efac] uppercase tracking-widest mb-0.5">Office PNL</div>
-                            <div className={`font-bold text-[10px] ${pnl && pnl.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>{pnl || '$0.00'}</div>
-                        </div>
+                            <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
+                                <div className="text-[6px] text-[#86efac] uppercase tracking-widest mb-0.5">Office PNL</div>
+                                <div className={`font-bold text-[10px] ${pnl && pnl.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>{pnl || '$0.00'}</div>
+                            </div>
 
-                        {/* Cellar Stats */}
-                        <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
-                            <div className="text-[6px] text-[#a8a29e] uppercase tracking-widest mb-0.5">Cellar Pot</div>
-                            <div className="text-[#fbbf24] font-bold text-[10px]">{cellarState ? parseFloat(cellarState.potSize).toFixed(6) : '0.00'} <span className="text-[6px] text-[#78716c]">MON</span></div>
+                            {/* Cellar Stats */}
+                            <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
+                                <div className="text-[6px] text-[#a8a29e] uppercase tracking-widest mb-0.5">Cellar Pot</div>
+                                <div className="text-[#fbbf24] font-bold text-[10px]">{cellarState ? parseFloat(cellarState.potSize).toFixed(6) : '0.00'} <span className="text-[6px] text-[#78716c]">MON</span></div>
+                            </div>
+                            <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
+                                <div className="text-[6px] text-[#fca5a5] uppercase tracking-widest mb-0.5">Cellar Price</div>
+                                <div className="text-[#f87171] font-bold text-[10px]">{cellarState ? parseFloat(cellarState.currentPrice).toFixed(2) : '0.00'} <span className="text-[6px] text-[#78716c]">LP</span></div>
+                            </div>
+                            <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
+                                <div className="text-[6px] text-[#86efac] uppercase tracking-widest mb-0.5">Cellar PNL</div>
+                                <div className={`font-bold text-[10px] ${isCellarProfitable ? 'text-green-400' : 'text-red-400'}`}>{cellarPnL}</div>
+                            </div>
                         </div>
-                        <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
-                            <div className="text-[6px] text-[#fca5a5] uppercase tracking-widest mb-0.5">Cellar Price</div>
-                            <div className="text-[#f87171] font-bold text-[10px]">{cellarState ? parseFloat(cellarState.currentPrice).toFixed(2) : '0.00'} <span className="text-[6px] text-[#78716c]">LP</span></div>
-                        </div>
-                        <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
-                            <div className="text-[6px] text-[#86efac] uppercase tracking-widest mb-0.5">Cellar PNL</div>
-                            <div className={`font-bold text-[10px] ${isCellarProfitable ? 'text-green-400' : 'text-red-400'}`}>{cellarPnL}</div>
-                        </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             {/* Bottom Control Panel - Only show in Office Mode */}

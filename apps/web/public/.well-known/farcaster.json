@@ -4,7 +4,7 @@
         "payload": "eyJkb21haW4iOiJ0YXZlcm5rZWVwZXIueHl6In0",
         "signature": "eEpk33Hlwno7SAtybiYP2Z0mkmqUmkW4IsOsxpjqilZhDx5jjczIEVyPI2Ap0kKiRWhX3DJqsvS/FmZj1q0rkhs="
     },
-    "frame": {
+    "miniapp": {
         "version": "1",
         "name": "InnKeeper",
         "iconUrl": "https://innkeeper.game/icon.png",

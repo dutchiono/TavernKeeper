@@ -36,7 +36,7 @@ export class ItemProvenanceTracker {
    */
   registerLegendaryItem(itemData: LegendaryItemData): string {
     const entityId = `legendary-item-${itemData.itemId}`;
-    
+
     // Generate creator name if not provided
     let creatorName = 'Unknown Artisan';
     if (itemData.creatorId) {
@@ -45,7 +45,7 @@ export class ItemProvenanceTracker {
         creatorName = creator.name;
       }
     }
-    
+
     // Generate location name if not provided
     let locationName = 'Unknown Location';
     if (itemData.locationId) {
@@ -54,17 +54,16 @@ export class ItemProvenanceTracker {
         locationName = location.name;
       }
     }
-    
+
     // Calculate age
     const currentYear = 0; // Present day
     const age = itemData.foundAt ? currentYear - itemData.foundAt : null;
-    
+
     // Register entity
     this.entityRegistry.registerEntity(entityId, {
       id: entityId,
       name: itemData.name,
       type: 'legendary_item',
-      entityId,
       creatorId: itemData.creatorId,
       originId: itemData.creatorId,
       location: itemData.locationId,
@@ -79,18 +78,18 @@ export class ItemProvenanceTracker {
       },
       createdAt: itemData.foundAt || currentYear,
     });
-    
+
     // Generate WorldContent entry
     this.worldContentIntegration.processEntity(
       this.entityRegistry.getEntity(entityId)!
     );
-    
+
     // Log creation event
     const creationYear = itemData.foundAt || currentYear;
     const provenance = this.worldContentIntegration.getProvenance(
       this.entityRegistry.getEntity(entityId)!.worldContentId!
     );
-    
+
     return entityId;
   }
 
@@ -100,24 +99,24 @@ export class ItemProvenanceTracker {
   transferOwnership(itemEntityId: string, fromEntityId: string | null, toEntityId: string): void {
     const item = this.entityRegistry.getEntity(itemEntityId);
     if (!item || item.type !== 'legendary_item') return;
-    
+
     // Update previous owners
     const previousOwners = (item.metadata.previousOwners as string[]) || [];
     if (fromEntityId) {
       previousOwners.push(fromEntityId);
     }
     item.metadata.previousOwners = previousOwners;
-    
+
     // Log transfer event
     const currentYear = 0;
     const fromEntity = fromEntityId ? this.entityRegistry.getEntity(fromEntityId) : null;
     const toEntity = this.entityRegistry.getEntity(toEntityId);
-    
+
     if (toEntity) {
       const summary = fromEntity
         ? `${item.name} was transferred from ${fromEntity.name} to ${toEntity.name}.`
         : `${item.name} was acquired by ${toEntity.name}.`;
-      
+
       // Add event to item's history
       this.entityRegistry.addEventToEntity(itemEntityId, {
         id: `transfer-${itemEntityId}-${Date.now()}`,
@@ -147,7 +146,7 @@ export class ItemProvenanceTracker {
     if (!item || item.type !== 'legendary_item') {
       return { previousOwners: [], age: null };
     }
-    
+
     const creator = item.creatorId ? this.entityRegistry.getEntity(item.creatorId) : undefined;
     const location = item.location ? this.entityRegistry.getEntity(item.location) : undefined;
     const previousOwners = ((item.metadata.previousOwners as string[]) || [])
@@ -156,10 +155,10 @@ export class ItemProvenanceTracker {
         return owner ? { entityId: ownerId, name: owner.name } : null;
       })
       .filter((owner): owner is { entityId: string; name: string } => owner !== null);
-    
+
     const currentYear = 0;
     const age = item.createdAt ? currentYear - item.createdAt : null;
-    
+
     return {
       creator: creator ? { entityId: creator.entityId, name: creator.name } : undefined,
       location: location ? { entityId: location.entityId, name: location.name } : undefined,

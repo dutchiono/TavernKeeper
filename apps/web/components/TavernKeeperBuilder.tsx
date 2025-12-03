@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { createPublicClient, createWalletClient, custom, formatEther, http } from 'viem';
 import { monad } from '../lib/chains';
 import { uploadMetadata } from '../lib/services/heroMinting';
+import { metadataStorage } from '../lib/services/metadataStorage';
 import { getMonPrice } from '../lib/services/monPriceService';
 import { rpgService } from '../lib/services/rpgService';
 import { DEFAULT_COLORS, Gender, GENDERS, generateSpriteURI, HeroColors } from '../lib/services/spriteService';
@@ -87,9 +88,10 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
     const handleMint = async () => {
         if (!address || !wallet || !name) return;
 
+        // Clear any previous errors when retrying
+        setError(null);
         setStatus('uploading');
         setStatusMessage('Preparing Tavern Keeper Metadata...');
-        setError(null);
 
         try {
             const provider = await wallet.getEthereumProvider();
@@ -99,12 +101,28 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
                 transport: custom(provider)
             });
 
-            // 1. Upload Metadata
-            const imageUri = generateSpriteURI(gender, colors, true);
+            // 1. Generate sprite and upload image separately to IPFS (with retries)
+            setStatusMessage('Uploading Tavern Keeper image...');
+            const imageDataUri = generateSpriteURI(gender, colors, true);
+            let imageHttpUrl: string;
+            try {
+                imageHttpUrl = await metadataStorage.uploadImageFromDataUri(
+                    imageDataUri,
+                    `tavern-keeper-${name.toLowerCase().replace(/\s+/g, '-')}.png`,
+                    3, // 3 retry attempts
+                    true // throw on failure so user knows
+                );
+            } catch (error) {
+                // If image upload fails after retries, throw error so user can retry the whole flow
+                throw new Error(`Failed to upload image after retries: ${(error as Error).message}. Please try again.`);
+            }
+
+            // 2. Upload Metadata with HTTP URL reference
+            setStatusMessage('Uploading metadata...');
             const metadata = {
                 name: name,
                 description: `The Keeper of the Tavern. Style: ${gender}.`,
-                image: imageUri,
+                image: imageHttpUrl,
                 attributes: [
                     { trait_type: 'Gender', value: gender },
                     { trait_type: 'Role', value: 'Tavern Keeper' },

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { createWalletClient, custom } from 'viem';
 import { monad } from '../../lib/chains';
 import { mintHero, uploadMetadata } from '../../lib/services/heroMinting';
+import { metadataStorage } from '../../lib/services/metadataStorage';
 import { HeroClass, generateSpriteURI } from '../../lib/services/spriteService';
 import { ForgeButton, ForgePanel } from './ForgeComponents';
 import HeroEditor, { HeroData } from './HeroEditor';
@@ -48,6 +49,7 @@ export default function HeroBuilder() {
     const handleMint = async () => {
         if (!address || !wallet || !heroData.name) return;
 
+        // Clear any previous errors when retrying
         setIsMinting(true);
         setMintStatus('Generating Arcane Metadata...');
 
@@ -59,14 +61,27 @@ export default function HeroBuilder() {
                 transport: custom(provider)
             });
 
-            // 1. Generate Sprite Image
-            const imageUri = generateSpriteURI(heroData.heroClass as HeroClass, heroData.colors, false);
+            // 1. Generate sprite and upload image separately to IPFS (with retries)
+            setMintStatus('Uploading hero image...');
+            const imageDataUri = generateSpriteURI(heroData.heroClass as HeroClass, heroData.colors, false);
+            let imageHttpUrl: string;
+            try {
+                imageHttpUrl = await metadataStorage.uploadImageFromDataUri(
+                    imageDataUri,
+                    `hero-${heroData.name.toLowerCase().replace(/\s+/g, '-')}.png`,
+                    3, // 3 retry attempts
+                    true // throw on failure so user knows
+                );
+            } catch (error) {
+                // If image upload fails after retries, throw error so user can retry
+                throw new Error(`Failed to upload image after retries: ${(error as Error).message}. Please try again.`);
+            }
 
-            // 2. Generate Metadata
+            // 2. Generate Metadata with HTTP URL reference
             const metadata = {
                 name: heroData.name,
                 description: `A brave ${heroData.heroClass} adventurer.`,
-                image: imageUri,
+                image: imageHttpUrl,
                 attributes: [
                     { trait_type: 'Class', value: heroData.heroClass },
                     { trait_type: 'Level', value: 1 },

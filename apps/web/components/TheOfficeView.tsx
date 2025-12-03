@@ -156,7 +156,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                 />
 
                 {/* Top Header - Protocol Info (Office & Cellar) - Relative to push content down */}
-                <div className="relative bg-[#3e2b22] border-b-4 border-[#2a1d17] p-1.5 z-40 shadow-md flex flex-col gap-1.5 shrink-0">
+                <div className="relative bg-[#3e2b22] border-b-4 border-[#2a1d17] p-1 z-40 shadow-md flex flex-col gap-1 shrink-0">
 
                     {/* Error Banner */}
                     {state.error && (
@@ -166,22 +166,22 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                     )}
 
                     {/* Row 1: Office Manager Info */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                            <div className="w-8 h-8 bg-[#5c4033] rounded border-2 border-[#8c7b63] overflow-hidden relative shrink-0">
-                                <div className="absolute inset-0 bg-[#8c7b63] flex items-center justify-center text-sm text-[#2a1d17]">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                            <div className="w-6 h-6 bg-[#5c4033] rounded border-2 border-[#8c7b63] overflow-hidden relative shrink-0">
+                                <div className="absolute inset-0 bg-[#8c7b63] flex items-center justify-center text-xs text-[#2a1d17]">
                                     👑
                                 </div>
                             </div>
                             <div className="flex flex-col min-w-0">
-                                <span className="text-[8px] text-[#a8a29e] uppercase tracking-wider leading-none mb-0.5">Office Manager</span>
+                                <span className="text-[7px] text-[#a8a29e] uppercase tracking-wider leading-none">Office Manager</span>
                                 <button
                                     onClick={() => {
                                         if (state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000') {
                                             navigator.clipboard.writeText(state.currentKing);
                                         }
                                     }}
-                                    className="text-[#eaddcf] font-bold text-xs font-mono leading-none text-left hover:text-yellow-400 transition-colors cursor-pointer"
+                                    className="text-[#eaddcf] font-bold text-[10px] font-mono leading-none text-left hover:text-yellow-400 transition-colors cursor-pointer"
                                     title="Click to copy address"
                                 >
                                     {state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000' ? state.currentKing : 'Vacant'}
@@ -189,15 +189,15 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                             </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-2">
                             <div className="flex flex-col items-end">
-                                <span className="text-[8px] text-[#a8a29e] uppercase tracking-wider leading-none mb-0.5">Time Held</span>
-                                <span className="text-[#eaddcf] font-bold text-xs font-mono leading-none">{timeHeld}</span>
+                                <span className="text-[7px] text-[#a8a29e] uppercase tracking-wider leading-none">Time Held</span>
+                                <span className="text-[#eaddcf] font-bold text-[10px] font-mono leading-none">{timeHeld}</span>
                             </div>
                             {state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000' && (
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[8px] text-[#a8a29e] uppercase tracking-wider leading-none mb-0.5">Manager Earnings</span>
-                                    <span className="text-[#eaddcf] font-bold text-xs font-mono leading-none">KEEP {state.totalEarned || '0.00'}</span>
+                                    <span className="text-[7px] text-[#a8a29e] uppercase tracking-wider leading-none">Manager Earnings</span>
+                                    <span className="text-[#eaddcf] font-bold text-[10px] font-mono leading-none">KEEP {state.totalEarned || '0.00'}</span>
                                 </div>
                             )}
                         </div>
@@ -206,9 +206,9 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                     {/* Minimize Toggle */}
                     <button
                         onClick={() => setIsHeaderMinimized(!isHeaderMinimized)}
-                        className="text-[#a8a29e] hover:text-[#eaddcf] transition-colors p-1"
+                        className="absolute top-1 right-1 text-[#a8a29e] hover:text-[#eaddcf] transition-colors p-0.5"
                     >
-                        {isHeaderMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                        {isHeaderMinimized ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
                     </button>
 
                     {/* Row 2: Stats Grid (Office & Cellar) - Hidden when minimized */}
@@ -258,12 +258,29 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                 <div className="text-[6px] text-[#86efac] uppercase tracking-widest mb-0.5">Cellar PNL</div>
                                 <div className={`font-bold text-[10px] ${isCellarProfitable ? 'text-green-400' : 'text-red-400'}`}>{cellarPnL}</div>
                             </div>
+
+                            {/* Previous Owner Payout - Only show if there's a current king */}
+                            {state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000' && (
+                                <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center col-span-3">
+                                    <div className="text-[6px] text-[#a8a29e] uppercase tracking-widest mb-0.5">To Previous Owner</div>
+                                    <div className="text-[#fbbf24] font-bold text-[10px]">
+                                        {(Math.max(1.0, parseFloat(state.currentPrice || '1.0')) * 0.8).toFixed(4)} <span className="text-[6px] text-[#78716c]">MON</span>
+                                        {monPriceUsd > 0 && (
+                                            <>
+                                                <span className="text-[#78716c]"> (~</span>
+                                                <span className="text-green-400">${(Math.max(1.0, parseFloat(state.currentPrice || '1.0')) * 0.8 * monPriceUsd).toFixed(2)}</span>
+                                                <span className="text-[#78716c]">)</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
 
                 {/* Content Overlay - Chat positioned below header */}
-                <div className="flex-1 relative z-30 p-4 overflow-y-auto">
+                <div className="flex-1 relative z-30 p-2 overflow-y-auto">
                     {children}
                 </div>
             </div>
@@ -273,10 +290,10 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                 <PixelBox variant="wood" className="!p-0 overflow-hidden shadow-2xl">
 
                     {/* Player Stats & Action Area */}
-                    <div className="bg-[#3e2b22] p-2 shrink-0 flex flex-col gap-2">
+                    <div className="bg-[#3e2b22] p-1.5 shrink-0 flex flex-col gap-1.5">
 
                         {/* Player Stats Bar */}
-                        <div className="flex justify-between items-center bg-[#2a1d17] rounded p-1.5 border border-[#5c4033]">
+                        <div className="flex justify-between items-center bg-[#2a1d17] rounded p-1 border border-[#5c4033]">
                             <div className="flex flex-col justify-center">
                                 <span className="text-[6px] text-[#a8a29e] uppercase leading-none mb-0.5">Your Balance</span>
                                 <div className="flex gap-2">

@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPublicClient, http } from 'viem';
 import { useAccount, useConnect, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { monad } from '../lib/chains';
 import { OfficeState, tavernKeeperService } from '../lib/services/tavernKeeperService';
-import { theCellarService } from '../lib/services/theCellarService';
+import { CellarState, theCellarService } from '../lib/services/theCellarService';
 import { useGameStore } from '../lib/stores/gameStore';
 import { TheOfficeView } from './TheOfficeView';
 
@@ -36,9 +37,13 @@ export const TheOfficeMiniapp: React.FC<{
     });
     const [isLoading, setIsLoading] = useState(false);
     const [timeHeld, setTimeHeld] = useState<string>('0m 0s');
+    const [monBalance, setMonBalance] = useState<string>('0');
+    const [cellarState, setCellarState] = useState<CellarState | null>(null);
+    const [pnl, setPnl] = useState<string>('$0.00');
+    const [interpolatedState, setInterpolatedState] = useState<OfficeState>(state);
 
     // Use wagmi hooks for wallet connection
-    const { address, isConnected } = useAccount();
+    const { address, isConnected, chainId } = useAccount();
     const { connectAsync, connectors, isPending: isConnecting } = useConnect();
     const { writeContract, data: txHash, isPending: isWriting, reset: resetWrite } = useWriteContract();
     const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({
@@ -48,10 +53,22 @@ export const TheOfficeMiniapp: React.FC<{
 
     const walletReady = isConnected && !!address;
 
+    // Check if current user is the office holder
+    const isKing = address && state.currentKing && address.toLowerCase() === state.currentKing.toLowerCase();
+
     // Fetch Office State
-    const fetchOfficeState = async () => {
-        const data = await tavernKeeperService.getOfficeState();
+    const fetchOfficeState = async (forceRefresh = false) => {
+        const data = await tavernKeeperService.getOfficeState(forceRefresh);
+
+        // Prevent flashing: If we have valid data and the new data is an error/offline state,
+        // ignore the update to keep the UI stable.
+        if (state.currentKing !== 'Loading...' && data.currentKing === 'OFFLINE') {
+            console.warn("Background fetch failed, preserving existing state.");
+            return;
+        }
+
         setState(data);
+        setInterpolatedState(data); // Reset interpolation on fetch
     };
 
     useEffect(() => {
@@ -60,15 +77,99 @@ export const TheOfficeMiniapp: React.FC<{
         return () => clearInterval(interval);
     }, []);
 
+    // Fetch MON balance
+    useEffect(() => {
+        if (!address) {
+            setMonBalance('0');
+            return;
+        }
+
+        const fetchMonBalance = async () => {
+            try {
+                const publicClient = createPublicClient({
+                    chain: monad,
+                    transport: http(),
+                });
+                const balance = await publicClient.getBalance({
+                    address: address as `0x${string}`,
+                });
+                setMonBalance(balance.toString());
+            } catch (error) {
+                console.error('Failed to fetch MON balance:', error);
+            }
+        };
+
+        fetchMonBalance();
+        const interval = setInterval(fetchMonBalance, 10000); // Poll every 10s
+        return () => clearInterval(interval);
+    }, [address]);
+
+    // Fetch Cellar State
+    useEffect(() => {
+        const fetchCellar = async (forceRefresh = false) => {
+            try {
+                if (forceRefresh) {
+                    theCellarService.clearCache();
+                }
+                const data = await theCellarService.getCellarState();
+                setCellarState(data);
+            } catch (e) {
+                console.error("Failed to fetch cellar", e);
+            }
+        };
+
+        fetchCellar();
+        const interval = setInterval(() => fetchCellar(false), 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Interpolation Loop for smooth updates
     useEffect(() => {
         const interval = setInterval(() => {
-            const diff = Date.now() - state.kingSince;
-            const minutes = Math.floor(diff / 60000);
-            const seconds = Math.floor((diff % 60000) / 1000);
+            const now = Date.now();
+            const timeSinceStart = (now - state.kingSince) / 1000; // seconds
+
+            // 1. Time Held
+            const minutes = Math.floor(timeSinceStart / 60);
+            const seconds = Math.floor(timeSinceStart % 60);
             setTimeHeld(`${minutes}m ${seconds}s`);
+
+            // 2. Interpolate Price (Dutch Auction)
+            const EPOCH_PERIOD = 3600;
+            const MIN_PRICE = 1.0;
+            const initPrice = Math.max(MIN_PRICE, parseFloat(state.initPrice || '1.0'));
+            let currentPrice = MIN_PRICE;
+
+            if (timeSinceStart < EPOCH_PERIOD && initPrice > MIN_PRICE) {
+                const decayProgress = timeSinceStart / EPOCH_PERIOD;
+                currentPrice = initPrice - (initPrice - MIN_PRICE) * decayProgress;
+            }
+            currentPrice = Math.max(MIN_PRICE, currentPrice);
+
+            // 3. Interpolate Earnings
+            const dps = parseFloat(state.officeRate || '0');
+            const earned = timeSinceStart * dps;
+
+            // 4. Calculate PNL
+            const pricePaid = initPrice / 1.5;
+            const revenue = currentPrice * 0.8;
+            const pnlValue = revenue - pricePaid;
+
+            // Format PNL
+            const pnlFormatted = pnlValue >= 0
+                ? `+Ξ${pnlValue.toFixed(4)}`
+                : `-Ξ${Math.abs(pnlValue).toFixed(4)}`;
+            setPnl(pnlFormatted);
+
+            // Update Interpolated State
+            setInterpolatedState(prev => ({
+                ...prev,
+                currentPrice: currentPrice.toFixed(4),
+                totalEarned: earned.toFixed(2),
+            }));
         }, 1000);
         return () => clearInterval(interval);
-    }, [state.kingSince]);
+    }, [state.kingSince, state.initPrice, state.officeRate]);
 
     // Handle transaction receipt
     useEffect(() => {
@@ -76,7 +177,7 @@ export const TheOfficeMiniapp: React.FC<{
         if (receipt.status === 'success' || receipt.status === 'reverted') {
             setIsLoading(false);
             theCellarService.clearCache();
-            fetchOfficeState();
+            fetchOfficeState(true); // Force refresh after transaction
             const resetTimer = setTimeout(() => {
                 resetWrite();
             }, 500);
@@ -143,32 +244,61 @@ export const TheOfficeMiniapp: React.FC<{
     const [viewMode, setViewMode] = useState<'office' | 'cellar'>('office');
 
     const handleClaim = async () => {
-        // Implement claim logic or leave empty for now
-        console.log('Claiming rewards...');
+        if (!address || !isConnected || !isKing) {
+            alert('You must be the office holder to claim rewards.');
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+
+            // Get contract address and ABI
+            const { CONTRACT_REGISTRY, getContractAddress } = await import('../lib/contracts/registry');
+            const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+            const contractAddress = getContractAddress(contractConfig);
+
+            if (!contractAddress) {
+                throw new Error("TavernKeeper contract not found");
+            }
+
+            const hash = await writeContract({
+                address: contractAddress,
+                abi: contractConfig.abi,
+                functionName: 'claimOfficeRewards',
+                args: [],
+                account: address,
+                chainId: monad.id,
+            });
+
+            console.log('Claim transaction sent:', hash);
+            // Don't set isLoading to false here - let the receipt handler do it
+        } catch (error) {
+            console.error('Failed to claim rewards:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            alert(`Failed to claim rewards: ${errorMessage}`);
+            setIsLoading(false);
+        }
     };
 
     return (
         <TheOfficeView
-            state={state}
+            state={interpolatedState}
             timeHeld={timeHeld}
             keepBalance={keepBalance}
             isLoading={isLoadingState}
             walletReady={walletReady}
             isWalletConnected={isConnected && !!address}
+            isWrongNetwork={isConnected && chainId !== monad.id}
             onTakeOffice={handleTakeOffice}
             viewMode={viewMode}
             onViewSwitch={setViewMode}
             onClaim={handleClaim}
-            monBalance="0" // Placeholder
-            cellarState={null} // Placeholder
+            monBalance={monBalance}
+            cellarState={cellarState}
+            isKing={!!isKing}
+            pnl={pnl}
         >
             {children}
-            {/* Debug Info Overlay */}
-            <div className="absolute top-0 left-0 w-full bg-black/80 text-[8px] text-green-400 p-2 pointer-events-none z-50 font-mono">
-                <div>Wagmi: {isConnected ? 'Connected' : 'Not Connected'}</div>
-                <div>Addr: {address ? address.slice(0, 6) + '...' : 'None'}</div>
-                <div>User: {userContext?.username ? `@${userContext.username}` : userContext?.fid ? `FID ${userContext.fid}` : 'None'}</div>
-            </div>
         </TheOfficeView>
     );
 };

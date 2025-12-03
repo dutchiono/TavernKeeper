@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { PixelButton, PixelPanel, PixelCard } from '../../../components/PixelComponents';
-import { rpgService, TavernKeeperNFT, HeroNFT } from '../../../lib/services/rpgService';
-import TavernKeeperBuilder from '../../../components/TavernKeeperBuilder';
+import { useEffect, useState } from 'react';
+import NFTMetadataUpdater from '../../../components/NFTMetadataUpdater';
+import { PixelButton, PixelCard, PixelPanel } from '../../../components/PixelComponents';
 import RecruitHeroView from '../../../components/RecruitHeroView';
+import TavernKeeperBuilder from '../../../components/TavernKeeperBuilder';
+import { HeroNFT, rpgService, TavernKeeperNFT } from '../../../lib/services/rpgService';
 
 export default function PartyPage() {
   const { user, authenticated } = usePrivy();
@@ -18,6 +19,20 @@ export default function PartyPage() {
   const [loading, setLoading] = useState(true);
   const [loadingHeroes, setLoadingHeroes] = useState(false);
   const [viewMode, setViewMode] = useState<'dashboard' | 'recruit'>('dashboard');
+
+  // Metadata updater state
+  const [updatingHero, setUpdatingHero] = useState<HeroNFT | null>(null);
+  const [updatingKeeper, setUpdatingKeeper] = useState<{ keeper: TavernKeeperNFT; metadataUri: string } | null>(null);
+
+  const handleUpdateKeeper = async (keeper: TavernKeeperNFT) => {
+    try {
+      // Fetch tokenURI for the keeper
+      const metadataUri = await rpgService.getTavernKeeperTokenURI(keeper.tokenId);
+      setUpdatingKeeper({ keeper, metadataUri });
+    } catch (error) {
+      console.error('Failed to fetch keeper metadata URI:', error);
+    }
+  };
 
   // Fetch Tavern Keepers on load
   useEffect(() => {
@@ -113,6 +128,38 @@ export default function PartyPage() {
   // 3. Dashboard Flow
   return (
     <main className="min-h-full bg-[#2a1d17] p-4 md:p-8 font-pixel">
+      {/* Metadata Updater Modals */}
+      {updatingHero && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <NFTMetadataUpdater
+            tokenId={updatingHero.tokenId}
+            tokenUri={updatingHero.metadataUri}
+            contractType="hero"
+            onSuccess={() => {
+              setUpdatingHero(null);
+              if (selectedKeeper) {
+                fetchHeroes(selectedKeeper.tbaAddress);
+              }
+            }}
+            onCancel={() => setUpdatingHero(null)}
+          />
+        </div>
+      )}
+      {updatingKeeper && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <NFTMetadataUpdater
+            tokenId={updatingKeeper.keeper.tokenId}
+            tokenUri={updatingKeeper.metadataUri}
+            contractType="tavernKeeper"
+            onSuccess={() => {
+              setUpdatingKeeper(null);
+              fetchKeepers();
+            }}
+            onCancel={() => setUpdatingKeeper(null)}
+          />
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Sidebar: Keeper Selection */}
         <div className="lg:col-span-4 space-y-6">
@@ -122,14 +169,30 @@ export default function PartyPage() {
               {tavernKeepers.map(keeper => (
                 <div
                   key={keeper.tokenId}
-                  onClick={() => setSelectedKeeper(keeper)}
-                  className={`p-4 border-2 cursor-pointer transition-all ${selectedKeeper?.tokenId === keeper.tokenId
+                  className={`p-4 border-2 transition-all ${selectedKeeper?.tokenId === keeper.tokenId
                     ? 'border-yellow-400 bg-[#4a3b2a]'
                     : 'border-[#4a3b2a] hover:border-yellow-400/50'
                     }`}
                 >
-                  <div className="text-[#eaddcf]">Tavern #{keeper.tokenId}</div>
-                  <div className="text-xs text-[#8b7355] truncate">{keeper.tbaAddress}</div>
+                  <div
+                    onClick={() => setSelectedKeeper(keeper)}
+                    className="cursor-pointer"
+                  >
+                    <div className="text-[#eaddcf]">Tavern #{keeper.tokenId}</div>
+                    <div className="text-xs text-[#8b7355] truncate">{keeper.tbaAddress}</div>
+                  </div>
+                  <div className="mt-2">
+                    <PixelButton
+                      size="sm"
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdateKeeper(keeper);
+                      }}
+                    >
+                      Update
+                    </PixelButton>
+                  </div>
                 </div>
               ))}
             </div>
@@ -158,9 +221,20 @@ export default function PartyPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {heroes.map(hero => (
                       <PixelCard key={hero.tokenId} variant="default" className="bg-[#1a120d]">
-                        <div className="text-[#eaddcf]">Hero #{hero.tokenId}</div>
-                        <div className="text-xs text-[#8b7355] truncate" title={hero.metadataUri}>
-                          {hero.metadataUri}
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <div className="text-[#eaddcf]">Hero #{hero.tokenId}</div>
+                            <div className="text-xs text-[#8b7355] truncate" title={hero.metadataUri}>
+                              {hero.metadataUri}
+                            </div>
+                          </div>
+                          <PixelButton
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setUpdatingHero(hero)}
+                          >
+                            Update
+                          </PixelButton>
                         </div>
                       </PixelCard>
                     ))}

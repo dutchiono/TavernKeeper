@@ -73,6 +73,33 @@ export const rpgService = {
     },
 
     /**
+     * Get tokenURI for a TavernKeeper NFT
+     */
+    async getTavernKeeperTokenURI(tokenId: string): Promise<string> {
+        const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+        const address = getContractAddress(contractConfig);
+        if (!address) return '';
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(),
+        });
+
+        try {
+            const uri = await publicClient.readContract({
+                address,
+                abi: contractConfig.abi,
+                functionName: 'tokenURI',
+                args: [BigInt(tokenId)],
+            });
+            return uri as string;
+        } catch (e) {
+            console.error("Failed to fetch tavern keeper token URI", e);
+            return '';
+        }
+    },
+
+    /**
      * Get the Token Bound Account (TBA) address for a TavernKeeper NFT.
      */
     async getTBA(tokenId: string): Promise<string> {
@@ -376,5 +403,51 @@ export const rpgService = {
         });
 
         return formatEther(price as bigint);
+    },
+
+    /**
+     * Update TavernKeeper metadata URI
+     */
+    async updateTavernKeeperMetadata(
+        walletClient: any,
+        address: string,
+        tokenId: string,
+        newMetadataUri: string
+    ): Promise<string> {
+        const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+        const contractAddress = getContractAddress(contractConfig);
+        if (!contractAddress) throw new Error("Contract not found");
+
+        return await walletClient.writeContract({
+            address: contractAddress,
+            abi: contractConfig.abi,
+            functionName: 'updateTokenURI',
+            args: [BigInt(tokenId), newMetadataUri],
+            account: address as `0x${string}`,
+            chain: monad
+        });
+    },
+
+    /**
+     * Update Hero metadata URI
+     */
+    async updateHeroMetadata(
+        walletClient: any,
+        address: string,
+        tokenId: string,
+        newMetadataUri: string
+    ): Promise<string> {
+        const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
+        const contractAddress = getContractAddress(contractConfig);
+        if (!contractAddress) throw new Error("Contract not found");
+
+        return await walletClient.writeContract({
+            address: contractAddress,
+            abi: contractConfig.abi,
+            functionName: 'updateTokenURI',
+            args: [BigInt(tokenId), newMetadataUri],
+            account: address as `0x${string}`,
+            chain: monad
+        });
     }
 };

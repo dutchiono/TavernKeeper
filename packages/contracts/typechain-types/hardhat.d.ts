@@ -386,10 +386,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TavernRegularsManager__factory>;
     getContractFactory(
-      name: "TheCellar",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.TheCellar__factory>;
-    getContractFactory(
       name: "ICellarHook",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ICellarHook__factory>;
@@ -876,11 +872,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.TavernRegularsManager>;
     getContractAt(
-      name: "TheCellar",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.TheCellar>;
-    getContractAt(
       name: "ICellarHook",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -1278,10 +1269,6 @@ declare module "hardhat/types/runtime" {
       name: "TavernRegularsManager",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TavernRegularsManager>;
-    deployContract(
-      name: "TheCellar",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TheCellar>;
     deployContract(
       name: "ICellarHook",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -1768,11 +1755,6 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TavernRegularsManager>;
-    deployContract(
-      name: "TheCellar",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TheCellar>;
     deployContract(
       name: "ICellarHook",
       args: any[],

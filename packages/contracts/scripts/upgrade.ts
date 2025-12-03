@@ -46,7 +46,15 @@ async function main() {
     console.log("Proxy:", proxyAddress);
     console.log("Old Implementation:", currentImpl);
     console.log("New Implementation:", newImpl);
-    console.log("\n=== IMPORTANT: Update DEPLOYMENT_TRACKER.md with upgrade details ===");
+
+    console.log("\n=== DOCUMENTATION UPDATE REQUIRED ===");
+    console.log("Run this command to update FIRSTDEPLOYMENT.md (PowerShell):");
+    console.log(`  $env:CONTRACT_NAME="${contractName}"; $env:OLD_IMPL="${currentImpl}"; $env:NEW_IMPL="${newImpl}"; $env:REASON="Added updateTokenURI function"; npx hardhat run scripts/update_deployment_docs.ts`);
+    console.log("\nOr manually update FIRSTDEPLOYMENT.md Upgrade History section with:");
+    console.log(`  - Contract: ${contractName}`);
+    console.log(`  - Proxy: ${proxyAddress}`);
+    console.log(`  - Old Impl: ${currentImpl}`);
+    console.log(`  - New Impl: ${newImpl}`);
 }
 
 main().catch((error) => {

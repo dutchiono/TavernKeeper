@@ -23,6 +23,5 @@ export type { ERC6551Registry } from "./ERC6551Registry";
 export type { Inventory } from "./Inventory";
 export type { KeepToken } from "./KeepToken";
 export type { MockERC20 } from "./MockERC20";
-export type { TheCellar } from "./TheCellar";
 export type { UniswapIntegration } from "./UniswapIntegration";
 export type { V4DependencyHelper } from "./V4DependencyHelper";

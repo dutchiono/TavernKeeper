@@ -504,7 +504,7 @@ export async function simulateRun(config: SimulationConfig): Promise<SimulationR
               worldState: {
                 entities: state.entities,
                 map: state.dungeonState?.map,
-                currentRoom: (currentRoom || undefined) as any,
+                currentRoom: currentRoom?.id,
                 currentLevelZ: entityLevelZ,
                 objectives: state.dungeonState?.map.objectives,
                 nearbyEntities: entity.roomId
@@ -518,8 +518,8 @@ export async function simulateRun(config: SimulationConfig): Promise<SimulationR
                   state.dungeonState?.map!,
                   state.entities,
                   entityLevelZ
-                ),
-              },
+                ) as any,
+              } as any,
             });
           } catch (error) {
             console.error(`Error getting action from agent ${entityId}:`, error);
@@ -534,7 +534,7 @@ export async function simulateRun(config: SimulationConfig): Promise<SimulationR
             worldState: {
               entities: state.entities,
               map: state.dungeonState?.map,
-              currentRoom: currentRoom || undefined,
+              currentRoom: currentRoom?.id,
               currentLevelZ: entityLevelZ,
               objectives: state.dungeonState?.map.objectives,
               nearbyEntities: entity.roomId
@@ -551,7 +551,7 @@ export async function simulateRun(config: SimulationConfig): Promise<SimulationR
               ),
               controllingEntityId: entityId,
               controllingEntity: entity,
-            },
+            } as any,
           });
         } catch (error) {
           console.error(`Error getting action from DM for ${entityId}:`, error);

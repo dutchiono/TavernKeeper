@@ -34,6 +34,7 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
     event TokensClaimed(uint256 indexed tokenId, uint256 amount);
     event KeepTokenUpdated(address indexed oldToken, address indexed newToken);
+    event MetadataUpdated(uint256 indexed tokenId, string newUri);
 
     function setKeepTokenContract(address _keepToken) public onlyOwner {
         require(_keepToken != address(0), "Invalid address");
@@ -171,6 +172,19 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         IKeepToken(keepToken).mint(msg.sender, pending);
 
         emit TokensClaimed(tokenId, pending);
+    }
+
+    /**
+     * @dev Update token metadata URI (for appearance changes, etc.)
+     * @param tokenId Token ID to update
+     * @param newUri New metadata URI
+     */
+    function updateTokenURI(uint256 tokenId, string memory newUri) public {
+        require(_ownerOf(tokenId) == msg.sender, "TavernKeeper: Only token owner can update metadata");
+        require(bytes(newUri).length > 0, "TavernKeeper: Metadata URI cannot be empty");
+
+        _setTokenURI(tokenId, newUri);
+        emit MetadataUpdated(tokenId, newUri);
     }
 
     function calculatePendingTokens(uint256 tokenId) public view returns (uint256) {

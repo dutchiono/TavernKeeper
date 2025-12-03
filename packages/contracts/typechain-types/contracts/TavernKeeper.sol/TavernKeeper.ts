@@ -117,6 +117,7 @@ export interface TavernKeeperInterface extends Interface {
       | "transferFrom"
       | "transferOwnership"
       | "treasury"
+      | "updateTokenURI"
       | "upgradeToAndCall"
       | "v2StartTime"
   ): FunctionFragment;
@@ -129,6 +130,7 @@ export interface TavernKeeperInterface extends Interface {
       | "Initialized"
       | "KeepTokenUpdated"
       | "MetadataUpdate"
+      | "MetadataUpdated"
       | "OfficeEarningsClaimed"
       | "OfficeTaken"
       | "OwnershipTransferred"
@@ -343,6 +345,10 @@ export interface TavernKeeperInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "treasury", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "updateTokenURI",
+    values: [BigNumberish, string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "upgradeToAndCall",
     values: [AddressLike, BytesLike]
   ): string;
@@ -518,6 +524,10 @@ export interface TavernKeeperInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "treasury", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "updateTokenURI",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "upgradeToAndCall",
     data: BytesLike
   ): Result;
@@ -613,6 +623,19 @@ export namespace MetadataUpdateEvent {
   export type OutputTuple = [_tokenId: bigint];
   export interface OutputObject {
     _tokenId: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MetadataUpdatedEvent {
+  export type InputTuple = [tokenId: BigNumberish, newUri: string];
+  export type OutputTuple = [tokenId: bigint, newUri: string];
+  export interface OutputObject {
+    tokenId: bigint;
+    newUri: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -1077,6 +1100,12 @@ export interface TavernKeeper extends BaseContract {
 
   treasury: TypedContractMethod<[], [string], "view">;
 
+  updateTokenURI: TypedContractMethod<
+    [tokenId: BigNumberish, newUri: string],
+    [void],
+    "nonpayable"
+  >;
+
   upgradeToAndCall: TypedContractMethod<
     [newImplementation: AddressLike, data: BytesLike],
     [void],
@@ -1342,6 +1371,13 @@ export interface TavernKeeper extends BaseContract {
     nameOrSignature: "treasury"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "updateTokenURI"
+  ): TypedContractMethod<
+    [tokenId: BigNumberish, newUri: string],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "upgradeToAndCall"
   ): TypedContractMethod<
     [newImplementation: AddressLike, data: BytesLike],
@@ -1393,6 +1429,13 @@ export interface TavernKeeper extends BaseContract {
     MetadataUpdateEvent.InputTuple,
     MetadataUpdateEvent.OutputTuple,
     MetadataUpdateEvent.OutputObject
+  >;
+  getEvent(
+    key: "MetadataUpdated"
+  ): TypedContractEvent<
+    MetadataUpdatedEvent.InputTuple,
+    MetadataUpdatedEvent.OutputTuple,
+    MetadataUpdatedEvent.OutputObject
   >;
   getEvent(
     key: "OfficeEarningsClaimed"
@@ -1544,6 +1587,17 @@ export interface TavernKeeper extends BaseContract {
       MetadataUpdateEvent.InputTuple,
       MetadataUpdateEvent.OutputTuple,
       MetadataUpdateEvent.OutputObject
+    >;
+
+    "MetadataUpdated(uint256,string)": TypedContractEvent<
+      MetadataUpdatedEvent.InputTuple,
+      MetadataUpdatedEvent.OutputTuple,
+      MetadataUpdatedEvent.OutputObject
+    >;
+    MetadataUpdated: TypedContractEvent<
+      MetadataUpdatedEvent.InputTuple,
+      MetadataUpdatedEvent.OutputTuple,
+      MetadataUpdatedEvent.OutputObject
     >;
 
     "OfficeEarningsClaimed(address,uint256)": TypedContractEvent<

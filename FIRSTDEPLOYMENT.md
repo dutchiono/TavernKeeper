@@ -105,6 +105,16 @@ Town Posse Manager: 0xE46592D8185975888b4A301DBD9b24A49933CC7D
 
 ## Upgrade History (Mainnet)
 
+### 2025-01-XX: Added updateTokenURI function
+- **Reason**: Added updateTokenURI function for metadata updates
+- **Contracts Upgraded**:
+  - **TavernKeeper**:
+    - Proxy: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29`
+    - Old Impl: `0x48D8aeB5AD8175c701910A9Cf0aB25a9AeB048C6`
+    - New Impl: `0xF65f10Eb3c01ee75024E048dfF8c3E618dA9E0d7`
+- **Status**: ✅ Success
+- **Notes**: Frontend addresses unchanged (proxy address stays the same)
+
 ### 2025-12-03: Pricing Logic Fix (Hotfix)
 - **Reason**: Fixed Dutch Auction logic to enforce minimum price floor (1 MON) instead of decaying to 0.
 - **Contracts Upgraded**:

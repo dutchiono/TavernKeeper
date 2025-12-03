@@ -5,7 +5,7 @@
  * to ensure game code stays aligned with deployed contracts.
  */
 
-import { type Address, isAddress, getAddress } from 'viem';
+import { type Address } from 'viem';
 import { monad } from '../chains';
 import { CONTRACT_ADDRESSES, IMPLEMENTATION_ADDRESSES } from './addresses';
 
@@ -311,6 +311,16 @@ export const CONTRACT_REGISTRY: Record<string, ContractConfig> = {
         stateMutability: 'view',
         type: 'function',
       },
+      {
+        inputs: [
+          { name: 'tokenId', type: 'uint256' },
+          { name: 'newUri', type: 'string' }
+        ],
+        name: 'updateTokenURI',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+      },
     ],
     requiredFunctions: ['ownerOf', 'safeMint'],
   },
@@ -422,6 +432,16 @@ export const CONTRACT_REGISTRY: Record<string, ContractConfig> = {
         name: 'tier1Price',
         outputs: [{ name: '', type: 'uint256' }],
         stateMutability: 'view',
+        type: 'function',
+      },
+      {
+        inputs: [
+          { name: 'tokenId', type: 'uint256' },
+          { name: 'newUri', type: 'string' }
+        ],
+        name: 'updateTokenURI',
+        outputs: [],
+        stateMutability: 'nonpayable',
         type: 'function',
       },
       {

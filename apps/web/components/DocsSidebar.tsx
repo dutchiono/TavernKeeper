@@ -40,6 +40,14 @@ export function DocsSidebar({ allDocs }: DocsSidebarProps) {
           fixed md:relative z-40 h-screen bg-[#1a120b] border-r border-[#3e2c20] transition-all duration-300 ease-in-out
           ${isCollapsed ? 'w-16' : 'w-64'}
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}
+            >
+                {/* Collapse Toggle */}
+                <div className="p-4 flex justify-end">
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="text-[#d4af37] hover:bg-[#2a1f18] p-1 rounded transition-colors"
+                    >
                         {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
                     </button>
                 </div>
@@ -51,8 +59,10 @@ export function DocsSidebar({ allDocs }: DocsSidebarProps) {
                         <li>
                             <Link
                                 href="/docs"
-                                className={`flex items-center gap-3 p-2 rounded transition-colors ${pathname === '/docs' ? 'bg-[#3e2c20] text-[#d4af37]' : 'text-[#e5e5e5] hover:bg-[#2a1f18]'
-                }`}
+                                className={`flex items-center gap-3 p-2 rounded transition-colors ${pathname === '/docs'
+                                        ? 'bg-[#3e2c20] text-[#d4af37]'
+                                        : 'text-[#e5e5e5] hover:bg-[#2a1f18]'
+                                    }`}
                                 title="Introduction"
                             >
                                 <Book size={20} />
@@ -77,41 +87,41 @@ export function DocsSidebar({ allDocs }: DocsSidebarProps) {
 
                                         const isActive = pathname === `/docs/${path}`;
 
-                    return (
-                        <li key={path}>
-                            <Link
-                                href={`/docs/${path}`}
-                                className={`flex items-center gap-3 p-2 rounded text-sm transition-colors ${isActive ? 'bg-[#3e2c20] text-[#d4af37]' : 'text-[#a8a29e] hover:text-[#e5e5e5] hover:bg-[#2a1f18]'
-                                    }`}
-                                title={label}
-                            >
-                                {/* Dot indicator for sub-items when collapsed */}
-                                {isCollapsed ? (
-                                    <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-[#d4af37]' : 'bg-[#3e2c20]'}`} />
-                                ) : (
-                                    <span>{label}</span>
-                                )}
-                            </Link>
-                        </li>
-                    );
-                })}
-                        </ul>
-                    </li>
-                ))
-    }
+                                        return (
+                                            <li key={path}>
+                                                <Link
+                                                    href={`/docs/${path}`}
+                                                    className={`flex items-center gap-3 p-2 rounded text-sm transition-colors ${isActive ? 'bg-[#3e2c20] text-[#d4af37]' : 'text-[#a8a29e] hover:text-[#e5e5e5] hover:bg-[#2a1f18]'
+                                                        }`}
+                                                    title={label}
+                                                >
+                                                    {/* Dot indicator for sub-items when collapsed */}
+                                                    {isCollapsed ? (
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-[#d4af37]' : 'bg-[#3e2c20]'}`} />
+                                                    ) : (
+                                                        <span>{label}</span>
+                                                    )}
+                                                </Link>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </li>
+                        ))
+                        }
                     </ul >
                 </nav >
             </aside >
 
-        {/* Overlay for mobile */ }
-    {
-        isMobileOpen && (
-            <div
-                className="fixed inset-0 bg-black/50 z-30 md:hidden"
-                onClick={() => setIsMobileOpen(false)}
-            />
-        )
-    }
+            {/* Overlay for mobile */}
+            {
+                isMobileOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                        onClick={() => setIsMobileOpen(false)}
+                    />
+                )
+            }
         </>
     );
 }

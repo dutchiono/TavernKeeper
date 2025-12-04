@@ -1,35 +1,29 @@
 'use client';
 
+import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
-import { useRouter, usePathname } from 'next/navigation';
 import { useGameStore } from '../lib/stores/gameStore';
 import { GameView } from '../lib/types';
+import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 
 export const BottomNav: React.FC = () => {
     const router = useRouter();
     const pathname = usePathname();
     const { switchView, currentView } = useGameStore();
+    const isMiniapp = isInFarcasterMiniapp();
+    const homePath = isMiniapp ? '/miniapp' : '/';
 
     const handleNavigation = (view: GameView) => {
-        if (pathname !== '/') {
-            router.push('/');
-            // We might need a way to set the view after navigation, 
-            // but for now let's just push to home. 
-            // The store state persists in memory if not reloaded, 
-            // but a full page navigation might reset it.
-            // For a robust solution, we'd use query params or local storage.
-            // However, since we are fixing the "Map" button on Home, this is sufficient.
-
-            // Small timeout to allow navigation to start/complete? 
-            // Actually, if we navigate, the store might reset.
-            // Let's assume for now the user is mostly on Home.
+        if (pathname !== homePath) {
+            router.push(homePath);
+            // Small timeout to allow navigation to start/complete
             setTimeout(() => switchView(view), 100);
         } else {
             switchView(view);
         }
     };
 
-    const isActive = (view: GameView) => pathname === '/' && currentView === view;
+    const isActive = (view: GameView) => pathname === homePath && currentView === view;
     const isPartyPage = pathname === '/party';
 
     return (

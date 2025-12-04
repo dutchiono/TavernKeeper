@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { createPublicClient, http } from 'viem';
 import { useAccount, useConnect, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { monad } from '../lib/chains';
+import { setOfficeManagerData } from '../lib/services/officeManagerCache';
 import { OfficeState, tavernKeeperService } from '../lib/services/tavernKeeperService';
 import { CellarState, theCellarService } from '../lib/services/theCellarService';
 import { useGameStore } from '../lib/stores/gameStore';
@@ -177,13 +178,23 @@ export const TheOfficeMiniapp: React.FC<{
         if (receipt.status === 'success' || receipt.status === 'reverted') {
             setIsLoading(false);
             theCellarService.clearCache();
+
+            // If transaction was successful and we have userContext, cache the FID/name
+            if (receipt.status === 'success' && address && userContext && (userContext.fid || userContext.username)) {
+                setOfficeManagerData(address, {
+                    fid: userContext.fid,
+                    username: userContext.username,
+                    displayName: userContext.displayName,
+                });
+            }
+
             fetchOfficeState(true); // Force refresh after transaction
             const resetTimer = setTimeout(() => {
                 resetWrite();
             }, 500);
             return () => clearTimeout(resetTimer);
         }
-    }, [receipt, resetWrite]);
+    }, [receipt, resetWrite, address, userContext]);
 
     const handleTakeOffice = async () => {
         if (!isConnected || !address) {

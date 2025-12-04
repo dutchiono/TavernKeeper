@@ -3,11 +3,31 @@
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { PixelButton, PixelCard, PixelPanel } from '../../../components/PixelComponents';
+import { getFarcasterEthereumProvider } from '../../../lib/services/farcasterWallet';
 import { TownPosseGroup, townPosseService } from '../../../lib/services/townPosseService';
+import { isInFarcasterMiniapp } from '../../../lib/utils/farcasterDetection';
 
 export default function TownPossePage() {
-    const { user, authenticated, getEthersProvider } = usePrivy();
+    const isMiniapp = isInFarcasterMiniapp();
+    const privy = usePrivy();
+    const wagmiAccount = useAccount();
+
+    // Use wagmi in miniapp, Privy otherwise
+    const authenticated = isMiniapp ? wagmiAccount.isConnected : privy.authenticated;
+    const address = isMiniapp ? wagmiAccount.address : privy.user?.wallet?.address;
+
+    // Helper to get ethers provider/signer
+    const getEthersProvider = async () => {
+        if (isMiniapp) {
+            const provider = await getFarcasterEthereumProvider();
+            if (!provider) return null;
+            return new ethers.BrowserProvider(provider);
+        } else {
+            return await privy.getEthersProvider();
+        }
+    };
     const [posses, setPosses] = useState<TownPosseGroup[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'list' | 'create' | 'details'>('list');

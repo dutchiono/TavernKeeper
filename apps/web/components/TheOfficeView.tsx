@@ -3,9 +3,13 @@
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatEther } from 'viem';
+import { useAccount, useConnect } from 'wagmi';
+import { monad } from '../lib/chains';
 import { getMonPrice } from '../lib/services/monPriceService';
+import { getOfficeManagerData } from '../lib/services/officeManagerCache';
 import { OfficeState } from '../lib/services/tavernKeeperService';
 import { CellarState, theCellarService } from '../lib/services/theCellarService';
+import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 import { PixelBox, PixelButton } from './PixelComponents';
 import TheCellarView from './TheCellarView';
 
@@ -57,6 +61,73 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
     const [showTakeOfficeModal, setShowTakeOfficeModal] = useState(false);
     const [showClaimModal, setShowClaimModal] = useState(false);
     const [isHeaderMinimized, setIsHeaderMinimized] = useState(false);
+
+    // Format address for display (first 6 + last 4 chars)
+    const formatAddress = (address: string): string => {
+        if (!address || address === '0x0000000000000000000000000000000000000000' || address === 'Vacant' || address === 'Loading...') {
+            return address;
+        }
+        if (address.length < 10) return address;
+        return `${address.slice(0, 8)}...${address.slice(-4)}`;
+    };
+
+    // Get cached office manager data
+    const officeManagerData = React.useMemo(() => {
+        if (!state.currentKing || state.currentKing === '0x0000000000000000000000000000000000000000') {
+            return null;
+        }
+        return getOfficeManagerData(state.currentKing);
+    }, [state.currentKing]);
+
+    // Connect Farcaster button component
+    const ConnectFarcasterButton = () => {
+        const isMiniapp = isInFarcasterMiniapp();
+        const { isConnected } = useAccount();
+        const { connectAsync, connectors, isPending: isConnecting } = useConnect();
+        const primaryConnector = connectors[0];
+
+        const handleConnect = async () => {
+            if (isMiniapp && primaryConnector) {
+                try {
+                    await connectAsync({
+                        connector: primaryConnector,
+                        chainId: monad.id,
+                    });
+                } catch (e) {
+                    console.error('Failed to connect:', e);
+                    alert("Failed to connect: " + (e as any).message);
+                }
+            } else {
+                // Fallback for non-miniapp (shouldn't show, but just in case)
+                const { getContextualWalletClient, getFarcasterWalletAddress } = await import('../lib/services/farcasterWallet');
+                try {
+                    const client = await getContextualWalletClient();
+                    if (client) {
+                        const address = await getFarcasterWalletAddress();
+                        if (address) {
+                            window.location.reload();
+                        }
+                    } else {
+                        alert("Farcaster Wallet not found. Are you in a miniapp?");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Failed to connect: " + (e as any).message);
+                }
+            }
+        };
+
+        return (
+            <PixelButton
+                onClick={handleConnect}
+                disabled={isConnecting || isConnected}
+                variant="primary"
+                className="w-full !py-2 !text-xs shadow-lg flex items-center justify-center"
+            >
+                {isConnecting ? 'Connecting...' : 'Connect Farcaster'}
+            </PixelButton>
+        );
+    };
 
     React.useEffect(() => {
         setMounted(true);
@@ -148,7 +219,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
     return (
         <div className="w-full h-full flex flex-col font-pixel relative">
             {/* Visual Area (Chat or Cellar) */}
-            <div className="flex-1 relative bg-[#1a120b] overflow-hidden flex flex-col gap-2">
+            <div className="flex-1 relative bg-[#1a120b] overflow-hidden flex flex-col gap-4">
                 {/* Background Image - Absolute to fill container */}
                 <div
                     className="absolute inset-0 bg-cover bg-center opacity-40 pointer-events-none"
@@ -167,25 +238,44 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
 
                     {/* Row 1: Office Manager Info */}
                     <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 overflow-hidden">
+                        <div className="flex items-center gap-1.5">
                             <div className="w-6 h-6 bg-[#5c4033] rounded border-2 border-[#8c7b63] overflow-hidden relative shrink-0">
                                 <div className="absolute inset-0 bg-[#8c7b63] flex items-center justify-center text-xs text-[#2a1d17]">
                                     👑
                                 </div>
                             </div>
-                            <div className="flex flex-col min-w-0">
+                            <div className="flex flex-col">
                                 <span className="text-[7px] text-[#a8a29e] uppercase tracking-wider leading-none">Office Manager</span>
-                                <button
-                                    onClick={() => {
-                                        if (state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000') {
-                                            navigator.clipboard.writeText(state.currentKing);
-                                        }
-                                    }}
-                                    className="text-[#eaddcf] font-bold text-[10px] font-mono leading-none text-left hover:text-yellow-400 transition-colors cursor-pointer"
-                                    title="Click to copy address"
-                                >
-                                    {state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000' ? state.currentKing : 'Vacant'}
-                                </button>
+                                {officeManagerData && (officeManagerData.username || officeManagerData.fid) ? (
+                                    <div className="flex flex-col">
+                                        <span className="text-[#eaddcf] font-bold text-[10px] leading-none">
+                                            {officeManagerData.username ? `@${officeManagerData.username}` : `FID: ${officeManagerData.fid}`}
+                                        </span>
+                                        <button
+                                            onClick={() => {
+                                                if (state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000') {
+                                                    navigator.clipboard.writeText(state.currentKing);
+                                                }
+                                            }}
+                                            className="text-[#a8a29e] font-mono text-[8px] leading-none text-left hover:text-yellow-400 transition-colors cursor-pointer"
+                                            title={`Click to copy: ${state.currentKing}`}
+                                        >
+                                            {formatAddress(state.currentKing)}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            if (state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000') {
+                                                navigator.clipboard.writeText(state.currentKing);
+                                            }
+                                        }}
+                                        className="text-[#eaddcf] font-bold text-[10px] font-mono leading-none text-left hover:text-yellow-400 transition-colors cursor-pointer whitespace-nowrap"
+                                        title={state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000' ? `Click to copy: ${state.currentKing}` : 'Vacant'}
+                                    >
+                                        {state.currentKing && state.currentKing !== '0x0000000000000000000000000000000000000000' ? formatAddress(state.currentKing) : 'Vacant'}
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -280,7 +370,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                 </div>
 
                 {/* Content Overlay - Chat positioned below header */}
-                <div className="flex-1 relative z-30 p-2 overflow-y-auto">
+                <div className="flex-1 relative z-30 p-4 overflow-y-auto">
                     {children}
                 </div>
             </div>
@@ -351,31 +441,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                 <div className="text-center py-1">
                                     <span className="text-[10px] text-[#a8a29e] italic">Connect wallet to play</span>
                                 </div>
-                                <PixelButton
-                                    onClick={async () => {
-                                        // Manual trigger for Farcaster Wallet
-                                        const { getContextualWalletClient, getFarcasterWalletAddress } = await import('../lib/services/farcasterWallet');
-                                        try {
-                                            const client = await getContextualWalletClient();
-                                            if (client) {
-                                                const address = await getFarcasterWalletAddress();
-                                                if (address) {
-                                                    // Force reload or state update
-                                                    window.location.reload();
-                                                }
-                                            } else {
-                                                alert("Farcaster Wallet not found. Are you in a miniapp?");
-                                            }
-                                        } catch (e) {
-                                            console.error(e);
-                                            alert("Failed to connect: " + (e as any).message);
-                                        }
-                                    }}
-                                    variant="primary"
-                                    className="w-full !py-2 !text-xs shadow-lg flex items-center justify-center"
-                                >
-                                    Connect Farcaster
-                                </PixelButton>
+                                <ConnectFarcasterButton />
                             </div>
                         )}
                     </div>

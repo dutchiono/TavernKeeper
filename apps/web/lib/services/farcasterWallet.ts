@@ -6,14 +6,14 @@
  */
 
 import { createWalletClient, custom, type Address, type WalletClient } from 'viem';
-import { isInFarcasterMiniapp } from '../utils/farcasterDetection';
 import { monad } from '../chains';
+import { isInFarcasterMiniapp } from '../utils/farcasterDetection';
 
 /**
  * Get the Ethereum provider from Farcaster SDK
  * Returns an EIP-1193 compatible provider
  */
-async function getFarcasterEthereumProvider(): Promise<any | null> {
+export async function getFarcasterEthereumProvider(): Promise<any | null> {
   if (!isInFarcasterMiniapp()) {
     return null;
   }

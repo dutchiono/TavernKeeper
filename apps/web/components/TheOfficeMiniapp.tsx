@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http, type Address } from 'viem';
 import { useAccount, useConnect, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { monad } from '../lib/chains';
+import { getFarcasterWalletAddress } from '../lib/services/farcasterWallet';
 import { setOfficeManagerData } from '../lib/services/officeManagerCache';
 import { OfficeState, tavernKeeperService } from '../lib/services/tavernKeeperService';
 import { CellarState, theCellarService } from '../lib/services/theCellarService';
 import { useGameStore } from '../lib/stores/gameStore';
+import { GameView } from '../lib/types';
+import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 import { TheOfficeView } from './TheOfficeView';
 
 type UserContext = {
@@ -21,7 +24,7 @@ export const TheOfficeMiniapp: React.FC<{
     children?: React.ReactNode;
     userContext?: UserContext;
 }> = ({ children, userContext }) => {
-    const { keepBalance } = useGameStore();
+    const { keepBalance, currentView } = useGameStore();
     const [state, setState] = useState<OfficeState>({
         currentKing: 'Loading...',
         currentPrice: '0.00',
@@ -44,7 +47,7 @@ export const TheOfficeMiniapp: React.FC<{
     const [interpolatedState, setInterpolatedState] = useState<OfficeState>(state);
 
     // Use wagmi hooks for wallet connection
-    const { address, isConnected, chainId } = useAccount();
+    const { address: wagmiAddress, isConnected: wagmiConnected, chainId } = useAccount();
     const { connectAsync, connectors, isPending: isConnecting } = useConnect();
     const { writeContract, data: txHash, isPending: isWriting, reset: resetWrite } = useWriteContract();
     const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({
@@ -52,6 +55,35 @@ export const TheOfficeMiniapp: React.FC<{
         chainId: monad.id,
     });
 
+    // Fallback to Farcaster SDK if wagmi connection fails (for miniapp context)
+    const [farcasterAddress, setFarcasterAddress] = useState<Address | null>(null);
+    const isMiniapp = isInFarcasterMiniapp();
+
+    useEffect(() => {
+        if (!isMiniapp || wagmiConnected) {
+            setFarcasterAddress(null);
+            return;
+        }
+
+        // Check Farcaster SDK as fallback
+        const checkFarcaster = async () => {
+            try {
+                const addr = await getFarcasterWalletAddress();
+                setFarcasterAddress(addr);
+            } catch (error) {
+                console.debug('Farcaster wallet not available:', error);
+                setFarcasterAddress(null);
+            }
+        };
+
+        checkFarcaster();
+        const interval = setInterval(checkFarcaster, 2000);
+        return () => clearInterval(interval);
+    }, [isMiniapp, wagmiConnected]);
+
+    // Use wagmi address if available, otherwise fallback to Farcaster SDK
+    const address = wagmiAddress || farcasterAddress;
+    const isConnected = wagmiConnected || !!farcasterAddress;
     const walletReady = isConnected && !!address;
 
     // Check if current user is the office holder
@@ -235,7 +267,7 @@ export const TheOfficeMiniapp: React.FC<{
             const hash = await tavernKeeperService.takeOfficeWithWriteContract(
                 writeContract,
                 state.currentPrice,
-                address
+                address as Address
             );
             console.log('Transaction sent:', hash);
             // Don't set isLoading to false here - let the receipt handler do it
@@ -256,6 +288,15 @@ export const TheOfficeMiniapp: React.FC<{
     }, [receipt]);
 
     const [viewMode, setViewMode] = useState<'office' | 'cellar'>('office');
+
+    // Sync viewMode with GameView.CELLAR
+    useEffect(() => {
+        if (currentView === GameView.CELLAR) {
+            setViewMode('cellar');
+        } else if (currentView === GameView.INN) {
+            setViewMode('office');
+        }
+    }, [currentView]);
 
     const handleClaim = async () => {
         if (!address || !isConnected || !isKing) {
@@ -280,7 +321,7 @@ export const TheOfficeMiniapp: React.FC<{
                 abi: contractConfig.abi,
                 functionName: 'claimOfficeRewards',
                 args: [],
-                account: address,
+                account: address as Address,
                 chainId: monad.id,
             });
 

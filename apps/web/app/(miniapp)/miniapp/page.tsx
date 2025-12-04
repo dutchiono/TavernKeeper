@@ -191,7 +191,7 @@ function MiniappContent() {
                         )}
 
                         {/* TAVERNKEEPER CHAT OVERLAY & THE OFFICE */}
-                        {currentView === GameView.INN && (
+                        {(currentView === GameView.INN || currentView === GameView.CELLAR) && (
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full z-30 pointer-events-none flex flex-col gap-4">
 
                                 {/* The Office (King of the Hill) wrapping the Chat */}

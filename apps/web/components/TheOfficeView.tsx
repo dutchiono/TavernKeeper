@@ -3,8 +3,6 @@
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatEther } from 'viem';
-import { useAccount, useConnect } from 'wagmi';
-import { monad } from '../lib/chains';
 import { getMonPrice } from '../lib/services/monPriceService';
 import { getOfficeManagerData } from '../lib/services/officeManagerCache';
 import { OfficeState } from '../lib/services/tavernKeeperService';
@@ -80,40 +78,54 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
     }, [state.currentKing]);
 
     // Connect Farcaster button component
+    // Uses Farcaster SDK directly (no wagmi hooks) to avoid WagmiProvider dependency
     const ConnectFarcasterButton = () => {
         const isMiniapp = isInFarcasterMiniapp();
-        const { isConnected } = useAccount();
-        const { connectAsync, connectors, isPending: isConnecting } = useConnect();
-        const primaryConnector = connectors[0];
+        const [isConnecting, setIsConnecting] = useState(false);
+        const [isConnected, setIsConnected] = useState(false);
+
+        // Check connection status on mount and periodically
+        useEffect(() => {
+            if (!isMiniapp) return;
+
+            const checkConnection = async () => {
+                try {
+                    const { getFarcasterWalletAddress } = await import('../lib/services/farcasterWallet');
+                    const address = await getFarcasterWalletAddress();
+                    setIsConnected(!!address);
+                } catch (error) {
+                    setIsConnected(false);
+                }
+            };
+
+            checkConnection();
+            const interval = setInterval(checkConnection, 2000);
+            return () => clearInterval(interval);
+        }, [isMiniapp]);
 
         const handleConnect = async () => {
-            if (isMiniapp && primaryConnector) {
-                try {
-                    await connectAsync({
-                        connector: primaryConnector,
-                        chainId: monad.id,
-                    });
-                } catch (e) {
-                    console.error('Failed to connect:', e);
-                    alert("Failed to connect: " + (e as any).message);
+            if (!isMiniapp) {
+                alert("This button should only appear in miniapp context.");
+                return;
+            }
+
+            setIsConnecting(true);
+            try {
+                // Use Farcaster SDK directly (works without WagmiProvider)
+                const { getFarcasterWalletAddress } = await import('../lib/services/farcasterWallet');
+                const address = await getFarcasterWalletAddress();
+                if (address) {
+                    setIsConnected(true);
+                    // Force reload to update connection state throughout the app
+                    window.location.reload();
+                } else {
+                    alert("Farcaster Wallet not found. Are you in a miniapp?");
                 }
-            } else {
-                // Fallback for non-miniapp (shouldn't show, but just in case)
-                const { getContextualWalletClient, getFarcasterWalletAddress } = await import('../lib/services/farcasterWallet');
-                try {
-                    const client = await getContextualWalletClient();
-                    if (client) {
-                        const address = await getFarcasterWalletAddress();
-                        if (address) {
-                            window.location.reload();
-                        }
-                    } else {
-                        alert("Farcaster Wallet not found. Are you in a miniapp?");
-                    }
-                } catch (e) {
-                    console.error(e);
-                    alert("Failed to connect: " + (e as any).message);
-                }
+            } catch (e) {
+                console.error('Failed to connect via Farcaster SDK:', e);
+                alert("Failed to connect: " + (e as any).message);
+            } finally {
+                setIsConnecting(false);
             }
         };
 

@@ -199,34 +199,41 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     }
 
     return (
-        <div className="flex flex-col gap-4 p-4 text-white font-pixel h-full justify-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-                <Flame className="w-6 h-6 text-orange-500 animate-pulse" />
-                <h2 className="text-xl font-bold text-orange-400">THE CELLAR</h2>
-            </div>
+        <div className="flex flex-col gap-2 p-2 text-white font-pixel h-full justify-center bg-[#1a120b] relative">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
+                backgroundImage: 'radial-gradient(#4a3b32 2px, transparent 2px)',
+                backgroundSize: '20px 20px'
+            }} />
 
-            <div className="grid grid-cols-2 gap-4">
-                <PixelBox variant="dark" className="p-4 flex flex-col items-center justify-center">
-                    <div className="text-[10px] text-zinc-400 uppercase tracking-wider mb-1">Pot Size</div>
-                    <div className="text-xl font-bold text-yellow-400">
-                        {parseFloat(state.potSize).toFixed(6)} MON
+            <div className="relative z-10">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                    <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                    <h2 className="text-base font-bold text-orange-400">THE CELLAR</h2>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                <PixelBox variant="dark" className="p-2 flex flex-col items-center justify-center">
+                    <div className="text-[8px] text-zinc-400 uppercase tracking-wider mb-0.5">Pot Size</div>
+                    <div className="text-sm font-bold text-yellow-400">
+                        {parseFloat(state.potSize).toFixed(4)} MON
                     </div>
                 </PixelBox>
 
-                <PixelBox variant="dark" className="p-4 flex flex-col items-center justify-center">
-                    <div className="text-[10px] text-zinc-400 uppercase tracking-wider mb-1">Cellar Price</div>
-                    <div className="text-xl font-bold text-orange-400">
+                <PixelBox variant="dark" className="p-2 flex flex-col items-center justify-center">
+                    <div className="text-[8px] text-zinc-400 uppercase tracking-wider mb-0.5">Cellar Price</div>
+                    <div className="text-sm font-bold text-orange-400">
                         {parseFloat(state.currentPrice).toFixed(2)} LP
                     </div>
                 </PixelBox>
             </div>
 
-            <div className="mt-4 pb-20"> {/* Added padding-bottom for sticky footer */}
+            <div className="mt-2 pb-16"> {/* Reduced padding for mobile */}
                 <PixelButton
                     onClick={handleClaimClick}
                     disabled={!isConnected || isClaiming || isPotEmpty || !hasEnoughLP}
                     variant="danger"
-                    className={`w-full h-12 text-lg font-bold uppercase tracking-widest transition-all flex items-center justify-center ${(!isConnected || isClaiming || isPotEmpty || !hasEnoughLP) ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`w-full h-10 text-sm font-bold uppercase tracking-widest transition-all flex items-center justify-center ${(!isConnected || isClaiming || isPotEmpty || !hasEnoughLP) ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                     {isClaiming ? (
                         <Loader2 className="w-6 h-6 animate-spin" />
@@ -260,14 +267,14 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                     </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-white/10">
-                    <div className="text-xs text-zinc-400 mb-2 text-center uppercase tracking-wider">Need LP Tokens?</div>
+                <div className="mt-2 pt-2 border-t border-white/10">
+                    <div className="text-[10px] text-zinc-400 mb-1 text-center uppercase tracking-wider">Need LP Tokens?</div>
 
-                    <div className="flex gap-2 mb-2">
+                    <div className="flex gap-1 mb-1">
                         <input
                             type="number"
                             placeholder="Amount MON"
-                            className="w-full bg-black/50 border border-white/10 p-2 text-sm text-white font-pixel"
+                            className="w-full bg-black/50 border border-white/10 p-1.5 text-xs text-white font-pixel"
                             id="mintAmount"
                             defaultValue="1"
                         />
@@ -277,10 +284,31 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                         onClick={handleMintLPClick}
                         disabled={isMinting}
                         variant="primary"
-                        className="w-full h-10 text-sm font-bold uppercase tracking-widest flex items-center justify-center"
+                        className="w-full h-8 text-xs font-bold uppercase tracking-widest flex items-center justify-center"
                     >
-                        {isMinting ? <Loader2 className="w-4 h-4 animate-spin" /> : "MINT LP (1:3 Ratio)"}
+                        {isMinting ? <Loader2 className="w-3 h-3 animate-spin" /> : "MINT LP (1:3)"}
                     </PixelButton>
+                </div>
+
+                {/* Posse and Regulars Access */}
+                <div className="mt-2 pt-2 border-t border-white/10">
+                    <div className="text-[10px] text-zinc-400 mb-1 text-center uppercase tracking-wider">Group Management</div>
+                    <div className="grid grid-cols-2 gap-1">
+                        <PixelButton
+                            onClick={() => window.location.href = '/town-posse'}
+                            variant="wood"
+                            className="w-full h-8 text-[10px] font-bold uppercase tracking-widest"
+                        >
+                            🤠 POSSE
+                        </PixelButton>
+                        <PixelButton
+                            onClick={() => window.location.href = '/tavern-regulars'}
+                            variant="wood"
+                            className="w-full h-8 text-[10px] font-bold uppercase tracking-widest"
+                        >
+                            🍻 REGULARS
+                        </PixelButton>
+                    </div>
                 </div>
             </div>
 
@@ -466,6 +494,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                     </PixelBox>
                 </div>
             )}
-        </div >
+            </div>
+        </div>
     );
 }

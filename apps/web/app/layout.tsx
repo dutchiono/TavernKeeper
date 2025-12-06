@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import { Press_Start_2P } from 'next/font/google';
-import './globals.css';
-import '../lib/polyfills/indexeddb-ssr'; // Polyfill indexedDB for SSR
+import { BottomNav } from '../components/BottomNav';
+import { AuthProvider } from '../components/providers/AuthProvider';
 import { UnifiedWeb3Provider } from '../components/providers/UnifiedWeb3Provider';
 import { Web3Provider } from '../components/providers/Web3Provider';
-import { AuthProvider } from '../components/providers/AuthProvider';
-import { BottomNav } from '../components/BottomNav';
+import '../lib/polyfills/indexeddb-ssr'; // Polyfill indexedDB for SSR
+import './globals.css';
 
 const pressStart2P = Press_Start_2P({
   weight: '400',
@@ -20,6 +20,22 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: '#2a1d17',
+};
+
+// Farcaster Miniapp Frame Metadata
+const frame = {
+    version: "1",
+    imageUrl: `${appUrl}/image.png`,
+    button: {
+        title: "Play InnKeeper",
+        action: {
+            type: "launch_frame",
+            name: "InnKeeper",
+            url: `${appUrl}`,
+            splashImageUrl: `${appUrl}/icon.png`,
+            splashBackgroundColor: "#2a1d17"
+        }
+    }
 };
 
 export const metadata: Metadata = {
@@ -48,6 +64,10 @@ export const metadata: Metadata = {
     images: [`${appUrl}/image.png`],
   },
   metadataBase: new URL(appUrl),
+  other: {
+    "fc:miniapp": JSON.stringify(frame),
+    "fc:frame": JSON.stringify(frame)
+  },
 };
 
 export default function RootLayout({

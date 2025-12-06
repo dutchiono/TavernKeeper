@@ -574,11 +574,11 @@ contract CellarHook is IHooks, IUnlockCallback, ERC20Upgradeable, OwnableUpgrade
             // Formula: lpTokens = (liquidityDelta * totalSupplyBefore) / totalLiquidityBefore
             // This maintains the ratio: new LP tokens represent the same % of pool as liquidity added
             require(totalLiquidityBefore > 0, "CellarHook: Invalid pool state");
-            
+
             // Calculate proportional LP tokens
             // Use checked math: (liquidityDelta * totalSupplyBefore) / totalLiquidityBefore
             lpTokens = (uint256(liquidityDelta) * totalSupplyBefore) / uint256(totalLiquidityBefore);
-            
+
             // Ensure we mint at least 1 wei if liquidityDelta > 0 (rounding protection)
             if (lpTokens == 0 && liquidityDelta > 0) {
                 lpTokens = 1;
@@ -752,8 +752,9 @@ contract CellarHook is IHooks, IUnlockCallback, ERC20Upgradeable, OwnableUpgrade
             IERC20(Currency.unwrap(MON)).safeTransfer(msg.sender, reward);
         }
 
-        // 3. Setup new auction
-        uint256 newInitPrice = paymentAmount * priceMultiplier / PRICE_MULTIPLIER_SCALE;
+        // 3. Setup new auction (glaze-like: use initPrice, not paymentAmount)
+        // This ensures price grows over time even if raided at floor
+        uint256 newInitPrice = slot0Cache.initPrice * priceMultiplier / PRICE_MULTIPLIER_SCALE;
 
         if (newInitPrice > ABS_MAX_INIT_PRICE) {
             newInitPrice = ABS_MAX_INIT_PRICE;

@@ -10,7 +10,8 @@ export enum GameView {
     MAP = 'MAP',
     BATTLE = 'BATTLE',
     AGENT_DETAIL = 'AGENT_DETAIL',
-    CELLAR = 'CELLAR'
+    CELLAR = 'CELLAR',
+    CHAT = 'CHAT'
 }
 
 export interface Stats {

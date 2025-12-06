@@ -90,7 +90,7 @@ async function main() {
     const KEEP = keepTokenAddress;
     const initPrice = ethers.parseEther("100");
     const epochPeriod = 3600; // 1 hour
-    const priceMultiplier = ethers.parseEther("1.1"); // 110%
+    const priceMultiplier = ethers.parseEther("2"); // 200% (2x multiplier like donut miner)
     const minInitPrice = ethers.parseEther("1"); // 1 MON
 
     const cellarHookProxy = await upgrades.deployProxy(
@@ -251,7 +251,7 @@ async function main() {
     // For safety, we will just log them clearly for now, but also call the update function
     // which likely writes to addresses.ts (we should check if it handles networks).
 
-    // Actually, updateFrontendAddresses writes to addresses.ts. 
+    // Actually, updateFrontendAddresses writes to addresses.ts.
     // We should ensure it doesn't overwrite LOCALHOST_ADDRESSES if we are on mainnet.
     // The current implementation of updateFrontend.ts likely just overwrites specific keys.
     // Let's rely on the console output for manual verification if needed, but calling it is standard.

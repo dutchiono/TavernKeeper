@@ -4,6 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { ChatOverlay } from '../components/ChatOverlay';
+import { HomeInfoDisplay } from '../components/HomeInfoDisplay';
 import { PixelButton } from '../components/PixelComponents';
 import { BattleScene } from '../components/scenes/BattleScene';
 import { InnScene } from '../components/scenes/InnScene';
@@ -15,6 +16,7 @@ import { GameView } from '../lib/types';
 
 import { formatEther } from 'viem';
 
+import sdk from '@farcaster/miniapp-sdk';
 import { keepTokenService } from '../lib/services/keepToken';
 import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 
@@ -42,7 +44,16 @@ function HomeContent() {
     // Check if in miniapp on client side only to avoid hydration mismatch
     useEffect(() => {
         setIsMounted(true);
-        setIsInMiniapp(isInFarcasterMiniapp());
+        const inMiniapp = isInFarcasterMiniapp();
+        setIsInMiniapp(inMiniapp);
+
+        // Call sdk.actions.ready() if in miniapp context
+        if (inMiniapp) {
+            const timeout = setTimeout(() => {
+                sdk.actions.ready().catch(() => {});
+            }, 1200);
+            return () => clearTimeout(timeout);
+        }
     }, []);
 
     // Fetch KEEP Balance
@@ -157,14 +168,34 @@ function HomeContent() {
                         )}
 
                         {/* TAVERNKEEPER CHAT OVERLAY & THE OFFICE */}
-                        {(currentView === GameView.INN || currentView === GameView.CELLAR) && (
+                        {currentView === GameView.CHAT && (
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full z-30 pointer-events-none flex flex-col gap-4">
-
                                 {/* The Office (King of the Hill) wrapping the Chat */}
                                 <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
                                     <TheOffice>
                                         <ChatOverlay />
                                     </TheOffice>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* The Office for INN and CELLAR views (without chat) */}
+                        {currentView === GameView.INN && (
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full z-30 pointer-events-none flex flex-col gap-4">
+                                <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
+                                    <TheOffice>
+                                        <div className="flex-1 overflow-y-auto">
+                                            <HomeInfoDisplay address={address} />
+                                        </div>
+                                    </TheOffice>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentView === GameView.CELLAR && (
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full z-30 pointer-events-none flex flex-col gap-4">
+                                <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
+                                    <TheOffice />
                                 </div>
                             </div>
                         )}

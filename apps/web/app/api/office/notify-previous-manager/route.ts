@@ -39,9 +39,26 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Send notification
+        // Get new manager's username/display name for personalized message
+        let newManagerName: string = 'Someone';
+        const newManagerCached = getOfficeManagerData(newManagerAddress);
+        if (newManagerCached?.username) {
+            newManagerName = `@${newManagerCached.username}`;
+        } else if (newManagerCached?.displayName) {
+            newManagerName = newManagerCached.displayName;
+        } else {
+            // Fallback: fetch from Neynar API
+            const newManagerData = await getUserByAddress(newManagerAddress);
+            if (newManagerData?.username) {
+                newManagerName = `@${newManagerData.username}`;
+            } else if (newManagerData?.displayName) {
+                newManagerName = newManagerData.displayName;
+            }
+        }
+
+        // Send notification with personalized message
         const notificationTitle = 'Office Taken';
-        const notificationBody = `Someone has taken the office! You received ${parseFloat(pricePaid).toFixed(4)} MON as the previous manager.`;
+        const notificationBody = `${newManagerName} just claimed the office from you! You received ${parseFloat(pricePaid).toFixed(4)} MON as the previous manager.`;
         const targetUrl = 'https://tavernkeeper.xyz/miniapp';
 
         const success = await sendNotification(

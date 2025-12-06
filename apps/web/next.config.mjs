@@ -24,16 +24,16 @@ const nextConfig = {
       // MetaMask SDK tries to import React Native packages - ignore them in web builds
       '@react-native-async-storage/async-storage': false,
     };
-    
+
     // Ignore React Native modules that MetaMask SDK tries to import
     config.resolve.fallback = {
       ...config.resolve.fallback,
       '@react-native-async-storage/async-storage': false,
     };
-    
+
     // Note: indexedDB ReferenceError during SSR is expected from dependencies
     // These are runtime warnings, not build errors - the build still succeeds
-    
+
     return config;
   },
   serverExternalPackages: ['pino', 'thread-stream'],

@@ -168,10 +168,10 @@
         "IERC721"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\cryptography\\MessageHashUtils.sol": {
-      "lastModificationDate": 1764620242458,
-      "contentHash": "260f3968eefa3bbd30520cff5384cd93",
-      "sourceName": "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts-upg_baab94fc9c69e41fac4dee6ea1275b76\\node_modules\\@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol": {
+      "lastModificationDate": 1764620242455,
+      "contentHash": "2acae54ad209714bca07edf4bae32f72",
+      "sourceName": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -198,14 +198,12 @@
           }
         }
       },
-      "imports": [
-        "../Strings.sol"
-      ],
+      "imports": [],
       "versionPragmas": [
         "^0.8.20"
       ],
       "artifacts": [
-        "MessageHashUtils"
+        "Initializable"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\cryptography\\ECDSA.sol": {
@@ -294,44 +292,6 @@
         "ERC721Upgradeable"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts-upg_baab94fc9c69e41fac4dee6ea1275b76\\node_modules\\@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol": {
-      "lastModificationDate": 1764620242455,
-      "contentHash": "2acae54ad209714bca07edf4bae32f72",
-      "sourceName": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Initializable"
-      ]
-    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts-upg_baab94fc9c69e41fac4dee6ea1275b76\\node_modules\\@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol": {
       "lastModificationDate": 1764620242242,
       "contentHash": "08db0b4bea3d52072346c326c5b857b7",
@@ -372,6 +332,46 @@
       ],
       "artifacts": [
         "UUPSUpgradeable"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\cryptography\\MessageHashUtils.sol": {
+      "lastModificationDate": 1764620242458,
+      "contentHash": "260f3968eefa3bbd30520cff5384cd93",
+      "sourceName": "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../Strings.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "MessageHashUtils"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts-upg_baab94fc9c69e41fac4dee6ea1275b76\\node_modules\\@openzeppelin\\contracts-upgradeable\\token\\ERC721\\extensions\\ERC721URIStorageUpgradeable.sol": {
@@ -539,163 +539,6 @@
         "Strings"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SafeCast.sol": {
-      "lastModificationDate": 1764620242472,
-      "contentHash": "2adca1150f58fc6f3d1f0a0f22ee7cca",
-      "sourceName": "@openzeppelin/contracts/utils/math/SafeCast.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SafeCast"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
-      "lastModificationDate": 1764620242474,
-      "contentHash": "ae3528afb8bdb0a7dcfba5b115ee8074",
-      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./SafeCast.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SignedMath"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
-      "lastModificationDate": 1764620242456,
-      "contentHash": "5ec781e33d3a9ac91ffdc83d94420412",
-      "sourceName": "@openzeppelin/contracts/utils/math/Math.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../Panic.sol",
-        "./SafeCast.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Math"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Panic.sol": {
-      "lastModificationDate": 1764620242468,
-      "contentHash": "2133dc13536b4a6a98131e431fac59e1",
-      "sourceName": "@openzeppelin/contracts/utils/Panic.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Panic"
-      ]
-    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\draft-IERC6093.sol": {
       "lastModificationDate": 1764620242355,
       "contentHash": "5041977bbe908de2e6ed0270447f79ad",
@@ -858,6 +701,163 @@
         "IERC721Metadata"
       ]
     },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
+      "lastModificationDate": 1764620242456,
+      "contentHash": "5ec781e33d3a9ac91ffdc83d94420412",
+      "sourceName": "@openzeppelin/contracts/utils/math/Math.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../Panic.sol",
+        "./SafeCast.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Math"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SafeCast.sol": {
+      "lastModificationDate": 1764620242472,
+      "contentHash": "2adca1150f58fc6f3d1f0a0f22ee7cca",
+      "sourceName": "@openzeppelin/contracts/utils/math/SafeCast.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SafeCast"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
+      "lastModificationDate": 1764620242474,
+      "contentHash": "ae3528afb8bdb0a7dcfba5b115ee8074",
+      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./SafeCast.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SignedMath"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Panic.sol": {
+      "lastModificationDate": 1764620242468,
+      "contentHash": "2133dc13536b4a6a98131e431fac59e1",
+      "sourceName": "@openzeppelin/contracts/utils/Panic.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Panic"
+      ]
+    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721Receiver.sol": {
       "lastModificationDate": 1764620242449,
       "contentHash": "d61660a41ce200e99816e4734f7fd202",
@@ -1015,44 +1015,6 @@
         "StorageSlot"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC1967.sol": {
-      "lastModificationDate": 1764620242427,
-      "contentHash": "3c9577899f440b0c66e880c96e9250bb",
-      "sourceName": "@openzeppelin/contracts/interfaces/IERC1967.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.4.11"
-      ],
-      "artifacts": [
-        "IERC1967"
-      ]
-    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Address.sol": {
       "lastModificationDate": 1764620242330,
       "contentHash": "2a06d82f31f75087bf90231599da4f1c",
@@ -1091,6 +1053,44 @@
       ],
       "artifacts": [
         "Address"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC1967.sol": {
+      "lastModificationDate": 1764620242427,
+      "contentHash": "3c9577899f440b0c66e880c96e9250bb",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC1967.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.4.11"
+      ],
+      "artifacts": [
+        "IERC1967"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\proxy\\beacon\\IBeacon.sol": {
@@ -1367,1193 +1367,6 @@
         "ERC1155Utils"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts-upg_baab94fc9c69e41fac4dee6ea1275b76\\node_modules\\@openzeppelin\\contracts-upgradeable\\token\\ERC1155\\ERC1155Upgradeable.sol": {
-      "lastModificationDate": 1764620242223,
-      "contentHash": "cbccd9967e992d6b9da8c21ac3b1ac6f",
-      "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC1155/IERC1155.sol",
-        "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol",
-        "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Utils.sol",
-        "../../utils/ContextUpgradeable.sol",
-        "@openzeppelin/contracts/utils/introspection/IERC165.sol",
-        "../../utils/introspection/ERC165Upgradeable.sol",
-        "@openzeppelin/contracts/utils/Arrays.sol",
-        "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
-        "../../proxy/utils/Initializable.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ERC1155Upgradeable"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Arrays.sol": {
-      "lastModificationDate": 1764620242331,
-      "contentHash": "e19f50397668e814730982e8f2aa6e56",
-      "sourceName": "@openzeppelin/contracts/utils/Arrays.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./Comparators.sol",
-        "./SlotDerivation.sol",
-        "./StorageSlot.sol",
-        "./math/Math.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Arrays"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC1155\\IERC1155.sol": {
-      "lastModificationDate": 1764620242419,
-      "contentHash": "33e0e83862852391c28e4dd1b8bd9cf2",
-      "sourceName": "@openzeppelin/contracts/token/ERC1155/IERC1155.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../../utils/introspection/IERC165.sol"
-      ],
-      "versionPragmas": [
-        ">=0.6.2"
-      ],
-      "artifacts": [
-        "IERC1155"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC1155\\extensions\\IERC1155MetadataURI.sol": {
-      "lastModificationDate": 1764620242420,
-      "contentHash": "954b62833ba591c2f2ad3354a5048f2a",
-      "sourceName": "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../IERC1155.sol"
-      ],
-      "versionPragmas": [
-        ">=0.6.2"
-      ],
-      "artifacts": [
-        "IERC1155MetadataURI"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\SlotDerivation.sol": {
-      "lastModificationDate": 1764620242484,
-      "contentHash": "43950136ee6a1761d2cbed39d16bb1e0",
-      "sourceName": "@openzeppelin/contracts/utils/SlotDerivation.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SlotDerivation"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Comparators.sol": {
-      "lastModificationDate": 1764620242339,
-      "contentHash": "0e57405a6f979853cbfeb0df3546c3a3",
-      "sourceName": "@openzeppelin/contracts/utils/Comparators.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Comparators"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts-upg_baab94fc9c69e41fac4dee6ea1275b76\\node_modules\\@openzeppelin\\contracts-upgradeable\\token\\ERC1155\\extensions\\ERC1155URIStorageUpgradeable.sol": {
-      "lastModificationDate": 1764620242223,
-      "contentHash": "47de617872c1ad3fa110e3cb5f45a735",
-      "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155URIStorageUpgradeable.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/utils/Strings.sol",
-        "../ERC1155Upgradeable.sol",
-        "../../../proxy/utils/Initializable.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ERC1155URIStorageUpgradeable"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TavernKeeper.sol": {
-      "lastModificationDate": 1764803695091,
-      "contentHash": "146a8c94edd7492837b4d0cbeecf0fe2",
-      "sourceName": "contracts/TavernKeeper.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
-        "@openzeppelin/contracts/utils/cryptography/ECDSA.sol",
-        "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "IKeepToken",
-        "TavernKeeper"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Create2.sol": {
-      "lastModificationDate": 1764620242341,
-      "contentHash": "841323ddbb94316c3f9ae8a19ce080ff",
-      "sourceName": "@openzeppelin/contracts/utils/Create2.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./Errors.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Create2"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\ERC6551Registry.sol": {
-      "lastModificationDate": 1764249463475,
-      "contentHash": "08752f4fbb28adaf33bef04005b201b9",
-      "sourceName": "contracts/ERC6551Registry.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/utils/Create2.sol",
-        "./interfaces/IERC6551Registry.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ERC6551Registry"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Bytes.sol": {
-      "lastModificationDate": 1764620242336,
-      "contentHash": "62cf590c82c84688c7271f98842cf8f3",
-      "sourceName": "@openzeppelin/contracts/utils/Bytes.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./math/Math.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "Bytes"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\cryptography\\SignatureChecker.sol": {
-      "lastModificationDate": 1764620242474,
-      "contentHash": "baa80edaa1f29dd1b855e91b2bd7e0f2",
-      "sourceName": "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./ECDSA.sol",
-        "../../interfaces/IERC1271.sol",
-        "../../interfaces/IERC7913.sol",
-        "../../utils/Bytes.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "SignatureChecker"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC1271.sol": {
-      "lastModificationDate": 1764620242423,
-      "contentHash": "97c727fa357056eddfe826ab58943611",
-      "sourceName": "@openzeppelin/contracts/interfaces/IERC1271.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.5.0"
-      ],
-      "artifacts": [
-        "IERC1271"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC7913.sol": {
-      "lastModificationDate": 1764620242453,
-      "contentHash": "a051a14c8a262117cb4c5f4cbd13ed95",
-      "sourceName": "@openzeppelin/contracts/interfaces/IERC7913.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.5.0"
-      ],
-      "artifacts": [
-        "IERC7913SignatureVerifier"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\ERC6551Account.sol": {
-      "lastModificationDate": 1764250198182,
-      "contentHash": "0b6bfa21182b01d1097f2de733475899",
-      "sourceName": "contracts/ERC6551Account.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/utils/introspection/IERC165.sol",
-        "@openzeppelin/contracts/token/ERC721/IERC721.sol",
-        "@openzeppelin/contracts/interfaces/IERC1271.sol",
-        "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol",
-        "./interfaces/IERC6551Account.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ERC6551Account"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\interfaces\\IERC6551Account.sol": {
-      "lastModificationDate": 1764249474069,
-      "contentHash": "5350464b36d9b7a25da76b3fd62688de",
-      "sourceName": "contracts/interfaces/IERC6551Account.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "IERC6551Account"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\DungeonGatekeeper.sol": {
-      "lastModificationDate": 1764703294304,
-      "contentHash": "58ec5bb1c66e9f3ab5520e61198114de",
-      "sourceName": "contracts/DungeonGatekeeper.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
-        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "@openzeppelin/contracts/utils/cryptography/ECDSA.sol",
-        "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "DungeonGatekeeper"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
-      "lastModificationDate": 1764620242429,
-      "contentHash": "9261adf6457863de3e9892f51317ec89",
-      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.4.16"
-      ],
-      "artifacts": [
-        "IERC20"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
-      "lastModificationDate": 1764620242473,
-      "contentHash": "1fb9edee1d763745a62d0b1954998792",
-      "sourceName": "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../IERC20.sol",
-        "../../../interfaces/IERC1363.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SafeERC20"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC1363.sol": {
-      "lastModificationDate": 1764620242423,
-      "contentHash": "a7fd0f05e36b0d0a21c75340c9c639ec",
-      "sourceName": "@openzeppelin/contracts/interfaces/IERC1363.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./IERC20.sol",
-        "./IERC165.sol"
-      ],
-      "versionPragmas": [
-        ">=0.6.2"
-      ],
-      "artifacts": [
-        "IERC1363"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC20.sol": {
-      "lastModificationDate": 1764620242428,
-      "contentHash": "68620db2da7583d9a4919096ac77f577",
-      "sourceName": "@openzeppelin/contracts/interfaces/IERC20.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../token/ERC20/IERC20.sol"
-      ],
-      "versionPragmas": [
-        ">=0.4.16"
-      ],
-      "artifacts": []
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
-      "lastModificationDate": 1764620242431,
-      "contentHash": "513778b30d2750f5d2b9b19bbcf748a5",
-      "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../IERC20.sol"
-      ],
-      "versionPragmas": [
-        ">=0.6.2"
-      ],
-      "artifacts": [
-        "IERC20Metadata"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
-      "lastModificationDate": 1764620242374,
-      "contentHash": "59dfce11284f2636db261df9b6a18f81",
-      "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./IERC20.sol",
-        "./extensions/IERC20Metadata.sol",
-        "../../utils/Context.sol",
-        "../../interfaces/draft-IERC6093.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ERC20"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
-      "lastModificationDate": 1764620242341,
-      "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
-      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Context"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
-      "lastModificationDate": 1764620242462,
-      "contentHash": "d3c790edc9ccf808a17c5a6cd13614fd",
-      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../utils/Context.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Ownable"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\legacy\\TheCellar.sol": {
-      "lastModificationDate": 1764703294316,
-      "contentHash": "a994553be934ce6b79b70aeb8cbaa26e",
-      "sourceName": "contracts/legacy/TheCellar.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "@openzeppelin/contracts/access/Ownable.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "TheCellar"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\legacy\\CellarZap.sol": {
-      "lastModificationDate": 1764703294316,
-      "contentHash": "f87c2a4cdb88f1e3c6ef97582a875a2b",
-      "sourceName": "contracts/legacy/CellarZap.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "@openzeppelin/contracts/access/Ownable.sol",
-        "../interfaces/IUniswapV2Router02.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "CellarZap",
-        "ITheCellar"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\interfaces\\IUniswapV2Router02.sol": {
-      "lastModificationDate": 1764703294316,
-      "contentHash": "0dfa290979c086b6e761bbc3aa2178ea",
-      "sourceName": "contracts/interfaces/IUniswapV2Router02.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "IUniswapV2Router01",
-        "IUniswapV2Router02"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\MockERC20.sol": {
-      "lastModificationDate": 1764564921325,
-      "contentHash": "ffe0ff9c958c7eae7e3d0a73d53ffed2",
-      "sourceName": "contracts/MockERC20.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "MockERC20"
-      ]
-    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts-upg_baab94fc9c69e41fac4dee6ea1275b76\\node_modules\\@openzeppelin\\contracts-upgradeable\\token\\ERC20\\ERC20Upgradeable.sol": {
       "lastModificationDate": 1764620242226,
       "contentHash": "f5cb0cb4dcb2ad0074b448995119804b",
@@ -2598,10 +1411,48 @@
         "ERC20Upgradeable"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\KeepToken.sol": {
-      "lastModificationDate": 1764535609286,
-      "contentHash": "38dcee7613443dc53e2d2e46c88d2b0d",
-      "sourceName": "contracts/KeepToken.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
+      "lastModificationDate": 1764620242429,
+      "contentHash": "9261adf6457863de3e9892f51317ec89",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.4.16"
+      ],
+      "artifacts": [
+        "IERC20"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
+      "lastModificationDate": 1764620242431,
+      "contentHash": "513778b30d2750f5d2b9b19bbcf748a5",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -2629,16 +1480,213 @@
         }
       },
       "imports": [
-        "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol"
+        "../IERC20.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.2"
+      ],
+      "artifacts": [
+        "IERC20Metadata"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC20.sol": {
+      "lastModificationDate": 1764620242428,
+      "contentHash": "68620db2da7583d9a4919096ac77f577",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC20.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../token/ERC20/IERC20.sol"
+      ],
+      "versionPragmas": [
+        ">=0.4.16"
+      ],
+      "artifacts": []
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC1363.sol": {
+      "lastModificationDate": 1764620242423,
+      "contentHash": "a7fd0f05e36b0d0a21c75340c9c639ec",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC1363.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC20.sol",
+        "./IERC165.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.2"
+      ],
+      "artifacts": [
+        "IERC1363"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
+      "lastModificationDate": 1764620242473,
+      "contentHash": "1fb9edee1d763745a62d0b1954998792",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../IERC20.sol",
+        "../../../interfaces/IERC1363.sol"
       ],
       "versionPragmas": [
         "^0.8.20"
       ],
       "artifacts": [
-        "KeepToken"
+        "SafeERC20"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\UniswapIntegration.sol": {
+      "lastModificationDate": 1764249830726,
+      "contentHash": "2d9540a6152b023b135011842d86842a",
+      "sourceName": "contracts/UniswapIntegration.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "./interfaces/IUniswapV3Router.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "UniswapIntegration"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\interfaces\\IUniswapV3Router.sol": {
+      "lastModificationDate": 1764249560215,
+      "contentHash": "b844b5c2cd21432728908ffbcbe9e849",
+      "sourceName": "contracts/interfaces/IUniswapV3Router.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IUniswapV3Router"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TownPosseManager.sol": {
@@ -2731,46 +1779,6 @@
         "ReentrancyGuardUpgradeable"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\types\\PoolKey.sol": {
-      "lastModificationDate": 1764620242235,
-      "contentHash": "398fad21745911bc900a2554be64c61a",
-      "sourceName": "@uniswap/v4-core/src/types/PoolKey.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./Currency.sol",
-        "../interfaces/IHooks.sol",
-        "./PoolId.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": []
-    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\types\\Currency.sol": {
       "lastModificationDate": 1764620241603,
       "contentHash": "291e0c95e9368cfc77d3f730d602131e",
@@ -2812,10 +1820,10 @@
         "CurrencyLibrary"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\interfaces\\IHooks.sol": {
-      "lastModificationDate": 1764620242051,
-      "contentHash": "f1e10e0c258b5b05da2f768b7a60abc0",
-      "sourceName": "@uniswap/v4-core/src/interfaces/IHooks.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\types\\PoolKey.sol": {
+      "lastModificationDate": 1764620242235,
+      "contentHash": "398fad21745911bc900a2554be64c61a",
+      "sourceName": "@uniswap/v4-core/src/types/PoolKey.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -2843,17 +1851,14 @@
         }
       },
       "imports": [
-        "../types/PoolKey.sol",
-        "../types/BalanceDelta.sol",
-        "../types/PoolOperation.sol",
-        "../types/BeforeSwapDelta.sol"
+        "./Currency.sol",
+        "../interfaces/IHooks.sol",
+        "./PoolId.sol"
       ],
       "versionPragmas": [
         "^0.8.0"
       ],
-      "artifacts": [
-        "IHooks"
-      ]
+      "artifacts": []
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\interfaces\\IPoolManager.sol": {
       "lastModificationDate": 1764620242070,
@@ -2904,10 +1909,10 @@
         "IPoolManager"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\types\\PoolId.sol": {
-      "lastModificationDate": 1764620242231,
-      "contentHash": "a6e85b945451c582bcf7de3452c782cb",
-      "sourceName": "@uniswap/v4-core/src/types/PoolId.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\interfaces\\IHooks.sol": {
+      "lastModificationDate": 1764620242051,
+      "contentHash": "f1e10e0c258b5b05da2f768b7a60abc0",
+      "sourceName": "@uniswap/v4-core/src/interfaces/IHooks.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -2935,13 +1940,16 @@
         }
       },
       "imports": [
-        "./PoolKey.sol"
+        "../types/PoolKey.sol",
+        "../types/BalanceDelta.sol",
+        "../types/PoolOperation.sol",
+        "../types/BeforeSwapDelta.sol"
       ],
       "versionPragmas": [
         "^0.8.0"
       ],
       "artifacts": [
-        "PoolIdLibrary"
+        "IHooks"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\CustomRevert.sol": {
@@ -3018,6 +2026,46 @@
       ],
       "artifacts": [
         "IERC20Minimal"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\types\\PoolId.sol": {
+      "lastModificationDate": 1764620242231,
+      "contentHash": "a6e85b945451c582bcf7de3452c782cb",
+      "sourceName": "@uniswap/v4-core/src/types/PoolId.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./PoolKey.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "PoolIdLibrary"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\types\\BalanceDelta.sol": {
@@ -3333,10 +2381,10 @@
         "IERC6909Claims"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\StateLibrary.sol": {
-      "lastModificationDate": 1764620242387,
-      "contentHash": "c3a5ec9d59ea78391db1ec3a9eebb0d9",
-      "sourceName": "@uniswap/v4-core/src/libraries/StateLibrary.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Create2.sol": {
+      "lastModificationDate": 1764620242341,
+      "contentHash": "841323ddbb94316c3f9ae8a19ce080ff",
+      "sourceName": "@openzeppelin/contracts/utils/Create2.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -3364,15 +2412,837 @@
         }
       },
       "imports": [
-        "../types/PoolId.sol",
+        "./Errors.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Create2"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\ERC6551Registry.sol": {
+      "lastModificationDate": 1764249463475,
+      "contentHash": "08752f4fbb28adaf33bef04005b201b9",
+      "sourceName": "contracts/ERC6551Registry.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/utils/Create2.sol",
+        "./interfaces/IERC6551Registry.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ERC6551Registry"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Arrays.sol": {
+      "lastModificationDate": 1764620242331,
+      "contentHash": "e19f50397668e814730982e8f2aa6e56",
+      "sourceName": "@openzeppelin/contracts/utils/Arrays.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./Comparators.sol",
+        "./SlotDerivation.sol",
+        "./StorageSlot.sol",
+        "./math/Math.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Arrays"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Comparators.sol": {
+      "lastModificationDate": 1764620242339,
+      "contentHash": "0e57405a6f979853cbfeb0df3546c3a3",
+      "sourceName": "@openzeppelin/contracts/utils/Comparators.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Comparators"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\SlotDerivation.sol": {
+      "lastModificationDate": 1764620242484,
+      "contentHash": "43950136ee6a1761d2cbed39d16bb1e0",
+      "sourceName": "@openzeppelin/contracts/utils/SlotDerivation.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SlotDerivation"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts-upg_baab94fc9c69e41fac4dee6ea1275b76\\node_modules\\@openzeppelin\\contracts-upgradeable\\token\\ERC1155\\extensions\\ERC1155URIStorageUpgradeable.sol": {
+      "lastModificationDate": 1764620242223,
+      "contentHash": "47de617872c1ad3fa110e3cb5f45a735",
+      "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155URIStorageUpgradeable.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/utils/Strings.sol",
+        "../ERC1155Upgradeable.sol",
+        "../../../proxy/utils/Initializable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ERC1155URIStorageUpgradeable"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts-upg_baab94fc9c69e41fac4dee6ea1275b76\\node_modules\\@openzeppelin\\contracts-upgradeable\\token\\ERC1155\\ERC1155Upgradeable.sol": {
+      "lastModificationDate": 1764620242223,
+      "contentHash": "cbccd9967e992d6b9da8c21ac3b1ac6f",
+      "sourceName": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC1155/IERC1155.sol",
+        "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol",
+        "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Utils.sol",
+        "../../utils/ContextUpgradeable.sol",
+        "@openzeppelin/contracts/utils/introspection/IERC165.sol",
+        "../../utils/introspection/ERC165Upgradeable.sol",
+        "@openzeppelin/contracts/utils/Arrays.sol",
+        "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
+        "../../proxy/utils/Initializable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ERC1155Upgradeable"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC1155\\IERC1155.sol": {
+      "lastModificationDate": 1764620242419,
+      "contentHash": "33e0e83862852391c28e4dd1b8bd9cf2",
+      "sourceName": "@openzeppelin/contracts/token/ERC1155/IERC1155.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../../utils/introspection/IERC165.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.2"
+      ],
+      "artifacts": [
+        "IERC1155"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC1155\\extensions\\IERC1155MetadataURI.sol": {
+      "lastModificationDate": 1764620242420,
+      "contentHash": "954b62833ba591c2f2ad3354a5048f2a",
+      "sourceName": "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../IERC1155.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.2"
+      ],
+      "artifacts": [
+        "IERC1155MetadataURI"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\Inventory.sol": {
+      "lastModificationDate": 1764253340678,
+      "contentHash": "74ae83e65545b79f6c1c51d8722efbad",
+      "sourceName": "contracts/Inventory.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155URIStorageUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Inventory"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TavernRegularsManager.sol": {
+      "lastModificationDate": 1764985568636,
+      "contentHash": "c7b2ce048157372b208cd38bdc48d0e9",
+      "sourceName": "contracts/TavernRegularsManager.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@uniswap/v4-core/src/interfaces/IPoolManager.sol",
+        "@uniswap/v4-core/src/types/Currency.sol",
+        "@uniswap/v4-core/src/types/PoolKey.sol",
+        "@uniswap/v4-core/src/interfaces/IHooks.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "ICellarHook",
+        "TavernRegularsManager"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\PoolManager.sol": {
+      "lastModificationDate": 1764620242237,
+      "contentHash": "1edbd3c77294045a2ae9bfe9ba110cc7",
+      "sourceName": "@uniswap/v4-core/src/PoolManager.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./libraries/Hooks.sol",
+        "./libraries/Pool.sol",
+        "./libraries/SafeCast.sol",
+        "./libraries/Position.sol",
+        "./libraries/LPFeeLibrary.sol",
+        "./types/Currency.sol",
+        "./types/PoolKey.sol",
+        "./libraries/TickMath.sol",
+        "./NoDelegateCall.sol",
+        "./interfaces/IHooks.sol",
+        "./interfaces/IPoolManager.sol",
+        "./interfaces/callback/IUnlockCallback.sol",
+        "./ProtocolFees.sol",
+        "./ERC6909Claims.sol",
+        "./types/PoolId.sol",
+        "./types/PoolOperation.sol",
+        "./types/BalanceDelta.sol",
+        "./types/BeforeSwapDelta.sol",
+        "./libraries/Lock.sol",
+        "./libraries/CurrencyDelta.sol",
+        "./libraries/NonzeroDeltaCount.sol",
+        "./libraries/CurrencyReserves.sol",
+        "./Extsload.sol",
+        "./Exttload.sol",
+        "./libraries/CustomRevert.sol"
+      ],
+      "versionPragmas": [
+        "0.8.26"
+      ],
+      "artifacts": [
+        "PoolManager"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\Hooks.sol": {
+      "lastModificationDate": 1764620241934,
+      "contentHash": "f52b4bee451bfa37d8d0a245c44adf85",
+      "sourceName": "@uniswap/v4-core/src/libraries/Hooks.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../types/PoolKey.sol",
+        "../interfaces/IHooks.sol",
+        "./SafeCast.sol",
+        "./LPFeeLibrary.sol",
+        "../types/BalanceDelta.sol",
+        "../types/BeforeSwapDelta.sol",
         "../interfaces/IPoolManager.sol",
-        "./Position.sol"
+        "../types/PoolOperation.sol",
+        "./ParseBytes.sol",
+        "./CustomRevert.sol"
       ],
       "versionPragmas": [
         "^0.8.0"
       ],
       "artifacts": [
-        "StateLibrary"
+        "Hooks"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\TickMath.sol": {
+      "lastModificationDate": 1764620242475,
+      "contentHash": "5a64ebeb2ad0d4d53dbfadab198190ea",
+      "sourceName": "@uniswap/v4-core/src/libraries/TickMath.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./BitMath.sol",
+        "./CustomRevert.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "TickMath"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\interfaces\\callback\\IUnlockCallback.sol": {
+      "lastModificationDate": 1764620242076,
+      "contentHash": "43f66660291be4d6aad9bdcc895462ba",
+      "sourceName": "@uniswap/v4-core/src/interfaces/callback/IUnlockCallback.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IUnlockCallback"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\NoDelegateCall.sol": {
+      "lastModificationDate": 1764620242194,
+      "contentHash": "0d73efdda00941855b3e20ea146ade1e",
+      "sourceName": "@uniswap/v4-core/src/NoDelegateCall.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./libraries/CustomRevert.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "NoDelegateCall"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\Extsload.sol": {
+      "lastModificationDate": 1764620241876,
+      "contentHash": "0addb64c0ff3539539ec6e7d2d03a10a",
+      "sourceName": "@uniswap/v4-core/src/Extsload.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./interfaces/IExtsload.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Extsload"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\ProtocolFees.sol": {
+      "lastModificationDate": 1764620242259,
+      "contentHash": "b8a8b1936c1e940645f0dfdd30c1f32e",
+      "sourceName": "@uniswap/v4-core/src/ProtocolFees.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./types/Currency.sol",
+        "./libraries/CurrencyReserves.sol",
+        "./interfaces/IProtocolFees.sol",
+        "./types/PoolKey.sol",
+        "./libraries/ProtocolFeeLibrary.sol",
+        "solmate/src/auth/Owned.sol",
+        "./types/PoolId.sol",
+        "./libraries/Pool.sol",
+        "./libraries/CustomRevert.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ProtocolFees"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\ERC6909Claims.sol": {
+      "lastModificationDate": 1764620241822,
+      "contentHash": "eb6c1a6628b0493d14995ae92d79f5ba",
+      "sourceName": "@uniswap/v4-core/src/ERC6909Claims.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./ERC6909.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ERC6909Claims"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\Exttload.sol": {
+      "lastModificationDate": 1764620241877,
+      "contentHash": "5790a3ab16d768fbea25a72a4cd70059",
+      "sourceName": "@uniswap/v4-core/src/Exttload.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./interfaces/IExttload.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "Exttload"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\Position.sol": {
@@ -3416,120 +3286,6 @@
       ],
       "artifacts": [
         "Position"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\FixedPoint128.sol": {
-      "lastModificationDate": 1764620241881,
-      "contentHash": "9a9bdb7b1c2b3dcd5696781da269b664",
-      "sourceName": "@uniswap/v4-core/src/libraries/FixedPoint128.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "FixedPoint128"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\LiquidityMath.sol": {
-      "lastModificationDate": 1764620242098,
-      "contentHash": "9ae2feefc960d9918c75d91cf2fde383",
-      "sourceName": "@uniswap/v4-core/src/libraries/LiquidityMath.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "LiquidityMath"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\FullMath.sol": {
-      "lastModificationDate": 1764620241888,
-      "contentHash": "065f312b89d9a0a2ae30f7eb1075a9a1",
-      "sourceName": "@uniswap/v4-core/src/libraries/FullMath.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "FullMath"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\Pool.sol": {
@@ -3585,47 +3341,6 @@
         "Pool"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\TickMath.sol": {
-      "lastModificationDate": 1764620242475,
-      "contentHash": "5a64ebeb2ad0d4d53dbfadab198190ea",
-      "sourceName": "@uniswap/v4-core/src/libraries/TickMath.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./BitMath.sol",
-        "./CustomRevert.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "TickMath"
-      ]
-    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\LPFeeLibrary.sol": {
       "lastModificationDate": 1764620242103,
       "contentHash": "9c43170b9172c58fc7e369ef622a3f52",
@@ -3666,6 +3381,353 @@
         "LPFeeLibrary"
       ]
     },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\Lock.sol": {
+      "lastModificationDate": 1764620242101,
+      "contentHash": "d3a4be9a156d9a9930a7cf18366192c8",
+      "sourceName": "@uniswap/v4-core/src/libraries/Lock.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "Lock"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\CurrencyDelta.sol": {
+      "lastModificationDate": 1764620241605,
+      "contentHash": "b3c4b835c0314375f24eeafda83949f1",
+      "sourceName": "@uniswap/v4-core/src/libraries/CurrencyDelta.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../types/Currency.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "CurrencyDelta"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\NonzeroDeltaCount.sol": {
+      "lastModificationDate": 1764620242200,
+      "contentHash": "e897ca20f7ea8258eb2dcc17319dc233",
+      "sourceName": "@uniswap/v4-core/src/libraries/NonzeroDeltaCount.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "NonzeroDeltaCount"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\CurrencyReserves.sol": {
+      "lastModificationDate": 1764620241608,
+      "contentHash": "281683f328e83c65da1b3ccae5cda57b",
+      "sourceName": "@uniswap/v4-core/src/libraries/CurrencyReserves.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../types/Currency.sol",
+        "./CustomRevert.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "CurrencyReserves"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\ParseBytes.sol": {
+      "lastModificationDate": 1764620242211,
+      "contentHash": "4c3500fba937fb3c35ceffdd9da1181a",
+      "sourceName": "@uniswap/v4-core/src/libraries/ParseBytes.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ParseBytes"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\BitMath.sol": {
+      "lastModificationDate": 1764620241539,
+      "contentHash": "633655f1ca090751fa0071b6ff5cae08",
+      "sourceName": "@uniswap/v4-core/src/libraries/BitMath.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "BitMath"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\solmate@6.8.0\\node_modules\\solmate\\src\\auth\\Owned.sol": {
+      "lastModificationDate": 1764620242523,
+      "contentHash": "11fec455b72d2743b77d783d6017e1e9",
+      "sourceName": "solmate/src/auth/Owned.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.0"
+      ],
+      "artifacts": [
+        "Owned"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\ProtocolFeeLibrary.sol": {
+      "lastModificationDate": 1764620242257,
+      "contentHash": "259d5255041bf91bf9f09f98bd940933",
+      "sourceName": "@uniswap/v4-core/src/libraries/ProtocolFeeLibrary.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ProtocolFeeLibrary"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\FixedPoint128.sol": {
+      "lastModificationDate": 1764620241881,
+      "contentHash": "9a9bdb7b1c2b3dcd5696781da269b664",
+      "sourceName": "@uniswap/v4-core/src/libraries/FixedPoint128.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "FixedPoint128"
+      ]
+    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\TickBitmap.sol": {
       "lastModificationDate": 1764620242474,
       "contentHash": "463ec79d0ec75f44c0875910423683dc",
@@ -3704,6 +3766,123 @@
       ],
       "artifacts": [
         "TickBitmap"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\LiquidityMath.sol": {
+      "lastModificationDate": 1764620242098,
+      "contentHash": "9ae2feefc960d9918c75d91cf2fde383",
+      "sourceName": "@uniswap/v4-core/src/libraries/LiquidityMath.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "LiquidityMath"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\UnsafeMath.sol": {
+      "lastModificationDate": 1764620242503,
+      "contentHash": "5449f5bdc2713693c70bfc25b2154e7c",
+      "sourceName": "@uniswap/v4-core/src/libraries/UnsafeMath.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "UnsafeMath"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\SwapMath.sol": {
+      "lastModificationDate": 1764620242457,
+      "contentHash": "d535ac6e26806351d2fbed88ec7ce6dd",
+      "sourceName": "@uniswap/v4-core/src/libraries/SwapMath.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./FullMath.sol",
+        "./SqrtPriceMath.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "SwapMath"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\SqrtPriceMath.sol": {
@@ -3787,10 +3966,10 @@
         "Slot0Library"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\ProtocolFeeLibrary.sol": {
-      "lastModificationDate": 1764620242257,
-      "contentHash": "259d5255041bf91bf9f09f98bd940933",
-      "sourceName": "@uniswap/v4-core/src/libraries/ProtocolFeeLibrary.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\FullMath.sol": {
+      "lastModificationDate": 1764620241888,
+      "contentHash": "065f312b89d9a0a2ae30f7eb1075a9a1",
+      "sourceName": "@uniswap/v4-core/src/libraries/FullMath.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -3822,124 +4001,7 @@
         "^0.8.0"
       ],
       "artifacts": [
-        "ProtocolFeeLibrary"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\SwapMath.sol": {
-      "lastModificationDate": 1764620242457,
-      "contentHash": "d535ac6e26806351d2fbed88ec7ce6dd",
-      "sourceName": "@uniswap/v4-core/src/libraries/SwapMath.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./FullMath.sol",
-        "./SqrtPriceMath.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "SwapMath"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\UnsafeMath.sol": {
-      "lastModificationDate": 1764620242503,
-      "contentHash": "5449f5bdc2713693c70bfc25b2154e7c",
-      "sourceName": "@uniswap/v4-core/src/libraries/UnsafeMath.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "UnsafeMath"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\BitMath.sol": {
-      "lastModificationDate": 1764620241539,
-      "contentHash": "633655f1ca090751fa0071b6ff5cae08",
-      "sourceName": "@uniswap/v4-core/src/libraries/BitMath.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "BitMath"
+        "FullMath"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\FixedPoint96.sol": {
@@ -3978,598 +4040,6 @@
       ],
       "artifacts": [
         "FixedPoint96"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\CurrencyReserves.sol": {
-      "lastModificationDate": 1764620241608,
-      "contentHash": "281683f328e83c65da1b3ccae5cda57b",
-      "sourceName": "@uniswap/v4-core/src/libraries/CurrencyReserves.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../types/Currency.sol",
-        "./CustomRevert.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "CurrencyReserves"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\ProtocolFees.sol": {
-      "lastModificationDate": 1764620242259,
-      "contentHash": "b8a8b1936c1e940645f0dfdd30c1f32e",
-      "sourceName": "@uniswap/v4-core/src/ProtocolFees.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./types/Currency.sol",
-        "./libraries/CurrencyReserves.sol",
-        "./interfaces/IProtocolFees.sol",
-        "./types/PoolKey.sol",
-        "./libraries/ProtocolFeeLibrary.sol",
-        "solmate/src/auth/Owned.sol",
-        "./types/PoolId.sol",
-        "./libraries/Pool.sol",
-        "./libraries/CustomRevert.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "ProtocolFees"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\solmate@6.8.0\\node_modules\\solmate\\src\\auth\\Owned.sol": {
-      "lastModificationDate": 1764620242523,
-      "contentHash": "11fec455b72d2743b77d783d6017e1e9",
-      "sourceName": "solmate/src/auth/Owned.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.8.0"
-      ],
-      "artifacts": [
-        "Owned"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\Hooks.sol": {
-      "lastModificationDate": 1764620241934,
-      "contentHash": "f52b4bee451bfa37d8d0a245c44adf85",
-      "sourceName": "@uniswap/v4-core/src/libraries/Hooks.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../types/PoolKey.sol",
-        "../interfaces/IHooks.sol",
-        "./SafeCast.sol",
-        "./LPFeeLibrary.sol",
-        "../types/BalanceDelta.sol",
-        "../types/BeforeSwapDelta.sol",
-        "../interfaces/IPoolManager.sol",
-        "../types/PoolOperation.sol",
-        "./ParseBytes.sol",
-        "./CustomRevert.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "Hooks"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\ParseBytes.sol": {
-      "lastModificationDate": 1764620242211,
-      "contentHash": "4c3500fba937fb3c35ceffdd9da1181a",
-      "sourceName": "@uniswap/v4-core/src/libraries/ParseBytes.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "ParseBytes"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\PoolManager.sol": {
-      "lastModificationDate": 1764620242237,
-      "contentHash": "1edbd3c77294045a2ae9bfe9ba110cc7",
-      "sourceName": "@uniswap/v4-core/src/PoolManager.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./libraries/Hooks.sol",
-        "./libraries/Pool.sol",
-        "./libraries/SafeCast.sol",
-        "./libraries/Position.sol",
-        "./libraries/LPFeeLibrary.sol",
-        "./types/Currency.sol",
-        "./types/PoolKey.sol",
-        "./libraries/TickMath.sol",
-        "./NoDelegateCall.sol",
-        "./interfaces/IHooks.sol",
-        "./interfaces/IPoolManager.sol",
-        "./interfaces/callback/IUnlockCallback.sol",
-        "./ProtocolFees.sol",
-        "./ERC6909Claims.sol",
-        "./types/PoolId.sol",
-        "./types/PoolOperation.sol",
-        "./types/BalanceDelta.sol",
-        "./types/BeforeSwapDelta.sol",
-        "./libraries/Lock.sol",
-        "./libraries/CurrencyDelta.sol",
-        "./libraries/NonzeroDeltaCount.sol",
-        "./libraries/CurrencyReserves.sol",
-        "./Extsload.sol",
-        "./Exttload.sol",
-        "./libraries/CustomRevert.sol"
-      ],
-      "versionPragmas": [
-        "0.8.26"
-      ],
-      "artifacts": [
-        "PoolManager"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\interfaces\\callback\\IUnlockCallback.sol": {
-      "lastModificationDate": 1764620242076,
-      "contentHash": "43f66660291be4d6aad9bdcc895462ba",
-      "sourceName": "@uniswap/v4-core/src/interfaces/callback/IUnlockCallback.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "IUnlockCallback"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\Extsload.sol": {
-      "lastModificationDate": 1764620241876,
-      "contentHash": "0addb64c0ff3539539ec6e7d2d03a10a",
-      "sourceName": "@uniswap/v4-core/src/Extsload.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./interfaces/IExtsload.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "Extsload"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\Exttload.sol": {
-      "lastModificationDate": 1764620241877,
-      "contentHash": "5790a3ab16d768fbea25a72a4cd70059",
-      "sourceName": "@uniswap/v4-core/src/Exttload.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./interfaces/IExttload.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "Exttload"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\NoDelegateCall.sol": {
-      "lastModificationDate": 1764620242194,
-      "contentHash": "0d73efdda00941855b3e20ea146ade1e",
-      "sourceName": "@uniswap/v4-core/src/NoDelegateCall.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./libraries/CustomRevert.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "NoDelegateCall"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\ERC6909Claims.sol": {
-      "lastModificationDate": 1764620241822,
-      "contentHash": "eb6c1a6628b0493d14995ae92d79f5ba",
-      "sourceName": "@uniswap/v4-core/src/ERC6909Claims.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./ERC6909.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "ERC6909Claims"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\NonzeroDeltaCount.sol": {
-      "lastModificationDate": 1764620242200,
-      "contentHash": "e897ca20f7ea8258eb2dcc17319dc233",
-      "sourceName": "@uniswap/v4-core/src/libraries/NonzeroDeltaCount.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "NonzeroDeltaCount"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\CurrencyDelta.sol": {
-      "lastModificationDate": 1764620241605,
-      "contentHash": "b3c4b835c0314375f24eeafda83949f1",
-      "sourceName": "@uniswap/v4-core/src/libraries/CurrencyDelta.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../types/Currency.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "CurrencyDelta"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\Lock.sol": {
-      "lastModificationDate": 1764620242101,
-      "contentHash": "d3a4be9a156d9a9930a7cf18366192c8",
-      "sourceName": "@uniswap/v4-core/src/libraries/Lock.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "Lock"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\ERC6909.sol": {
@@ -4612,10 +4082,10 @@
         "ERC6909"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TavernRegularsManager.sol": {
-      "lastModificationDate": 1764985568636,
-      "contentHash": "c7b2ce048157372b208cd38bdc48d0e9",
-      "sourceName": "contracts/TavernRegularsManager.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@uniswap+v4-core@1.0.2\\node_modules\\@uniswap\\v4-core\\src\\libraries\\StateLibrary.sol": {
+      "lastModificationDate": 1764620242387,
+      "contentHash": "c3a5ec9d59ea78391db1ec3a9eebb0d9",
+      "sourceName": "@uniswap/v4-core/src/libraries/StateLibrary.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -4643,28 +4113,20 @@
         }
       },
       "imports": [
-        "@uniswap/v4-core/src/interfaces/IPoolManager.sol",
-        "@uniswap/v4-core/src/types/Currency.sol",
-        "@uniswap/v4-core/src/types/PoolKey.sol",
-        "@uniswap/v4-core/src/interfaces/IHooks.sol",
-        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol"
+        "../types/PoolId.sol",
+        "../interfaces/IPoolManager.sol",
+        "./Position.sol"
       ],
       "versionPragmas": [
-        "^0.8.24"
+        "^0.8.0"
       ],
       "artifacts": [
-        "ICellarHook",
-        "TavernRegularsManager"
+        "StateLibrary"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\hooks\\CellarHook.sol": {
-      "lastModificationDate": 1764985707615,
-      "contentHash": "6ff166738c6c7057068f677cbdad2ab3",
+      "lastModificationDate": 1764998293000,
+      "contentHash": "7baefab0889d35213fbcd79684084504",
       "sourceName": "contracts/hooks/CellarHook.sol",
       "solcConfig": {
         "version": "0.8.26",
@@ -4803,6 +4265,53 @@
         "CellarHookRecovery"
       ]
     },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\test\\PoolModifyLiquidityTest.sol": {
+      "lastModificationDate": 1764985042454,
+      "contentHash": "4684d96662af95d430e5fd9f97b8ec97",
+      "sourceName": "contracts/test/PoolModifyLiquidityTest.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@uniswap/v4-core/src/interfaces/IPoolManager.sol",
+        "@uniswap/v4-core/src/types/PoolKey.sol",
+        "@uniswap/v4-core/src/types/BalanceDelta.sol",
+        "@uniswap/v4-core/src/types/PoolId.sol",
+        "@uniswap/v4-core/src/types/Currency.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "@uniswap/v4-core/src/types/PoolOperation.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "PoolModifyLiquidityTest"
+      ]
+    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\CellarZapV4.sol": {
       "lastModificationDate": 1764988226461,
       "contentHash": "94af3ec7246a6862f5f028aef052599a",
@@ -4892,10 +4401,10 @@
         "V4DependencyHelper"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\Inventory.sol": {
-      "lastModificationDate": 1764253340678,
-      "contentHash": "74ae83e65545b79f6c1c51d8722efbad",
-      "sourceName": "contracts/Inventory.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TavernKeeper.sol": {
+      "lastModificationDate": 1764803695091,
+      "contentHash": "146a8c94edd7492837b4d0cbeecf0fe2",
+      "sourceName": "contracts/TavernKeeper.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -4923,23 +4432,26 @@
         }
       },
       "imports": [
-        "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol",
         "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155URIStorageUpgradeable.sol",
         "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol"
+        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
+        "@openzeppelin/contracts/utils/cryptography/ECDSA.sol",
+        "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol"
       ],
       "versionPragmas": [
         "^0.8.20"
       ],
       "artifacts": [
-        "Inventory"
+        "IKeepToken",
+        "TavernKeeper"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\UniswapIntegration.sol": {
-      "lastModificationDate": 1764249830726,
-      "contentHash": "2d9540a6152b023b135011842d86842a",
-      "sourceName": "contracts/UniswapIntegration.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\DungeonGatekeeper.sol": {
+      "lastModificationDate": 1764703294304,
+      "contentHash": "58ec5bb1c66e9f3ab5520e61198114de",
+      "sourceName": "contracts/DungeonGatekeeper.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -4967,21 +4479,228 @@
         }
       },
       "imports": [
+        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
         "@openzeppelin/contracts/token/ERC20/IERC20.sol",
         "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "./interfaces/IUniswapV3Router.sol"
+        "@openzeppelin/contracts/utils/cryptography/ECDSA.sol",
+        "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol"
       ],
       "versionPragmas": [
         "^0.8.20"
       ],
       "artifacts": [
-        "UniswapIntegration"
+        "DungeonGatekeeper"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\interfaces\\IUniswapV3Router.sol": {
-      "lastModificationDate": 1764249560215,
-      "contentHash": "b844b5c2cd21432728908ffbcbe9e849",
-      "sourceName": "contracts/interfaces/IUniswapV3Router.sol",
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\cryptography\\SignatureChecker.sol": {
+      "lastModificationDate": 1764620242474,
+      "contentHash": "baa80edaa1f29dd1b855e91b2bd7e0f2",
+      "sourceName": "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./ECDSA.sol",
+        "../../interfaces/IERC1271.sol",
+        "../../interfaces/IERC7913.sol",
+        "../../utils/Bytes.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "SignatureChecker"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC1271.sol": {
+      "lastModificationDate": 1764620242423,
+      "contentHash": "97c727fa357056eddfe826ab58943611",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC1271.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.5.0"
+      ],
+      "artifacts": [
+        "IERC1271"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC7913.sol": {
+      "lastModificationDate": 1764620242453,
+      "contentHash": "a051a14c8a262117cb4c5f4cbd13ed95",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC7913.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.5.0"
+      ],
+      "artifacts": [
+        "IERC7913SignatureVerifier"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Bytes.sol": {
+      "lastModificationDate": 1764620242336,
+      "contentHash": "62cf590c82c84688c7271f98842cf8f3",
+      "sourceName": "@openzeppelin/contracts/utils/Bytes.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./math/Math.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "Bytes"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\ERC6551Account.sol": {
+      "lastModificationDate": 1764250198182,
+      "contentHash": "0b6bfa21182b01d1097f2de733475899",
+      "sourceName": "contracts/ERC6551Account.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/utils/introspection/IERC165.sol",
+        "@openzeppelin/contracts/token/ERC721/IERC721.sol",
+        "@openzeppelin/contracts/interfaces/IERC1271.sol",
+        "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol",
+        "./interfaces/IERC6551Account.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ERC6551Account"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\interfaces\\IERC6551Account.sol": {
+      "lastModificationDate": 1764249474069,
+      "contentHash": "5350464b36d9b7a25da76b3fd62688de",
+      "sourceName": "contracts/interfaces/IERC6551Account.sol",
       "solcConfig": {
         "version": "0.8.26",
         "settings": {
@@ -5013,7 +4732,50 @@
         "^0.8.20"
       ],
       "artifacts": [
-        "IUniswapV3Router"
+        "IERC6551Account"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\KeepToken.sol": {
+      "lastModificationDate": 1764535609286,
+      "contentHash": "38dcee7613443dc53e2d2e46c88d2b0d",
+      "sourceName": "contracts/KeepToken.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "KeepToken"
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\proxy\\ERC1967\\ERC1967Proxy.sol": {
@@ -5135,6 +4897,333 @@
         "ProxyHelper"
       ]
     },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\LPRecoveryHelper.sol": {
+      "lastModificationDate": 1764988393831,
+      "contentHash": "d99e23c28cf18b398b0f7f325337f816",
+      "sourceName": "contracts/LPRecoveryHelper.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "@openzeppelin/contracts/access/Ownable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "LPRecoveryHelper"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
+      "lastModificationDate": 1764620242462,
+      "contentHash": "d3c790edc9ccf808a17c5a6cd13614fd",
+      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../utils/Context.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Ownable"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
+      "lastModificationDate": 1764620242341,
+      "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
+      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Context"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\node_modules\\.pnpm\\@openzeppelin+contracts@5.4.0\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
+      "lastModificationDate": 1764620242374,
+      "contentHash": "59dfce11284f2636db261df9b6a18f81",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC20.sol",
+        "./extensions/IERC20Metadata.sol",
+        "../../utils/Context.sol",
+        "../../interfaces/draft-IERC6093.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ERC20"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\MockERC20.sol": {
+      "lastModificationDate": 1764564921325,
+      "contentHash": "ffe0ff9c958c7eae7e3d0a73d53ffed2",
+      "sourceName": "contracts/MockERC20.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "MockERC20"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\legacy\\TheCellar.sol": {
+      "lastModificationDate": 1764703294316,
+      "contentHash": "a994553be934ce6b79b70aeb8cbaa26e",
+      "sourceName": "contracts/legacy/TheCellar.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "@openzeppelin/contracts/access/Ownable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "TheCellar"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\legacy\\CellarZap.sol": {
+      "lastModificationDate": 1764703294316,
+      "contentHash": "f87c2a4cdb88f1e3c6ef97582a875a2b",
+      "sourceName": "contracts/legacy/CellarZap.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "../interfaces/IUniswapV2Router02.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "CellarZap",
+        "ITheCellar"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\interfaces\\IUniswapV2Router02.sol": {
+      "lastModificationDate": 1764703294316,
+      "contentHash": "0dfa290979c086b6e761bbc3aa2178ea",
+      "sourceName": "contracts/interfaces/IUniswapV2Router02.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IUniswapV2Router01",
+        "IUniswapV2Router02"
+      ]
+    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\Create2Factory.sol": {
       "lastModificationDate": 1764703294302,
       "contentHash": "251da51cd3c4d08a63522a3d2ac70332",
@@ -5210,95 +5299,6 @@
       "artifacts": [
         "IPseudoswapFactory",
         "IPseudoswapRouter"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\test\\PoolModifyLiquidityTest.sol": {
-      "lastModificationDate": 1764985042454,
-      "contentHash": "4684d96662af95d430e5fd9f97b8ec97",
-      "sourceName": "contracts/test/PoolModifyLiquidityTest.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@uniswap/v4-core/src/interfaces/IPoolManager.sol",
-        "@uniswap/v4-core/src/types/PoolKey.sol",
-        "@uniswap/v4-core/src/types/BalanceDelta.sol",
-        "@uniswap/v4-core/src/types/PoolId.sol",
-        "@uniswap/v4-core/src/types/Currency.sol",
-        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "@uniswap/v4-core/src/types/PoolOperation.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "PoolModifyLiquidityTest"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\LPRecoveryHelper.sol": {
-      "lastModificationDate": 1764988393831,
-      "contentHash": "d99e23c28cf18b398b0f7f325337f816",
-      "sourceName": "contracts/LPRecoveryHelper.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "@openzeppelin/contracts/access/Ownable.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "LPRecoveryHelper"
       ]
     }
   }

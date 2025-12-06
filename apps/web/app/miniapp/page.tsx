@@ -6,6 +6,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
 import { ChatOverlay } from '../../components/ChatOverlay';
+import { HomeInfoDisplay } from '../../components/HomeInfoDisplay';
 import { BattleScene } from '../../components/scenes/BattleScene';
 import { InnScene } from '../../components/scenes/InnScene';
 import { MapScene } from '../../components/scenes/MapScene';
@@ -118,29 +119,27 @@ function MiniappContent() {
                 <div className="flex-1 relative flex flex-col overflow-hidden">
 
                     {/* --- TOP BAR: Title & Status --- */}
-                    <div className="h-12 bg-[#2a1d17] border-b-4 border-[#1a120b] flex items-center justify-between px-2 z-20 shrink-0 overflow-visible">
+                    <div className="h-10 bg-[#2a1d17] border-b-2 border-[#1a120b] flex items-center justify-between px-2 z-20 shrink-0 overflow-visible">
                         <div className="flex items-center gap-2 flex-shrink-0">
-                            <h1 className="text-yellow-400 text-sm md:text-lg font-bold tracking-widest px-2 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] whitespace-nowrap">
+                            <h1 className="text-yellow-400 text-xs md:text-sm font-bold tracking-widest px-1 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] whitespace-nowrap">
                                 TAVERN<span className="text-white">KEEPER</span>
                             </h1>
                         </div>
 
                         <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
-                            {/* Help/Docs Link */}
-                            <a
-                                href="/docs"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-2 py-1 text-yellow-400 hover:text-yellow-300 transition-colors"
-                                title="Documentation"
+                            {/* Help/Tutorial Button */}
+                            <button
+                                onClick={() => setShowTutorial(true)}
+                                className="px-1.5 py-0.5 text-yellow-400 hover:text-yellow-300 transition-colors text-xs"
+                                title="Help & Tutorial"
                             >
-                                <span className="text-lg">?</span>
-                            </a>
+                                ?
+                            </button>
                             {/* DAY and KEEP Balance - Always visible */}
-                            <div className="flex items-center gap-2 px-2 bg-black/30 py-1 rounded border border-white/5">
-                                <div className="text-[10px] text-yellow-400 flex flex-col items-end leading-tight">
+                            <div className="flex items-center gap-1 px-1.5 bg-black/30 py-0.5 rounded border border-white/5">
+                                <div className="text-[8px] text-yellow-400 flex flex-col items-end leading-tight">
                                     <span>DAY 1</span>
-                                    <span className="text-white/50">{parseFloat(formatEther(BigInt(keepBalance))).toFixed(2)} KEEP</span>
+                                    <span className="text-white/50 text-[7px]">{parseFloat(formatEther(BigInt(keepBalance))).toFixed(2)} K</span>
                                 </div>
                             </div>
                         </div>
@@ -173,14 +172,34 @@ function MiniappContent() {
                         )}
 
                         {/* TAVERNKEEPER CHAT OVERLAY & THE OFFICE */}
-                        {(currentView === GameView.INN || currentView === GameView.CELLAR) && (
+                        {currentView === GameView.CHAT && (
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full z-30 pointer-events-none flex flex-col gap-4">
-
                                 {/* The Office (King of the Hill) wrapping the Chat */}
                                 <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
                                     <TheOffice userContext={context?.user}>
                                         <ChatOverlay />
                                     </TheOffice>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* The Office for INN and CELLAR views (without chat) */}
+                        {currentView === GameView.INN && (
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full z-30 pointer-events-none flex flex-col gap-4">
+                                <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
+                                    <TheOffice userContext={context?.user}>
+                                        <div className="flex-1 overflow-y-auto">
+                                            <HomeInfoDisplay address={address} />
+                                        </div>
+                                    </TheOffice>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentView === GameView.CELLAR && (
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full z-30 pointer-events-none flex flex-col gap-4">
+                                <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
+                                    <TheOffice userContext={context?.user} />
                                 </div>
                             </div>
                         )}

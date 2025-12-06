@@ -72,11 +72,11 @@ export const LOCALHOST_ADDRESSES = {
     DUNGEON_GATEKEEPER: '0xE4b4bB50d4085A86157aD5B6A71CE7580BC149aE' as Address,
 
     // Treasury / Mechanics
-    THE_CELLAR: '0x9579Da6e5DEe0039d9b7f58396239dBbAc582dc0' as Address,
+    THE_CELLAR: '0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0' as Address,
     CELLAR_ZAP: '0xC9a349DEDc347a518D9F7e65aCBa207AfCE31BCB' as Address,
     POOL_MANAGER: '0xF14283A9C73439dB59A7d47B2fC88DBAD8ACf096' as Address,
     // Fee recipient from env (NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS), fallback to Cellar if not set
-    FEE_RECIPIENT: (process.env.NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS as Address | undefined) || '0x9579Da6e5DEe0039d9b7f58396239dBbAc582dc0' as Address,
+    FEE_RECIPIENT: (process.env.NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS as Address | undefined) || '0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0' as Address,
 
     // Group LP Management
     TAVERN_REGULARS_MANAGER: '0xc84E7d5C75a89eBB3322bEb004c9351c25fc0092' as Address,
@@ -129,6 +129,6 @@ export const IMPLEMENTATION_ADDRESSES = {
     ADVENTURER: '0x533CAb1A0abc52B384C586Fd844A199759872a14' as Address,
     TAVERNKEEPER: '0xd8fD9613DB7c57ab47cac54a53fe8EC543cf6297' as Address,
     DUNGEON_GATEKEEPER: '0xcbD7B44D3B799aE25CD82a1156e18CB40Bacef99' as Address,
-    THE_CELLAR: '0x9562428E3fD639123948978Bf1c1D3D16321F71d' as Address, // CellarHook implementation (new pool deployment 2025-01-XX: fee=10000, tickSpacing=200)
+    THE_CELLAR: '0x3d27b2B29514Feb8B2780949579837C945003030' as Address, // CellarHook implementation (v4.1.0: new pool fee=10000, tickSpacing=200, includes price calculation fix - glaze-like behavior)
     CELLAR_ZAP: '0x74a8Da33A01D274DC5B4812596ec0944Ee51aA2c' as Address, // CellarZapV4 implementation
 };

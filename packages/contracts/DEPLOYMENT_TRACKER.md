@@ -239,7 +239,7 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 | The Cellar (NEW - Working Pool v1) | Proxy | `0xaDF53E062195C20DAD2E52b76550f0a266e40ac0` | ✅ 2025-01-XX | See deploy_new_pool_mainnet.ts | **DEPRECATED** - Replaced by v2 |
 | The Cellar (NEW - Working Pool v1) | Impl | `0x8a2fD83393c7D0dba8EDd5C9Fde525c93Fe8e1A4` | ✅ 2025-01-XX | See deploy_new_pool_mainnet.ts | v4.0.0 - New pool deployment |
 | The Cellar (NEW - Working Pool v2) | Proxy | `0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0` | ✅ 2025-01-XX | See deploy_new_pool_mainnet.ts | **USE THIS** - New pool (fee=10000, tickSpacing=200), ERC1967Proxy |
-| The Cellar (NEW - Working Pool v2) | Impl | `0x3d27b2B29514Feb8B2780949579837C945003030` | ✅ 2025-01-XX | See deploy_new_pool_mainnet.ts | v4.1.0 - Latest pool deployment |
+| The Cellar (NEW - Working Pool v2) | Impl | `0x3d27b2B29514Feb8B2780949579837C945003030` | ✅ 2025-01-XX | See deploy_new_pool_mainnet.ts | v4.1.0 - Latest pool deployment, includes price calculation fix (glaze-like behavior) |
 | KeepToken | Proxy | `0x2D1094F5CED6ba279962f9676d32BE092AFbf82E` | ✅ 2025-01-XX | See FIRSTDEPLOYMENT.md | **USE THIS** - Mainnet KeepToken |
 | KeepToken (ACCIDENTAL) | Proxy | `0x426f7c10e7D5329BB7E956e59fa19697c465daBA` | ⚠️ 2025-01-XX | Accidental deploy | **DO NOT USE** - Orphaned, see ACCIDENTAL_MAINNET_DEPLOYMENT.md |
 | CellarHook (ACCIDENTAL) | Proxy | `0xDA499a900FE25D738045CD6C299663471dE76Ae0` | ⚠️ 2025-01-XX | Accidental deploy | **DO NOT USE** - Orphaned, incompatible with mainnet KeepToken |
@@ -336,11 +336,16 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
   - ✅ **Hook address validation**: Validates hook address has correct flags (0x2DC0) before pool creation
   - ✅ **All dependent contracts upgraded**: TownPosseManager, TavernRegularsManager, and TavernKeeper updated
   - ✅ **Two-sided liquidity verified**: Pool successfully initialized with both MON and KEEP
+  - ✅ **Price calculation fix (glaze-like behavior)**: Uses `initPrice` instead of `paymentAmount` for new epoch price calculation
+    - Changed line 757: `slot0Cache.initPrice * priceMultiplier` (instead of `paymentAmount * priceMultiplier`)
+    - Ensures price grows over time instead of oscillating between floor and 2x floor
+    - Result: If epoch starts at 10 MON and is raided at 1 MON, new epoch starts at 20 MON (not 2 MON)
   - **New Hook Address**: `0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0` (ERC1967Proxy with flags 0x2DC0)
   - **Pool Parameters**: Fee=10000 (1.0%), TickSpacing=200
   - **Network**: Monad Mainnet (Chain ID 143)
   - **Status**: ✅ **ACTIVE** - Pool initialized and all dependent contracts updated
   - **Deployment TX**: Pool init: `0x9abebd9be786ae360f29f7ef0da53d2ab4eac7960fd8ad782735ef1cb02c01f2`, Liquidity: `0x88dad9f627ec1a780017ae788906dd2c46fd8df89ee691f67b0606bc7c98cb9c`
+  - **Upgrade Attempt**: 2025-12-06 - Upgrade script detected fix already present in implementation
 
 ### CellarZapV4
 - **v1.0.0** - `0x05E67f9e58CE0FFF67EF916DA2dDFe7A856155d5` - Initial deployment (non-upgradeable)

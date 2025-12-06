@@ -93,7 +93,7 @@ async function main() {
     const KEEP = keepTokenAddress;
     const initPrice = ethers.parseEther("100");
     const epochPeriod = 3600; // 1 hour
-    const priceMultiplier = ethers.parseEther("1.1"); // 110%
+    const priceMultiplier = ethers.parseEther("2"); // 200% (2x multiplier like donut miner)
     const minInitPrice = ethers.parseEther("1"); // 1 ETH
 
     const cellarHookProxy = await upgrades.deployProxy(

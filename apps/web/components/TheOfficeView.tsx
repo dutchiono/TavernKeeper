@@ -328,24 +328,24 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                 <PixelBox variant="wood" className="!p-0 overflow-hidden shadow-2xl">
 
                     {/* Player Stats & Action Area */}
-                    <div className="bg-[#3e2b22] p-1.5 shrink-0 flex flex-col gap-1.5">
+                    <div className="bg-[#3e2b22] p-1 shrink-0 flex flex-col gap-1">
 
                         {/* Player Stats Bar */}
-                        <div className="flex justify-between items-center bg-[#2a1d17] rounded p-1 border border-[#5c4033]">
+                        <div className="flex justify-between items-center bg-[#2a1d17] rounded p-0.5 border border-[#5c4033]">
                             <div className="flex flex-col justify-center">
-                                <span className="text-[6px] text-[#a8a29e] uppercase leading-none mb-0.5">Your Balance</span>
-                                <div className="flex gap-2">
-                                    <span className="text-[#eaddcf] font-bold text-[10px] leading-none">KEEP {parseFloat(formatEther(BigInt(keepBalance))).toFixed(2)}</span>
-                                    <span className="text-[#eaddcf] font-bold text-[10px] leading-none">MON {parseFloat(formatEther(BigInt(monBalance))).toFixed(4)}</span>
+                                <span className="text-[5px] text-[#a8a29e] uppercase leading-none mb-0.5">Your Balance</span>
+                                <div className="flex gap-1">
+                                    <span className="text-[#eaddcf] font-bold text-[8px] leading-none">KEEP {parseFloat(formatEther(BigInt(keepBalance))).toFixed(2)}</span>
+                                    <span className="text-[#eaddcf] font-bold text-[8px] leading-none">MON {parseFloat(formatEther(BigInt(monBalance))).toFixed(4)}</span>
                                 </div>
                             </div>
-                            <div className="h-6 w-px bg-[#5c4033]"></div>
+                            <div className="h-5 w-px bg-[#5c4033]"></div>
                             <div className="flex flex-col items-end justify-center">
-                                <span className="text-[6px] text-[#a8a29e] uppercase leading-none mb-0.5">
+                                <span className="text-[5px] text-[#a8a29e] uppercase leading-none mb-0.5">
                                     Pending Rewards
                                 </span>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-[#eaddcf] font-bold text-[10px] leading-none">
+                                <div className="flex items-center gap-0.5">
+                                    <span className="text-[#eaddcf] font-bold text-[8px] leading-none">
                                         KEEP {isKing ? (state.totalEarned || '0.00') : '0.00'}
                                     </span>
                                     {isKing && onClaim && (
@@ -353,41 +353,41 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                             onClick={() => setShowClaimModal(true)}
                                             disabled={isLoading}
                                             variant="primary"
-                                            className="!py-0.5 !px-1.5 !text-[8px] !h-auto"
+                                            className="!py-0.5 !px-1 !text-[7px] !h-auto"
                                         >
                                             CLAIM
                                         </PixelButton>
                                     )}
                                 </div>
                                 {isKing && (
-                                    <span className="text-[6px] text-green-400 leading-none mt-0.5">(You)</span>
+                                    <span className="text-[5px] text-green-400 leading-none mt-0.5">(You)</span>
                                 )}
                             </div>
                         </div>
 
                         {/* Action Buttons - Split Take Office / Raid Cellar */}
                         {isWalletConnected ? (
-                            <div className="flex gap-2">
+                            <div className="flex gap-1">
                                 <PixelButton
                                     onClick={() => setShowTakeOfficeModal(true)}
                                     disabled={isLoading || !walletReady}
                                     variant="danger"
-                                    className="flex-1 !py-2 !text-xs shadow-lg flex items-center justify-center"
+                                    className="flex-1 !py-1.5 !text-[10px] shadow-lg flex items-center justify-center"
                                 >
                                     {buttonText}
                                 </PixelButton>
                                 <PixelButton
                                     onClick={() => onViewSwitch?.('cellar')}
                                     variant="neutral"
-                                    className="flex-1 !py-2 !text-xs shadow-lg flex items-center justify-center"
+                                    className="flex-1 !py-1.5 !text-[10px] shadow-lg flex items-center justify-center"
                                 >
                                     RAID CELLAR
                                 </PixelButton>
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-2">
-                                <div className="text-center py-1">
-                                    <span className="text-[10px] text-[#a8a29e] italic">Connect wallet to play</span>
+                            <div className="flex flex-col gap-1">
+                                <div className="text-center py-0.5">
+                                    <span className="text-[8px] text-[#a8a29e] italic">Connect wallet to play</span>
                                 </div>
                             </div>
                         )}

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         // Send notification with personalized message
         const notificationTitle = 'Office Taken';
         const notificationBody = `${newManagerName} just claimed the office from you! You received ${parseFloat(pricePaid).toFixed(4)} MON as the previous manager.`;
-        const targetUrl = 'https://tavernkeeper.xyz/miniapp';
+        const targetUrl = 'https://tavernkeeper.xyz/';
 
         const success = await sendNotification(
             [fid],

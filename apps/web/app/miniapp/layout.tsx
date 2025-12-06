@@ -11,7 +11,7 @@ const frame = {
         action: {
             type: "launch_frame",
             name: "InnKeeper",
-            url: `${appUrl}/miniapp`,
+            url: `${appUrl}/`,
             splashImageUrl: `${appUrl}/icon.png`,
             splashBackgroundColor: "#2a1d17"
         }

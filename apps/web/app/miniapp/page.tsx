@@ -127,14 +127,7 @@ function MiniappContent() {
                         </div>
 
                         <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
-                            {/* Help/Tutorial Button */}
-                            <button
-                                onClick={() => setShowTutorial(true)}
-                                className="px-1.5 py-0.5 text-yellow-400 hover:text-yellow-300 transition-colors text-xs"
-                                title="Help & Tutorial"
-                            >
-                                ?
-                            </button>
+                            {/* Help/Docs Link */}<a href="/docs" target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-yellow-400 hover:text-yellow-300 transition-colors" title="Documentation"><span className="text-lg">?</span></a>
                             {/* DAY and KEEP Balance - Always visible */}
                             <div className="flex items-center gap-1 px-1.5 bg-black/30 py-0.5 rounded border border-white/5">
                                 <div className="text-[8px] text-yellow-400 flex flex-col items-end leading-tight">

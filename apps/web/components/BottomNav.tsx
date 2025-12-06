@@ -10,8 +10,7 @@ export const BottomNav: React.FC = () => {
     const router = useRouter();
     const pathname = usePathname();
     const { switchView, currentView } = useGameStore();
-    const isMiniapp = isInFarcasterMiniapp();
-    const homePath = isMiniapp ? '/miniapp' : '/';
+    const homePath = '/';
 
     const handleNavigation = (view: GameView) => {
         if (pathname !== homePath) {

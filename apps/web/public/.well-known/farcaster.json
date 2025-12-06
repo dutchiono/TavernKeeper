@@ -10,7 +10,7 @@
         "iconUrl": "https://tavernkeeper.xyz/icon.png",
         "homeUrl": "https://tavernkeeper.xyz/",
         "imageUrl": "https://tavernkeeper.xyz/image.png",
-        "buttonTitle": "Play InnKeeper",
+        "buttonTitle": "Play TavernKeeper",
         "splashImageUrl": "https://tavernkeeper.xyz/splash.png",
         "splashBackgroundColor": "#2a1d17",
         "webhookUrl": "https://api.neynar.com/f/app/85c825e6-14ef-4884-8014-900d0c2bb4b2/event"

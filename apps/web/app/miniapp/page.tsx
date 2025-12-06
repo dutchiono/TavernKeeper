@@ -68,18 +68,49 @@ function MiniappContent() {
     // https://miniapps.farcaster.xyz/docs/guides/loading#calling-ready
     useEffect(() => {
         if (readyRef.current) return;
-
-        // Use a small delay to ensure SDK is initialized, then call ready
-        const timeout = setTimeout(() => {
-            if (sdk?.actions?.ready) {
-                readyRef.current = true;
-                sdk.actions.ready().catch((error) => {
-                    console.warn('Failed to call sdk.actions.ready():', error);
-                });
+        
+        const callReady = async () => {
+            try {
+                // Check if SDK is available
+                if (typeof window !== 'undefined' && (window as any).farcaster) {
+                    const farcasterSDK = (window as any).farcaster;
+                    if (farcasterSDK?.actions?.ready) {
+                        readyRef.current = true;
+                        await farcasterSDK.actions.ready();
+                        console.log('✅ sdk.actions.ready() called successfully from miniapp page');
+                        return;
+                    }
+                }
+                
+                // Fallback to imported SDK
+                if (sdk && (sdk as any).actions && (sdk as any).actions.ready) {
+                    readyRef.current = true;
+                    await (sdk as any).actions.ready();
+                    console.log('✅ sdk.actions.ready() called successfully from miniapp page (imported SDK)');
+                    return;
+                }
+                
+                console.warn('SDK not available yet');
+            } catch (error) {
+                console.error('Failed to call sdk.actions.ready():', error);
+                readyRef.current = false; // Allow retry
             }
-        }, 100); // Small delay to ensure SDK is available
-
-        return () => clearTimeout(timeout);
+        };
+        
+        // Try immediately
+        callReady();
+        
+        // Retry with delays
+        const timeouts = [
+            setTimeout(callReady, 50),
+            setTimeout(callReady, 200),
+            setTimeout(callReady, 500),
+            setTimeout(callReady, 1000),
+        ];
+        
+        return () => {
+            timeouts.forEach(clearTimeout);
+        };
     }, []);
 
     // Wagmi hooks for wallet connection (auto-connect handled by AutoConnectWallet in provider)

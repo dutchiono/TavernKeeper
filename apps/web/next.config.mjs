@@ -47,7 +47,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "connect-src 'self' https://* wss://* *; img-src 'self' blob: data: *; font-src 'self' data:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
+            value: "connect-src 'self' https://* wss://* https://explorer-api.walletconnect.com https://pulse.walletconnect.org https://rpc.monad.xyz https://testnet-rpc.monad.xyz *; img-src 'self' blob: data: *; font-src 'self' data:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
           },
         ],
       },

@@ -1,6 +1,8 @@
 'use client';
 
-import { usePrivy } from '@privy-io/react-auth';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
+
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { ChatOverlay } from '../components/ChatOverlay';
@@ -40,17 +42,18 @@ function HomeContent() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
+    // Wagmi hooks for wallet state
+    const { address, isConnected } = useAccount();
+
     // Redirect to /miniapp if accessing root route inside Farcaster miniapp
-    // This ensures miniapp users get the correct providers (MiniappProvider instead of Web3Provider)
     useEffect(() => {
-        if (typeof window === 'undefined') return; // Skip on SSR
+        if (typeof window === 'undefined') return;
 
         const inMiniapp = isInFarcasterMiniapp();
         setIsInMiniapp(inMiniapp);
         setIsMounted(true);
 
         if (inMiniapp && pathname === '/') {
-            // Preserve query parameters (e.g., party invites, view params)
             const queryString = searchParams.toString();
             const redirectPath = queryString ? `/miniapp?${queryString}` : '/miniapp';
             router.replace(redirectPath);
@@ -58,20 +61,13 @@ function HomeContent() {
         }
     }, [pathname, router, searchParams]);
 
-    // Use Privy hook - should always be available for / route (Web3Provider provides it for non-miniapp routes)
-    // If we're redirecting to /miniapp, this component will unmount quickly anyway
-    const { login, authenticated, user, logout } = usePrivy();
-    const address = user?.wallet?.address;
-
     console.log('HomeContent Render:', { currentView, isMounted, isInMiniapp });
 
-    // Early return if redirecting to miniapp
     if (isMounted && isInMiniapp && pathname === '/') {
         return <div className="h-full w-full flex items-center justify-center bg-black text-white">Redirecting...</div>;
     }
 
-
-    // Fetch KEEP Balance - delayed to avoid rate limits
+    // Fetch KEEP Balance
     useEffect(() => {
         if (!address) {
             setKeepBalance("0");
@@ -81,30 +77,19 @@ function HomeContent() {
         let cancelled = false;
 
         const fetchBalance = async () => {
-            // Delay initial fetch to avoid rate limits
             await new Promise(resolve => setTimeout(resolve, 1000));
-
             if (cancelled) return;
-
             try {
                 const balance = await keepTokenService.getBalance(address);
-                if (!cancelled) {
-                    setKeepBalance(balance);
-                }
+                if (!cancelled) setKeepBalance(balance);
             } catch (error) {
-                if (!cancelled) {
-                    console.error('Failed to fetch KEEP balance:', error);
-                    // Don't set to 0 on error, keep previous value
-                }
+                if (!cancelled) console.error('Failed to fetch KEEP balance:', error);
             }
         };
 
         fetchBalance();
-        const interval = setInterval(fetchBalance, 30000); // Poll every 30s
-        return () => {
-            cancelled = true;
-            clearInterval(interval);
-        };
+        const interval = setInterval(fetchBalance, 30000);
+        return () => { cancelled = true; clearInterval(interval); };
     }, [address, setKeepBalance]);
 
     // Initial Greeting
@@ -121,7 +106,6 @@ function HomeContent() {
         }
     }, []);
 
-    // Handle URL Query Params for View Switching
     const handleViewChange = (view: string | null) => {
         if (view === 'map') switchView(GameView.MAP);
         if (view === 'battle') switchView(GameView.BATTLE);
@@ -136,10 +120,9 @@ function HomeContent() {
             <main className="h-full w-full flex flex-col font-pixel">
                 <WelcomeModal onClose={() => { }} />
 
-                {/* Mobile Container Wrapper - Filling Parent from Layout */}
                 <div className="flex-1 relative flex flex-col overflow-hidden">
 
-                    {/* --- TOP BAR: Title & Status --- */}
+                    {/* --- TOP BAR --- */}
                     <div className="h-12 bg-[#2a1d17] border-b-4 border-[#1a120b] flex items-center justify-between px-2 z-20 shrink-0 overflow-visible">
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <h1 className="text-yellow-400 text-sm md:text-lg font-bold tracking-widest px-2 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] whitespace-nowrap">
@@ -148,22 +131,21 @@ function HomeContent() {
                         </div>
 
                         <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
-                            {/* Wallet Connect Menu - Show on web (not in Farcaster miniapp) */}
+                            {/* Wallet Connect - RainbowKit */}
                             {isMounted && !isInMiniapp && (
                                 <div className="flex items-center gap-2">
-                                    {authenticated ? (
-                                        <PixelButton variant="wood" onClick={logout} className="text-[10px] px-2 py-1">
-                                            {address?.slice(0, 4)}...{address?.slice(-4)}
-                                        </PixelButton>
-                                    ) : (
-                                        <PixelButton variant="primary" onClick={login} className="text-[10px] px-2 py-1">
-                                            CONNECT
-                                        </PixelButton>
-                                    )}
+                                    <ConnectButton
+                                        accountStatus={{
+                                            smallScreen: 'avatar',
+                                            largeScreen: 'full',
+                                        }}
+                                        showBalance={false}
+                                        chainStatus="none"
+                                    />
                                 </div>
                             )}
 
-                            {/* DAY and KEEP Balance - Always visible */}
+                            {/* DAY and KEEP Balance */}
                             <div className="flex items-center gap-2 px-2 bg-black/30 py-1 rounded border border-white/5">
                                 <div className="text-[10px] text-yellow-400 flex flex-col items-end leading-tight">
                                     <span>DAY 1</span>
@@ -175,12 +157,8 @@ function HomeContent() {
 
                     {/* --- MAIN SCENE AREA --- */}
                     <div className="flex-1 relative bg-black overflow-hidden">
-                        {currentView === GameView.INN && (
-                            <InnScene />
-                        )}
-                        {currentView === GameView.MAP && (
-                            <MapScene />
-                        )}
+                        {currentView === GameView.INN && <InnScene />}
+                        {currentView === GameView.MAP && <MapScene />}
                         {currentView === GameView.BATTLE && (
                             <BattleScene
                                 party={party}
@@ -196,10 +174,9 @@ function HomeContent() {
                             />
                         )}
 
-                        {/* TAVERNKEEPER CHAT OVERLAY & THE OFFICE */}
+                        {/* CHAT VIEW */}
                         {currentView === GameView.CHAT && (
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full z-30 pointer-events-none flex flex-col gap-4">
-                                {/* The Office (King of the Hill) wrapping the Chat */}
                                 <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
                                     <TheOffice>
                                         <ChatOverlay />
@@ -208,7 +185,7 @@ function HomeContent() {
                             </div>
                         )}
 
-                        {/* The Office for INN and CELLAR views (without chat) */}
+                        {/* INN VIEW & THE OFFICE */}
                         {currentView === GameView.INN && (
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-full z-30 pointer-events-none flex flex-col">
                                 <div className="pointer-events-auto w-full h-full flex flex-col overflow-hidden">
@@ -221,6 +198,7 @@ function HomeContent() {
                             </div>
                         )}
 
+                        {/* CELLAR VIEW */}
                         {currentView === GameView.CELLAR && (
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-full z-30 pointer-events-none flex flex-col gap-4">
                                 <div className="pointer-events-auto w-full h-full flex flex-col overflow-hidden">
@@ -230,7 +208,6 @@ function HomeContent() {
                         )}
 
                     </div>
-
                 </div>
             </main>
         </>

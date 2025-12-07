@@ -68,24 +68,8 @@ function MiniappContent() {
     // https://miniapps.farcaster.xyz/docs/guides/loading#calling-ready
     // Call sdk.actions.ready() when interface is ready (per Farcaster docs)
     // https://miniapps.farcaster.xyz/docs/guides/loading#calling-ready
-    useEffect(() => {
-        const bootstrapSdk = async () => {
-            try {
-                const insideMiniApp = await sdk.isInMiniApp();
-                if (!insideMiniApp) {
-                    console.log('Not in miniapp, skipping ready()');
-                    return;
-                }
-
-                await sdk.actions.ready();
-                console.log('✅ sdk.actions.ready() called successfully');
-            } catch (err) {
-                console.error('Failed to call sdk.actions.ready()', err);
-            }
-        };
-
-        void bootstrapSdk();
-    }, []);
+    // Note: sdk.actions.ready() is now handled globally by MiniappLifecycle in RootLayout
+    // ensuring it fires reliably for all miniapp pages.
 
     // Wagmi hooks for wallet connection (auto-connect handled by AutoConnectWallet in provider)
     const { address } = useAccount();

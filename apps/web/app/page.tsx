@@ -34,14 +34,11 @@ function SearchParamsHandler({ onViewChange }: { onViewChange: (view: string | n
 
 function HomeContent() {
     const { currentView, switchView, party, keepBalance, setKeepBalance } = useGameStore();
-    const { login, authenticated, user, logout } = usePrivy();
-    const address = user?.wallet?.address;
     const [isInMiniapp, setIsInMiniapp] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
-
-    console.log('HomeContent Render:', { currentView, isMounted, isInMiniapp });
+    const searchParams = useSearchParams();
 
     // Redirect to /miniapp if accessing root route inside Farcaster miniapp
     // This ensures miniapp users get the correct providers (MiniappProvider instead of Web3Provider)
@@ -49,22 +46,30 @@ function HomeContent() {
         if (typeof window === 'undefined') return; // Skip on SSR
 
         const inMiniapp = isInFarcasterMiniapp();
+        setIsInMiniapp(inMiniapp);
+        setIsMounted(true);
+
         if (inMiniapp && pathname === '/') {
             // Preserve query parameters (e.g., party invites, view params)
-            const searchParams = new URLSearchParams(window.location.search);
             const queryString = searchParams.toString();
             const redirectPath = queryString ? `/miniapp?${queryString}` : '/miniapp';
             router.replace(redirectPath);
             return;
         }
-    }, [pathname, router]);
+    }, [pathname, router, searchParams]);
 
-    // Check if in miniapp on client side only to avoid hydration mismatch
-    useEffect(() => {
-        setIsMounted(true);
-        const inMiniapp = isInFarcasterMiniapp();
-        setIsInMiniapp(inMiniapp);
-    }, []);
+    // Use Privy hook - should always be available for / route (Web3Provider provides it for non-miniapp routes)
+    // If we're redirecting to /miniapp, this component will unmount quickly anyway
+    const { login, authenticated, user, logout } = usePrivy();
+    const address = user?.wallet?.address;
+
+    console.log('HomeContent Render:', { currentView, isMounted, isInMiniapp });
+
+    // Early return if redirecting to miniapp
+    if (isMounted && isInMiniapp && pathname === '/') {
+        return <div className="h-full w-full flex items-center justify-center bg-black text-white">Redirecting...</div>;
+    }
+
 
     // Fetch KEEP Balance - delayed to avoid rate limits
     useEffect(() => {

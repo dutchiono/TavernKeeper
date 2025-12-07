@@ -79,27 +79,16 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
 
     React.useEffect(() => {
         setMounted(true);
+        // Note: Cellar state is already fetched in TheOffice component parent
+        // Only update if prop changes
+        if (propCellarState) {
+            setCellarState(propCellarState);
+        }
+    }, [propCellarState]);
 
-        const fetchCellar = async (forceRefresh = false) => {
-            try {
-                if (forceRefresh) {
-                    theCellarService.clearCache();
-                }
-                const data = await theCellarService.getCellarState();
-                setCellarState(data);
-            } catch (e) {
-                console.error("Failed to fetch cellar", e);
-            }
-        };
-
-        fetchCellar();
-        const interval = setInterval(() => fetchCellar(false), 5000);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Refresh cellar when refreshKey changes
+    // Refresh cellar when refreshKey changes (only if prop not provided)
     React.useEffect(() => {
-        if (refreshKey !== undefined && refreshKey > 0) {
+        if (refreshKey !== undefined && refreshKey > 0 && !propCellarState) {
             const fetchCellar = async () => {
                 try {
                     theCellarService.clearCache();
@@ -111,7 +100,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
             };
             fetchCellar();
         }
-    }, [refreshKey]);
+    }, [refreshKey, propCellarState]);
 
     // Fetch MON price periodically
     useEffect(() => {

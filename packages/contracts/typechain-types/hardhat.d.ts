@@ -450,6 +450,18 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.CellarToken__factory>;
     getContractFactory(
+      name: "IUniswapV3Pool",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapV3Pool__factory>;
+    getContractFactory(
+      name: "IUniswapV3SwapCallback",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapV3SwapCallback__factory>;
+    getContractFactory(
+      name: "SimpleSwapRouter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SimpleSwapRouter__factory>;
+    getContractFactory(
       name: "INonfungiblePositionManager",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.INonfungiblePositionManager__factory>;
@@ -457,6 +469,18 @@ declare module "hardhat/types/runtime" {
       name: "TheCellarV3",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TheCellarV3__factory>;
+    getContractFactory(
+      name: "TheCellarV3Emergency",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TheCellarV3Emergency__factory>;
+    getContractFactory(
+      name: "IWMON",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IWMON__factory>;
+    getContractFactory(
+      name: "TheCellarV3Upgrade",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TheCellarV3Upgrade__factory>;
     getContractFactory(
       name: "V4DependencyHelper",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -1012,6 +1036,21 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.CellarToken>;
     getContractAt(
+      name: "IUniswapV3Pool",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapV3Pool>;
+    getContractAt(
+      name: "IUniswapV3SwapCallback",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapV3SwapCallback>;
+    getContractAt(
+      name: "SimpleSwapRouter",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SimpleSwapRouter>;
+    getContractAt(
       name: "INonfungiblePositionManager",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -1021,6 +1060,21 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.TheCellarV3>;
+    getContractAt(
+      name: "TheCellarV3Emergency",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TheCellarV3Emergency>;
+    getContractAt(
+      name: "IWMON",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IWMON>;
+    getContractAt(
+      name: "TheCellarV3Upgrade",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TheCellarV3Upgrade>;
     getContractAt(
       name: "V4DependencyHelper",
       address: string | ethers.Addressable,
@@ -1469,6 +1523,18 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.CellarToken>;
     deployContract(
+      name: "IUniswapV3Pool",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IUniswapV3Pool>;
+    deployContract(
+      name: "IUniswapV3SwapCallback",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IUniswapV3SwapCallback>;
+    deployContract(
+      name: "SimpleSwapRouter",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SimpleSwapRouter>;
+    deployContract(
       name: "INonfungiblePositionManager",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.INonfungiblePositionManager>;
@@ -1476,6 +1542,18 @@ declare module "hardhat/types/runtime" {
       name: "TheCellarV3",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3>;
+    deployContract(
+      name: "TheCellarV3Emergency",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellarV3Emergency>;
+    deployContract(
+      name: "IWMON",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IWMON>;
+    deployContract(
+      name: "TheCellarV3Upgrade",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellarV3Upgrade>;
     deployContract(
       name: "V4DependencyHelper",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -2031,6 +2109,21 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.CellarToken>;
     deployContract(
+      name: "IUniswapV3Pool",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IUniswapV3Pool>;
+    deployContract(
+      name: "IUniswapV3SwapCallback",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IUniswapV3SwapCallback>;
+    deployContract(
+      name: "SimpleSwapRouter",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SimpleSwapRouter>;
+    deployContract(
       name: "INonfungiblePositionManager",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -2040,6 +2133,21 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3>;
+    deployContract(
+      name: "TheCellarV3Emergency",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellarV3Emergency>;
+    deployContract(
+      name: "IWMON",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IWMON>;
+    deployContract(
+      name: "TheCellarV3Upgrade",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellarV3Upgrade>;
     deployContract(
       name: "V4DependencyHelper",
       args: any[],

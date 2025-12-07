@@ -1,14 +1,15 @@
 
 # The Cellar Contract
 
-The Cellar is a central pot system that accumulates MON tokens from various game activities. Players can "buy" the pot by burning LP tokens, with prices that decrease over time in epochs.
+The Cellar is a central pot system that accumulates MON and KEEP tokens from Uniswap V3 pool fees. Players can "raid" the pot by burning LP tokens (CLP), with prices that decrease over time in epochs via a Dutch auction mechanism.
 
 ## Overview
 
-- **Type**: Pot/Auction System
-- **Upgradeable**: No (immutable)
+- **Type**: Pot/Auction System with Uniswap V3 Integration
+- **Upgradeable**: Yes (UUPS proxy)
 - **Network**: Monad Mainnet
-- **Mechanics**: Epoch-based price decay
+- **Mechanics**: Epoch-based Dutch auction with LP token burning
+- **DEX**: Uniswap V3 (using NonfungiblePositionManager)
 
 ## Key Features
 
@@ -27,89 +28,128 @@ Price decreases over time:
 - Decreases linearly to 0 over `epochPeriod`
 - Formula: `price = initPrice - (initPrice * timePassed / epochPeriod)`
 
-### LP Token Burning
+### LP Token Burning (Raid)
 
-To buy the pot:
-- User burns LP tokens (sent to dead address)
-- Amount burned equals current pot price
-- Pot contents (MON) are sent to buyer
+To raid the pot:
+- User burns CLP tokens (Cellar LP tokens)
+- Amount burned equals current auction price
+- Pot contents (MON and KEEP) are sent to raider
+- New epoch starts with higher initial price
+
+### Uniswap V3 Integration
+
+The Cellar manages a single Uniswap V3 NFT position:
+- Uses NonfungiblePositionManager for liquidity
+- Full range position (tickLower: -887200, tickUpper: 887200)
+- Collects fees from swaps: 90% to deployer, 10% to pot
+- CLP tokens represent 1:1 with V3 liquidity units
 
 ## Functions
 
 ### Public Functions
 
-#### `buy(address assetsReceiver, uint256 epochId, uint256 deadline, uint256 maxPaymentTokenAmount)`
-Buy the pot by burning LP tokens.
+#### `raid(uint256 lpBid)`
+Raid the pot by burning CLP tokens.
 
 **Parameters:**
-- `assetsReceiver`: Address to receive the MON
-- `epochId`: Current epoch ID (for validation)
-- `deadline`: Transaction deadline
-- `maxPaymentTokenAmount`: Maximum LP tokens to burn
-
-**Returns:** `paymentAmount` - Actual LP tokens burned
+- `lpBid`: Amount of CLP tokens to burn
 
 **Mechanics:**
-1. Validates epoch ID matches current epoch
-2. Calculates current price
-3. Transfers LP tokens to payment receiver (burn)
-4. Sends MON to assets receiver
-5. Starts new epoch with higher price
+1. Harvests fees from V3 position (adds to pot)
+2. Burns CLP tokens from caller
+3. Transfers entire pot (MON + KEEP) to caller
+4. Resets pot to zero
+5. New epoch starts automatically
 
-#### `getPrice()`
-Get the current pot price in LP tokens.
+#### `addLiquidity(uint256 amountMonDesired, uint256 amountKeepDesired)`
+Add liquidity to the Uniswap V3 position.
 
-**Returns:** Current price (decreases over time)
+**Parameters:**
+- `amountMonDesired`: Desired WMON amount
+- `amountKeepDesired`: Desired KEEP amount
 
-#### `getSlot0()`
-Get the current slot0 state (epoch ID, init price, start time).
+**Returns:** `liquidity` - V3 liquidity units added
+
+**Mechanics:**
+1. Transfers WMON and KEEP from caller
+2. Mints or increases V3 position via PositionManager
+3. Mints CLP tokens 1:1 with liquidity units
+4. Refunds unused tokens
+
+#### `withdraw(uint256 lpAmount)`
+Withdraw liquidity by burning CLP tokens.
+
+**Parameters:**
+- `lpAmount`: Amount of CLP to burn
+
+**Mechanics:**
+1. Burns CLP tokens
+2. Decreases V3 position liquidity
+3. Collects and returns underlying tokens (WMON + KEEP)
+
+#### `harvest()`
+Collect fees from the V3 position and distribute them.
+
+**Mechanics:**
+- Calls PositionManager.collect() on the NFT position
+- Splits collected fees: 90% to deployer/owner, 10% to pot
+- Adds 10% to potBalanceMON and potBalanceKEEP
+- Can be called by anyone (public function)
 
 ## Configuration
 
 ### Constants
 
-- **MIN_EPOCH_PERIOD**: 1 hour
-- **MAX_EPOCH_PERIOD**: 365 days
-- **MIN_PRICE_MULTIPLIER**: 1.1x (110%)
-- **MAX_PRICE_MULTIPLIER**: 3x (300%)
+- **POOL_FEE**: 10000 (1.0% fee tier)
+- **TICK_SPACING**: 200
+- **Full Range**: tickLower: -887200, tickUpper: 887200
 
-### Immutable Parameters
+### Contract Addresses
 
-Set at deployment:
-- `paymentToken`: LP token to burn
-- `paymentReceiver`: Where burned tokens go (dead address)
-- `epochPeriod`: Duration of each epoch
-- `priceMultiplier`: Multiplier for next epoch price
-- `minInitPrice`: Minimum starting price
+Set at initialization:
+- `positionManager`: Uniswap V3 NonfungiblePositionManager
+- `cellarToken`: CLP token contract (ERC20)
+- `wmon`: Wrapped MON token address
+- `keepToken`: KEEP token address
 
 ## Integration
 
-### Contributing to Pot
+### Adding Liquidity
 
-Groups and contracts can contribute MON to the pot:
-- Via `CellarHook.contributeToPot()`
-- Direct MON transfer (receive function)
-- Increases pot value
+1. Approve WMON and KEEP tokens to TheCellarV3
+2. Call `addLiquidity()` with desired amounts
+3. Receive CLP tokens 1:1 with liquidity units
+4. Liquidity is added to the shared V3 position
 
-### Buying the Pot
+### Raiding the Pot
 
-1. Query current price with `getPrice()`
-2. Check current epoch with `getSlot0()`
-3. Call `buy()` with appropriate parameters
-4. Receive MON, new epoch starts
+1. Ensure you have enough CLP tokens
+2. Call `raid()` with the amount of CLP to burn
+3. Receive entire pot (MON + KEEP)
+4. New epoch starts automatically
+
+### Fee Collection
+
+Fees accumulate in the pot from:
+- 10% of Uniswap V3 swap fees (collected via `harvest()`)
+- 90% of swap fees go to deployer/owner
+- Can be called by anyone to update pot balance
 
 ## Events
 
-- `Cellar__Buy(address indexed buyer, address indexed assetsReceiver, uint256 paymentAmount)`
+- `LiquidityAdded(address indexed user, uint256 amount0, uint256 amount1, uint256 liquidityMinted)`
+- `LiquidityRemoved(address indexed user, uint256 liquidityBurned, uint256 amount0, uint256 amount1)`
+- `FeesCollected(uint256 amount0, uint256 amount1)`
+- `Raid(address indexed user, uint256 lpBurned, uint256 monPayout, uint256 keepPayout)`
 
 ## Security
 
 - Reentrancy protection
-- Epoch ID validation prevents stale transactions
-- Deadline checks
-- Immutable configuration (no owner functions)
+- UUPS upgradeable (owner can upgrade)
+- Token approvals required before operations
+- Position Manager handles V3 security
 
 ## See Also
 
 - [Groups Documentation](/docs/groups/overview)
-- [CellarHook Integration](/docs/contracts/tavern-regulars)
+- [Uniswap V3 Documentation](https://docs.uniswap.org/contracts/v3/overview)

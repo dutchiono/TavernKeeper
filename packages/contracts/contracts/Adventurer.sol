@@ -48,6 +48,10 @@ contract Adventurer is Initializable, ERC721Upgradeable, ERC721URIStorageUpgrade
     // IMPORTANT: These must be at the END of storage layout for upgrade compatibility
     address public signer; // Server address that signs prices
     mapping(address => uint256) public nonces; // Replay protection for signatures
+    address public treasury; // Treasury address for receiving mint payments
+    // Whitelist functionality (placed at end for storage compatibility)
+    mapping(address => bool) public whitelist; // Whitelisted addresses
+    mapping(address => bool) public whitelistMinted; // Track if whitelisted address has minted
 
     event HeroMinted(address indexed to, uint256 indexed tokenId, string metadataUri);
     event HeroMintedWithSignature(address indexed to, uint256 indexed tokenId, uint256 price, uint256 nonce);
@@ -57,6 +61,10 @@ contract Adventurer is Initializable, ERC721Upgradeable, ERC721URIStorageUpgrade
     event TierPricesUpdated(uint256 t1, uint256 t2, uint256 t3);
     event ContractsUpdated(address tavernKeeper, address registry, address accountImpl);
     event SignerUpdated(address newSigner);
+    event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event FundsWithdrawn(address indexed to, uint256 amount);
+    event WhitelistUpdated(address indexed account, bool isWhitelisted);
+    event HeroMintedWhitelist(address indexed to, uint256 indexed tokenId);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -103,6 +111,63 @@ contract Adventurer is Initializable, ERC721Upgradeable, ERC721URIStorageUpgrade
         erc6551Registry = _registry;
         erc6551AccountImpl = _accountImpl;
         emit ContractsUpdated(_tavernKeeper, _registry, _accountImpl);
+    }
+
+    function setTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Invalid treasury address");
+        address oldTreasury = treasury;
+        treasury = _treasury;
+        emit TreasuryUpdated(oldTreasury, _treasury);
+    }
+
+    // Whitelist management
+    function addToWhitelist(address account) external onlyOwner {
+        require(account != address(0), "Invalid address");
+        whitelist[account] = true;
+        emit WhitelistUpdated(account, true);
+    }
+
+    function removeFromWhitelist(address account) external onlyOwner {
+        whitelist[account] = false;
+        emit WhitelistUpdated(account, false);
+    }
+
+    function addToWhitelistBatch(address[] calldata accounts) external onlyOwner {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            require(accounts[i] != address(0), "Invalid address");
+            whitelist[accounts[i]] = true;
+            emit WhitelistUpdated(accounts[i], true);
+        }
+    }
+
+    /**
+     * @dev Reset whitelist minted status for testing (owner only)
+     * @param account Address to reset minted status for
+     */
+    function resetWhitelistMinted(address account) external onlyOwner {
+        whitelistMinted[account] = false;
+        emit WhitelistUpdated(account, false); // Reuse event for consistency
+    }
+
+    /**
+     * @dev Mint Hero for whitelisted addresses (free)
+     * @param to Address to mint the hero to (usually a TBA)
+     * @param metadataUri URI pointing to JSON metadata (IPFS or server URL)
+     */
+    function mintHeroWhitelist(address to, string memory metadataUri) public returns (uint256) {
+        require(whitelist[msg.sender], "Not whitelisted");
+        require(!whitelistMinted[msg.sender], "Already minted");
+        require(bytes(metadataUri).length > 0, "Adventurer: Metadata URI cannot be empty");
+
+        whitelistMinted[msg.sender] = true;
+
+        uint256 tokenId = _nextTokenId;
+
+        _nextTokenId++;
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, metadataUri);
+        emit HeroMintedWhitelist(to, tokenId);
+        return tokenId;
     }
 
     // DEPRECATED: Returns 0 - pricing is now signature-based
@@ -193,6 +258,17 @@ contract Adventurer is Initializable, ERC721Upgradeable, ERC721URIStorageUpgrade
         // Verify payment amount matches signed amount
         require(msg.value == amount, "Incorrect payment amount");
 
+        // Transfer payment to treasury (or owner if treasury not set)
+        if (amount > 0) {
+            if (treasury != address(0)) {
+                (bool success, ) = payable(treasury).call{value: amount}("");
+                require(success, "Treasury transfer failed");
+            } else {
+                (bool success, ) = payable(owner()).call{value: amount}("");
+                require(success, "Owner transfer failed");
+            }
+        }
+
         uint256 tokenId = _nextTokenId;
 
         _nextTokenId++;
@@ -258,5 +334,21 @@ contract Adventurer is Initializable, ERC721Upgradeable, ERC721URIStorageUpgrade
             currentId++;
         }
         return tokenIds;
+    }
+
+    /**
+     * @dev Withdraw accumulated funds from contract
+     * @notice Transfers entire contract balance to treasury (or owner if treasury not set)
+     */
+    function withdrawFunds() external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds to withdraw");
+
+        address recipient = treasury != address(0) ? treasury : owner();
+
+        (bool success, ) = payable(recipient).call{value: balance}("");
+        require(success, "Withdrawal transfer failed");
+
+        emit FundsWithdrawn(recipient, balance);
     }
 }

@@ -24,7 +24,22 @@ const nextConfig = {
       'fastbench': false,
       // MetaMask SDK tries to import React Native packages - ignore them in web builds
       '@react-native-async-storage/async-storage': false,
+      // Disable SES/Lockdown to prevent conflicts
+      'ses': false,
+      'lockdown': false,
+      '@endo/env-options': false,
+      '@endo/init': false,
+      '@endo/lockdown': false,
+      '@metamask/sdk': false,
     };
+
+    // Ensure .tsx files are resolved properly
+    // Next.js already includes these by default, but we ensure they're prioritized
+    const defaultExtensions = ['.tsx', '.ts', '.jsx', '.js', '.json'];
+    config.resolve.extensions = [
+      ...defaultExtensions.filter(ext => !config.resolve.extensions?.includes(ext)),
+      ...(config.resolve.extensions || []),
+    ];
 
     // Ignore React Native modules that MetaMask SDK tries to import
     config.resolve.fallback = {
@@ -47,7 +62,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "connect-src 'self' https://* wss://* https://explorer-api.walletconnect.com https://pulse.walletconnect.org https://rpc.monad.xyz https://testnet-rpc.monad.xyz https://farcaster.xyz https://client.farcaster.xyz https://warpcast.com https://client.warpcast.com https://wrpcd.net https://*.wrpcd.net https://privy.farcaster.xyz https://privy.warpcast.com https://auth.privy.io https://*.rpc.privy.systems https://cloudflareinsights.com *; img-src 'self' blob: data: *; font-src 'self' data:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
+            value: "connect-src 'self' https://* wss://* http://localhost:* https://explorer-api.walletconnect.com https://pulse.walletconnect.org https://rpc.monad.xyz https://testnet-rpc.monad.xyz https://farcaster.xyz https://client.farcaster.xyz https://warpcast.com https://client.warpcast.com https://wrpcd.net https://*.wrpcd.net https://privy.farcaster.xyz https://privy.warpcast.com https://auth.privy.io https://*.rpc.privy.systems https://cloudflareinsights.com *; img-src 'self' blob: data: *; font-src 'self' data:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-src 'self' https://auth.privy.io https://*.privy.io https://verify.walletconnect.com https://verify.walletconnect.org; frame-ancestors 'self' http://localhost:* https://*.tavernkeeper.xyz https://warpcast.com https://client.warpcast.com;",
           },
         ],
       },

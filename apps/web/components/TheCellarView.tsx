@@ -3,11 +3,13 @@
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { Flame, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { createPublicClient, createWalletClient, custom, formatEther, http, parseEther } from "viem";
+import { createPublicClient, createWalletClient, custom, formatEther, http, parseAbi, parseEther } from "viem";
 import { monad } from "../lib/chains";
 import { CONTRACT_REGISTRY, getContractAddress } from "../lib/contracts/registry";
+import { CONTRACT_ADDRESSES } from "../lib/contracts/addresses";
 import { CellarState, theCellarService } from "../lib/services/theCellarService";
 import { PixelBox, PixelButton } from "./PixelComponents";
+import { useSmartNavigate } from "../lib/utils/smartNavigation";
 
 interface TheCellarViewProps {
     onBackToOffice?: () => void;
@@ -21,6 +23,7 @@ const CELLAR_DISABLED = false;
 export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBalance = "0" }: TheCellarViewProps = {}) {
     const { authenticated, user } = usePrivy();
     const { wallets } = useWallets();
+    const { navigate } = useSmartNavigate();
     const [state, setState] = useState<CellarState | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isClaiming, setIsClaiming] = useState(false);
@@ -51,8 +54,6 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 5000);
-        return () => clearInterval(interval);
     }, [address]);
 
     const handleClaimClick = () => {
@@ -122,7 +123,58 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
             const cellarAddress = getContractAddress(contractConfig);
             if (!cellarAddress) throw new Error("TheCellar contract not found");
 
-            // Check KEEP allowance
+            // 1. Check and wrap MON to WMON if needed, then check/approve WMON
+            const wmonAddress = CONTRACT_ADDRESSES.WMON;
+            if (wmonAddress && wmonAddress !== '0x0000000000000000000000000000000000000000') {
+                try {
+                    // Check WMON balance first
+                    const publicClient = createPublicClient({ chain: monad, transport: http() });
+                    const wmonBalance = await publicClient.readContract({
+                        address: wmonAddress,
+                        abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
+                        functionName: 'balanceOf',
+                        args: [address as `0x${string}`],
+                    });
+
+                    // If not enough WMON, wrap MON
+                    if (wmonBalance < amountMON) {
+                        const wrapAmount = amountMON - wmonBalance;
+                        const nativeBalance = await publicClient.getBalance({ address: address as `0x${string}` });
+
+                        if (nativeBalance < wrapAmount) {
+                            throw new Error(`Insufficient MON balance. Need ${formatEther(wrapAmount)} MON to wrap, but only have ${formatEther(nativeBalance)} MON.`);
+                        }
+
+                        console.log(`Wrapping ${formatEther(wrapAmount)} MON to WMON...`);
+                        const wrapHash = await client.writeContract({
+                            address: wmonAddress,
+                            abi: parseAbi(['function deposit() payable']),
+                            functionName: 'deposit',
+                            chain: monad,
+                            value: wrapAmount,
+                        });
+                        await publicClient.waitForTransactionReceipt({ hash: wrapHash });
+                        console.log("MON wrapped to WMON");
+                    }
+
+                    // Approve WMON (skip allowance check to avoid errors with WMON contract)
+                    try {
+                        console.log("Approving WMON...");
+                        const approveHash = await theCellarService.approve(client, wmonAddress, amountMON);
+                        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+                        console.log("WMON Approved");
+                    } catch (approveError: any) {
+                        console.warn("WMON approval failed, but continuing:", approveError.message);
+                        // Don't throw - some WMON contracts might not need approval or have issues
+                        // The actual transaction will fail if approval is needed
+                    }
+                } catch (error: any) {
+                    console.error("WMON handling error:", error);
+                    throw error;
+                }
+            }
+
+            // 2. Check KEEP allowance
             const allowance = await theCellarService.getKeepAllowance(address, cellarAddress);
             if (allowance < amountKEEP) {
                 console.log("Approving KEEP...");
@@ -173,7 +225,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
             // Need to verify if recoverLiquidity returns transaction hash in service
             // ... checked code, yes it returns hash.
 
-            // We'll trust the toast/alert for confirmation for now as writeContract handles internal waiting? 
+            // We'll trust the toast/alert for confirmation for now as writeContract handles internal waiting?
             // Actually service returns hash, so we should really wait.
             // But writeContract returns immediately?
             // Let's just create a public client to wait.
@@ -347,14 +399,14 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                         <div className="text-[10px] text-zinc-400 mb-1 text-center uppercase tracking-wider">Group Management</div>
                         <div className="grid grid-cols-2 gap-1">
                             <PixelButton
-                                onClick={() => window.location.href = '/town-posse'}
+                                onClick={() => navigate('/town-posse')}
                                 variant="wood"
                                 className="w-full h-8 text-[10px] font-bold uppercase tracking-widest"
                             >
                                 🤠 POSSE
                             </PixelButton>
                             <PixelButton
-                                onClick={() => window.location.href = '/tavern-regulars'}
+                                onClick={() => navigate('/tavern-regulars')}
                                 variant="wood"
                                 className="w-full h-8 text-[10px] font-bold uppercase tracking-widest"
                             >

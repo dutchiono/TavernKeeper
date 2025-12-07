@@ -76,30 +76,28 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 - **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: Adventurer NFT contract
 - **Upgradeable**: Yes ✅
-<<<<<<< HEAD
-- **Proxy Address**: `0x67e27a22B64385e0110e69Dceae7d394D2C87B06`
-- **Implementation Address**: `0xAEc92D70Db9B5516546c27E8fa0Cb309C4660Fe1` (v4.0.0 - Signature-Based Pricing)
-=======
-- **Proxy Address**: `0x3F7BBD9373AF9eDdB6b170FFc86479bEaE548407`
-- **Implementation Address**: `0x582bDC81df3c6c78B85D9409987Ab9885A24A2f6`
->>>>>>> d9c80166f06c3f6075f2ba2e63c2d068690df2ca
-- **Network**: Monad Testnet
+- **Proxy Address (Mainnet)**: `0xb138Bf579058169e0657c12Fd9cc1267CAFcb935`
+- **Implementation Address (Mainnet)**: `0x961F7b389ebe40C61aE1b64425F23CFEA79a4458` (v4.1.0 - Payment Fix + Whitelist)
+- **Proxy Address (Testnet)**: `0x67e27a22B64385e0110e69Dceae7d394D2C87B06`
+- **Implementation Address (Testnet)**: `0xAEc92D70Db9B5516546c27E8fa0Cb309C4660Fe1` (v4.0.0 - Signature-Based Pricing)
+- **Network**: Monad Mainnet & Testnet
 - **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
-- **Notes**: Successfully deployed as UUPS proxy. Upgraded to signature-based pricing (v4.0.0)
+- **Notes**: Successfully deployed as UUPS proxy. Upgraded to signature-based pricing (v4.0.0). Latest upgrade (v4.1.0) fixes payment transfer to treasury, adds treasury support, and adds whitelist functionality.
 
 #### TavernKeeper (ERC-721)
 - **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
 - **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: TavernKeeper NFT contract
 - **Upgradeable**: Yes ✅
-<<<<<<< HEAD
-- **Proxy Address**: `0x311d8722A5cE11DF157D7a9d414bbeC2640c5Fb2`
-- **Implementation Address**: `0x10ee72aB13747447FE62CE07e2f1fc3d40114Ee7` (v4.0.0 - Signature-Based Pricing)
-- **Network**: Monad Testnet
+- **Proxy Address (Mainnet)**: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29`
+- **Implementation Address (Mainnet)**: `0xfBA8a742551A56885c845b5ba4729cBb099667f8` (v4.1.1 - NFT mints to owner, treasury for Office only)
+- **Proxy Address (Testnet)**: `0x311d8722A5cE11DF157D7a9d414bbeC2640c5Fb2`
+- **Implementation Address (Testnet)**: `0x10ee72aB13747447FE62CE07e2f1fc3d40114Ee7` (v4.0.0 - Signature-Based Pricing)
+- **Network**: Monad Mainnet & Testnet
 - **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
-- **Notes**: Successfully deployed as UUPS proxy. Mints KeepToken to office holders. Upgraded to signature-based pricing (v4.0.0)
+- **Notes**: Successfully deployed as UUPS proxy. Mints KeepToken to office holders. Upgraded to signature-based pricing (v4.0.0). Latest upgrade (v4.1.0) fixes payment transfer to treasury and adds whitelist functionality.
 
 #### The Cellar (CellarHook)
 - **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
@@ -239,6 +237,10 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 | The Cellar (OLD - Broken Pool) | Proxy | `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755` | ✅ 2025-01-XX | See upgrade tx | **DEPRECATED** - Broken pool (price=0), replaced by new pool |
 | The Cellar (OLD - Broken Pool) | Impl | `0xA349006F388DA608052395755d08E765b1960ecC` | ✅ 2025-01-XX | See upgrade tx | v3.0.0 - Broken pool, do not use |
 | KeepToken | Proxy | `0x2D1094F5CED6ba279962f9676d32BE092AFbf82E` | ✅ 2025-01-XX | See FIRSTDEPLOYMENT.md | **USE THIS** - Mainnet KeepToken |
+| TavernKeeper | Proxy | `0x56B81A60Ae343342685911bd97D1331fF4fa2d29` | ✅ 2025-01-XX | See upgrade tx | **USE THIS** - Mainnet TavernKeeper |
+| TavernKeeper | Impl | `0x390Dc36AcFA002b1dF61f659B2660e9cAD82B341` | ✅ 2025-01-XX | See upgrade tx | v4.1.0 - Payment Fix + Whitelist |
+| Adventurer | Proxy | `0xb138Bf579058169e0657c12Fd9cc1267CAFcb935` | ✅ 2025-01-XX | See upgrade tx | **USE THIS** - Mainnet Adventurer |
+| Adventurer | Impl | `0x961F7b389ebe40C61aE1b64425F23CFEA79a4458` | ✅ 2025-01-XX | See upgrade tx | v4.1.0 - Payment Fix + Whitelist |
 
 ---
 

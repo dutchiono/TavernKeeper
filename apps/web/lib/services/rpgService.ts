@@ -226,7 +226,7 @@ export const rpgService = {
      */
     async getPriceSignature(
         contractType: 'tavernkeeper' | 'adventurer',
-        tier: 1 | 2 | 3,
+        tier: 0 | 1 | 2 | 3,
         userAddress: string
     ): Promise<{
         amount: string;
@@ -255,6 +255,60 @@ export const rpgService = {
         }
 
         return await response.json();
+    },
+
+    async isWhitelisted(contractType: 'tavernkeeper' | 'adventurer', address: string): Promise<boolean> {
+        try {
+            const contractConfig = contractType === 'tavernkeeper'
+                ? CONTRACT_REGISTRY.TAVERNKEEPER
+                : CONTRACT_REGISTRY.ADVENTURER;
+            const contractAddress = getContractAddress(contractConfig);
+            if (!contractAddress) return false;
+
+            const publicClient = createPublicClient({
+                chain: monad,
+                transport: http(),
+            });
+
+            const isWhitelisted = await publicClient.readContract({
+                address: contractAddress,
+                abi: contractConfig.abi,
+                functionName: 'whitelist',
+                args: [address as `0x${string}`],
+            }) as boolean;
+
+            return isWhitelisted;
+        } catch (error) {
+            console.error('Failed to check whitelist status:', error);
+            return false;
+        }
+    },
+
+    async hasWhitelistMinted(contractType: 'tavernkeeper' | 'adventurer', address: string): Promise<boolean> {
+        try {
+            const contractConfig = contractType === 'tavernkeeper'
+                ? CONTRACT_REGISTRY.TAVERNKEEPER
+                : CONTRACT_REGISTRY.ADVENTURER;
+            const contractAddress = getContractAddress(contractConfig);
+            if (!contractAddress) return false;
+
+            const publicClient = createPublicClient({
+                chain: monad,
+                transport: http(),
+            });
+
+            const hasMinted = await publicClient.readContract({
+                address: contractAddress,
+                abi: contractConfig.abi,
+                functionName: 'whitelistMinted',
+                args: [address as `0x${string}`],
+            }) as boolean;
+
+            return hasMinted;
+        } catch (error) {
+            console.error('Failed to check whitelist mint status:', error);
+            return false;
+        }
     },
 
     /**
@@ -316,6 +370,25 @@ export const rpgService = {
         });
     },
 
+    async mintTavernKeeperWhitelist(
+        walletClient: any,
+        address: string,
+        uri: string
+    ) {
+        const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+        const contractAddress = getContractAddress(contractConfig);
+        if (!contractAddress) throw new Error("Contract not found");
+
+        return await walletClient.writeContract({
+            address: contractAddress,
+            abi: contractConfig.abi,
+            functionName: 'mintTavernKeeperWhitelist',
+            args: [uri],
+            account: address as `0x${string}`,
+            chain: monad
+        });
+    },
+
     async claimFreeHero(walletClient: any, address: string, tavernKeeperId: string, heroUri: string) {
         const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
         const contractAddress = getContractAddress(contractConfig);
@@ -360,6 +433,26 @@ export const rpgService = {
                 priceSig.signature,
             ],
             value: BigInt(priceSig.amountWei),
+            account: address as `0x${string}`,
+            chain: monad
+        });
+    },
+
+    async mintHeroWhitelist(
+        walletClient: any,
+        address: string,
+        to: string,
+        uri: string
+    ) {
+        const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
+        const contractAddress = getContractAddress(contractConfig);
+        if (!contractAddress) throw new Error("Contract not found");
+
+        return await walletClient.writeContract({
+            address: contractAddress,
+            abi: contractConfig.abi,
+            functionName: 'mintHeroWhitelist',
+            args: [to, uri],
             account: address as `0x${string}`,
             chain: monad
         });

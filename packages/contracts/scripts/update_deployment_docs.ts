@@ -35,6 +35,7 @@ const CONTRACT_PROXIES: Record<string, string> = {
     "The Cellar": "0x6c7612F44B71E5E6E2bA0FEa799A23786A537755",
     CellarZapV4: "0xf7248a01051bf297Aa56F12a05e7209C60Fc5863",
     "CellarZap": "0xf7248a01051bf297Aa56F12a05e7209C60Fc5863",
+    DungeonGatekeeper: "0xf454A4A4f2F960a5d5b7583A289dCAE765d57355",
 };
 
 function updateFirstDeployment(upgrade: UpgradeInfo) {

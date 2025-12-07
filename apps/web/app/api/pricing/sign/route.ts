@@ -7,6 +7,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 // USD prices per tier (same for both TavernKeeper and Adventurer)
 const TIER_USD_PRICES = {
+    0: 0.00,   // $0 - Whitelist tier (free)
     1: 1.00,   // $1
     2: 5.00,   // $5
     3: 10.00,  // $10
@@ -14,7 +15,7 @@ const TIER_USD_PRICES = {
 
 interface SignPriceRequest {
     contractType: 'tavernkeeper' | 'adventurer';
-    tier: 1 | 2 | 3;
+    tier: 0 | 1 | 2 | 3;
     userAddress: string;
 }
 
@@ -31,9 +32,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (!tier || ![1, 2, 3].includes(tier)) {
+        if (tier === undefined || ![0, 1, 2, 3].includes(tier)) {
             return NextResponse.json(
-                { error: 'Invalid tier. Must be 1, 2, or 3' },
+                { error: 'Invalid tier. Must be 0 (whitelist), 1, 2, or 3' },
                 { status: 400 }
             );
         }

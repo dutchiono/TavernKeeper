@@ -6,7 +6,7 @@
  */
 
 import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector';
-import { injected, metaMask, walletConnect } from '@wagmi/connectors';
+import { injected, walletConnect } from '@wagmi/connectors';
 import { fallback, http, createStorage, cookieStorage } from 'wagmi';
 import { createConfig } from 'wagmi';
 import { monad } from './chains';
@@ -19,8 +19,8 @@ const monadTransports = process.env.NEXT_PUBLIC_MONAD_RPC_URL
 // Use a no-op storage for SSR to avoid indexedDB errors, cookieStorage for client
 const noOpStorage = {
   getItem: () => null,
-  setItem: () => {},
-  removeItem: () => {},
+  setItem: () => { },
+  removeItem: () => { },
 };
 
 const safeStorage = createStorage({
@@ -35,7 +35,6 @@ export const wagmiConfig = createConfig({
   connectors: [
     farcasterMiniApp(), // For Farcaster miniapp
     injected(), // Browser extension wallets
-    metaMask(), // MetaMask specifically
     walletConnect({
       projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '1b99af504ddb38a0f6dc1b85e16ef5c9',
     }),

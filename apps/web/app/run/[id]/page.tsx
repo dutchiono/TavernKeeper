@@ -7,6 +7,7 @@ import { PixelButton, PixelPanel, PixelCard } from '../../../components/PixelCom
 import { LootClaimModal } from '../../../components/LootClaimModal';
 import { getUnclaimedLoot, type LootClaim } from '../../../lib/services/lootClaim';
 import { Coins } from 'lucide-react';
+import { useSmartNavigate } from '../../../lib/utils/smartNavigation';
 
 const PixiMap = dynamic(() => import('../../../components/PixiMap'), {
   ssr: false,
@@ -15,6 +16,7 @@ const PixiMap = dynamic(() => import('../../../components/PixiMap'), {
 
 export default function RunPage() {
   const params = useParams();
+  const { navigate } = useSmartNavigate();
   console.log('RunPage params:', params);
   const runId = params?.id as string;
   const [lootClaims, setLootClaims] = useState<LootClaim[]>([]);
@@ -73,7 +75,7 @@ export default function RunPage() {
     <main className="min-h-screen bg-[#2a1d17] p-8 flex flex-col items-center gap-8 font-pixel">
       <header className="w-full max-w-6xl flex justify-between items-center mb-4">
         <h1 className="text-4xl text-yellow-400 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] tracking-widest">Run #{runId}</h1>
-        <PixelButton variant="neutral" onClick={() => window.location.href = '/'}>Back to Inn</PixelButton>
+        <PixelButton variant="neutral" onClick={() => navigate('/')}>Back to Inn</PixelButton>
       </header>
 
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">

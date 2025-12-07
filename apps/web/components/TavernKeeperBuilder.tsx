@@ -62,6 +62,8 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
     const [monAmount, setMonAmount] = useState<number>(0);
     const [monPriceUsd, setMonPriceUsd] = useState<number>(0.03);
     const [usdPrice] = useState<number>(1.00); // Tier 1 = $1
+    const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false);
+    const [hasWhitelistMinted, setHasWhitelistMinted] = useState<boolean>(false);
 
     // Calculate price display from MON/USD rate (no signature needed for display)
     useEffect(() => {
@@ -80,6 +82,30 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
         const interval = setInterval(calculatePrice, 60000); // Update every minute
         return () => clearInterval(interval);
     }, [usdPrice]);
+
+    // Check whitelist status
+    useEffect(() => {
+        if (!address) {
+            setIsWhitelisted(false);
+            setHasWhitelistMinted(false);
+            return;
+        }
+
+        const checkWhitelist = async () => {
+            try {
+                const whitelisted = await rpgService.isWhitelisted('tavernkeeper', address);
+                const minted = await rpgService.hasWhitelistMinted('tavernkeeper', address);
+                setIsWhitelisted(whitelisted);
+                setHasWhitelistMinted(minted);
+            } catch (error) {
+                console.error('Failed to check whitelist status:', error);
+            }
+        };
+
+        checkWhitelist();
+        const interval = setInterval(checkWhitelist, 30000); // Check every 30s
+        return () => clearInterval(interval);
+    }, [address]);
 
     const handleColorChange = (part: keyof HeroColors, color: string) => {
         setColors(prev => ({ ...prev, [part]: color }));
@@ -146,6 +172,76 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
             setStatusMessage(`Minting Tavern Keeper License (${monAmount > 0 ? monAmount.toFixed(2) : '~' + (1.00 / monPriceUsd).toFixed(2)} MON = $${usdPrice.toFixed(2)})... Check Wallet`);
 
             const hash1 = await rpgService.mintTavernKeeper(walletClient, address, metadataUri, 1);
+            setStatusMessage(`Tavern Keeper Minted! Tx: ${hash1}`);
+
+            setStatusMessage('Waiting for confirmation...');
+
+            // Wait for token to appear
+            let tokenId = '';
+            let retries = 0;
+            while (!tokenId && retries < 15) {
+                await new Promise(r => setTimeout(r, 2000));
+                const keepers = await rpgService.getUserTavernKeepers(address);
+                if (keepers.length > 0) {
+                    // Take the last one as the new one
+                    tokenId = keepers[keepers.length - 1].tokenId;
+                }
+                retries++;
+            }
+
+            if (!tokenId) throw new Error("Failed to detect new Tavern Keeper. Please check your wallet.");
+
+            // 3. Claim Free Hero
+            setStatus('claiming_hero');
+            setStatusMessage('Recruiting First Hero... Check Wallet');
+
+            const hash2 = await rpgService.claimFreeHero(walletClient, address, tokenId, metadataUri);
+
+            setStatus('success');
+            setStatusMessage('Tavern Established! Hero Recruited.');
+
+            if (onSuccess) onSuccess();
+
+        } catch (e) {
+            console.error(e);
+            setStatus('error');
+            setError((e as Error).message);
+        }
+    };
+
+    const handleWhitelistMint = async () => {
+        if (!address || !wallet || !name) return;
+
+        // Clear any previous errors when retrying
+        setError(null);
+        setStatus('uploading');
+        setStatusMessage('Preparing Tavern Keeper Metadata...');
+
+        try {
+            const provider = await wallet.getEthereumProvider();
+            const walletClient = createWalletClient({
+                account: address as `0x${string}`,
+                chain: monad,
+                transport: custom(provider)
+            });
+
+            // 1. Upload Metadata
+            const metadata = {
+                name: name,
+                description: `Tavern Keeper License #${Date.now()}`,
+                image: generateSpriteURI(gender, colors, true),
+                attributes: [
+                    { trait_type: "Gender", value: gender },
+                    { trait_type: "Clothing Color", value: colors.clothing },
+                ],
+            };
+            const metadataUri = await uploadMetadata(metadata);
+
+            // 2. Mint Tavern Keeper (whitelist - free)
+            setStatus('minting_keeper');
+            setStatusMessage('Minting Tavern Keeper License (FREE - Whitelist)... Check Wallet');
+
+            const hash1 = await rpgService.mintTavernKeeperWhitelist(walletClient, address, metadataUri);
             setStatusMessage(`Tavern Keeper Minted! Tx: ${hash1}`);
 
             setStatusMessage('Waiting for confirmation...');
@@ -380,6 +476,24 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
                             </div>
 
                             <div className="mt-8 space-y-4">
+                                {isWhitelisted && !hasWhitelistMinted ? (
+                                    <>
+                                        <ForgeButton
+                                            onClick={handleWhitelistMint}
+                                            disabled={(status !== 'idle' && status !== 'error') || !name}
+                                            className="w-full py-4 text-lg bg-green-600 hover:bg-green-700"
+                                        >
+                                            {status === 'idle' || status === 'error' ? 'Mint FREE (Whitelist)' : 'Processing...'}
+                                        </ForgeButton>
+                                        <div className="text-center text-xs text-green-400 mb-2">
+                                            You're whitelisted! Free mint available.
+                                        </div>
+                                        <div className="border-t border-[#5c3a1e] my-2" />
+                                        <div className="text-center text-xs text-[#8b7355] mb-2">
+                                            Or pay to mint:
+                                        </div>
+                                    </>
+                                ) : null}
                                 <ForgeButton
                                     onClick={handleMint}
                                     disabled={(status !== 'idle' && status !== 'error') || !name}

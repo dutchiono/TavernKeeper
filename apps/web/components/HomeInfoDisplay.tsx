@@ -6,8 +6,9 @@ import { monad } from '../lib/chains';
 import { keepTokenService } from '../lib/services/keepToken';
 import { theCellarService } from '../lib/services/theCellarService';
 import { getPoolLiquidity } from '../lib/services/uniswapV4SwapService';
-import { PixelBox } from './PixelComponents';
-import { SwapInterface } from './SwapInterface';
+import { PixelBox, PixelButton } from './PixelComponents';
+import { CONTRACT_ADDRESSES } from '../lib/contracts/addresses';
+import { SmartLink } from '../lib/utils/smartNavigation';
 
 interface HomeInfoDisplayProps {
     address: string | undefined;
@@ -19,29 +20,54 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
     const [keepBalance, setKeepBalance] = useState<string>('0');
     const [poolMon, setPoolMon] = useState<bigint>(0n);
     const [poolKeep, setPoolKeep] = useState<bigint>(0n);
+    const [copied, setCopied] = useState(false);
 
-    // Fetch pool liquidity separately (doesn't need user address)
+    const keepTokenAddress = CONTRACT_ADDRESSES.KEEP_TOKEN;
+
+    const handleCopyAddress = async () => {
+        try {
+            await navigator.clipboard.writeText(keepTokenAddress);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy address:', err);
+        }
+    };
+
+    // Fetch pool liquidity separately (doesn't need user address) - delayed to avoid rate limits
     useEffect(() => {
+        let cancelled = false;
+
         const fetchPoolLiquidity = async () => {
+            // Delay initial fetch to let other components load first
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            if (cancelled) return;
+
             try {
                 console.log('Fetching pool liquidity...');
                 const poolLiquidity = await getPoolLiquidity();
-                if (poolLiquidity) {
+                if (poolLiquidity && !cancelled) {
                     console.log('✅ Pool MON:', formatEther(poolLiquidity.mon));
                     console.log('✅ Pool KEEP:', formatEther(poolLiquidity.keep));
                     setPoolMon(poolLiquidity.mon);
                     setPoolKeep(poolLiquidity.keep);
-                } else {
+                } else if (!cancelled) {
                     console.warn('❌ Failed to fetch pool liquidity - returned null');
                 }
             } catch (error) {
-                console.error('❌ Error fetching pool liquidity:', error);
+                if (!cancelled) {
+                    console.error('❌ Error fetching pool liquidity:', error);
+                }
             }
         };
 
         fetchPoolLiquidity();
         const interval = setInterval(fetchPoolLiquidity, 30000); // Poll every 30s
-        return () => clearInterval(interval);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
     }, []); // Run once on mount, doesn't depend on address
 
     // Fetch user-specific data
@@ -54,6 +80,9 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
         }
 
         const fetchUserData = async () => {
+            // Delay user data fetch to avoid rate limits
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
             try {
                 console.log('Fetching user data for address:', address);
 
@@ -62,10 +91,16 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
                 console.log('LP Balance:', lp.toString());
                 setLpBalance(lp);
 
+                // Small delay between calls
+                await new Promise(resolve => setTimeout(resolve, 300));
+
                 // Fetch KEEP Balance
                 const keep = await keepTokenService.getBalance(address);
                 console.log('KEEP Balance:', keep);
                 setKeepBalance(keep);
+
+                // Small delay between calls
+                await new Promise(resolve => setTimeout(resolve, 300));
 
                 // Fetch MON Balance (native token)
                 const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
@@ -106,9 +141,41 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
                 </PixelBox>
             </div>
 
-            {/* Swap Interface - Shows user balances internally */}
-            <div className="w-full max-w-full overflow-hidden min-w-0">
-                <SwapInterface />
+            {/* KEEP Token Contract Address */}
+            <PixelBox variant="dark" className="p-2">
+                <div className="text-[8px] text-zinc-400 uppercase tracking-wider mb-1.5">KEEP Token</div>
+                <div className="flex items-center gap-1.5">
+                    <div className="flex-1 font-mono text-[10px] text-yellow-400 break-all">
+                        {keepTokenAddress}
+                    </div>
+                    <PixelButton
+                        variant="wood"
+                        size="sm"
+                        onClick={handleCopyAddress}
+                        className="flex-shrink-0"
+                    >
+                        {copied ? '✓' : '📋'}
+                    </PixelButton>
+                </div>
+            </PixelBox>
+
+            {/* Navigation Links */}
+            <div className="grid grid-cols-3 gap-1.5">
+                <SmartLink href="/tutorial" className="block">
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider">
+                        Tutorial
+                    </PixelButton>
+                </SmartLink>
+                <SmartLink href="/docs" className="block">
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider">
+                        Docs
+                    </PixelButton>
+                </SmartLink>
+                <SmartLink href="/info" className="block">
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider">
+                        Info
+                    </PixelButton>
+                </SmartLink>
             </div>
         </div>
     );

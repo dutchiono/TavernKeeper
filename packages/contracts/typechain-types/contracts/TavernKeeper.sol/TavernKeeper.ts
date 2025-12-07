@@ -71,6 +71,8 @@ export interface TavernKeeperInterface extends Interface {
       | "TIER1_MAX_ID"
       | "TIER2_MAX_ID"
       | "UPGRADE_INTERFACE_VERSION"
+      | "addToWhitelist"
+      | "addToWhitelistBatch"
       | "approve"
       | "balanceOf"
       | "calculatePendingTokens"
@@ -90,13 +92,16 @@ export interface TavernKeeperInterface extends Interface {
       | "keepToken"
       | "lastClaimTime"
       | "mintTavernKeeper"
+      | "mintTavernKeeperWhitelist"
       | "mintingRate"
       | "name"
       | "nonces"
       | "owner"
       | "ownerOf"
       | "proxiableUUID"
+      | "removeFromWhitelist"
       | "renounceOwnership"
+      | "resetWhitelistMinted"
       | "safeMint"
       | "safeTransferFrom(address,address,uint256)"
       | "safeTransferFrom(address,address,uint256,bytes)"
@@ -120,6 +125,9 @@ export interface TavernKeeperInterface extends Interface {
       | "updateTokenURI"
       | "upgradeToAndCall"
       | "v2StartTime"
+      | "whitelist"
+      | "whitelistMinted"
+      | "withdrawFunds"
   ): FunctionFragment;
 
   getEvent(
@@ -127,6 +135,7 @@ export interface TavernKeeperInterface extends Interface {
       | "Approval"
       | "ApprovalForAll"
       | "BatchMetadataUpdate"
+      | "FundsWithdrawn"
       | "Initialized"
       | "KeepTokenUpdated"
       | "MetadataUpdate"
@@ -137,12 +146,14 @@ export interface TavernKeeperInterface extends Interface {
       | "PreviousKingPaid"
       | "SignerUpdated"
       | "TavernKeeperMinted"
+      | "TavernKeeperMintedWhitelist"
       | "TavernKeeperMintedWithSignature"
       | "TierPricesUpdated"
       | "TokensClaimed"
       | "Transfer"
       | "TreasuryFee"
       | "Upgraded"
+      | "WhitelistUpdated"
   ): EventFragment;
 
   encodeFunctionData(
@@ -192,6 +203,14 @@ export interface TavernKeeperInterface extends Interface {
   encodeFunctionData(
     functionFragment: "UPGRADE_INTERFACE_VERSION",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addToWhitelist",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addToWhitelistBatch",
+    values: [AddressLike[]]
   ): string;
   encodeFunctionData(
     functionFragment: "approve",
@@ -258,6 +277,10 @@ export interface TavernKeeperInterface extends Interface {
     values: [string, BigNumberish, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "mintTavernKeeperWhitelist",
+    values: [string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "mintingRate",
     values: [BigNumberish]
   ): string;
@@ -273,8 +296,16 @@ export interface TavernKeeperInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "removeFromWhitelist",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "resetWhitelistMinted",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "safeMint",
@@ -356,6 +387,18 @@ export interface TavernKeeperInterface extends Interface {
     functionFragment: "v2StartTime",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "whitelist",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "whitelistMinted",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawFunds",
+    values?: undefined
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "ABS_MAX_INIT_PRICE",
@@ -403,6 +446,14 @@ export interface TavernKeeperInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "UPGRADE_INTERFACE_VERSION",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "addToWhitelist",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "addToWhitelistBatch",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
@@ -461,6 +512,10 @@ export interface TavernKeeperInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "mintTavernKeeperWhitelist",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "mintingRate",
     data: BytesLike
   ): Result;
@@ -473,7 +528,15 @@ export interface TavernKeeperInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "removeFromWhitelist",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "renounceOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "resetWhitelistMinted",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "safeMint", data: BytesLike): Result;
@@ -535,6 +598,15 @@ export interface TavernKeeperInterface extends Interface {
     functionFragment: "v2StartTime",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "whitelist", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "whitelistMinted",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawFunds",
+    data: BytesLike
+  ): Result;
 }
 
 export namespace ApprovalEvent {
@@ -586,6 +658,19 @@ export namespace BatchMetadataUpdateEvent {
   export interface OutputObject {
     _fromTokenId: bigint;
     _toTokenId: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace FundsWithdrawnEvent {
+  export type InputTuple = [to: AddressLike, amount: BigNumberish];
+  export type OutputTuple = [to: string, amount: bigint];
+  export interface OutputObject {
+    to: string;
+    amount: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -737,6 +822,19 @@ export namespace TavernKeeperMintedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace TavernKeeperMintedWhitelistEvent {
+  export type InputTuple = [to: AddressLike, tokenId: BigNumberish];
+  export type OutputTuple = [to: string, tokenId: bigint];
+  export interface OutputObject {
+    to: string;
+    tokenId: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace TavernKeeperMintedWithSignatureEvent {
   export type InputTuple = [
     to: AddressLike,
@@ -836,6 +934,19 @@ export namespace UpgradedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace WhitelistUpdatedEvent {
+  export type InputTuple = [account: AddressLike, isWhitelisted: boolean];
+  export type OutputTuple = [account: string, isWhitelisted: boolean];
+  export interface OutputObject {
+    account: string;
+    isWhitelisted: boolean;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export interface TavernKeeper extends BaseContract {
   connect(runner?: ContractRunner | null): TavernKeeper;
   waitForDeployment(): Promise<this>;
@@ -909,6 +1020,18 @@ export interface TavernKeeper extends BaseContract {
 
   UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], "view">;
 
+  addToWhitelist: TypedContractMethod<
+    [account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  addToWhitelistBatch: TypedContractMethod<
+    [accounts: AddressLike[]],
+    [void],
+    "nonpayable"
+  >;
+
   approve: TypedContractMethod<
     [to: AddressLike, tokenId: BigNumberish],
     [void],
@@ -980,6 +1103,12 @@ export interface TavernKeeper extends BaseContract {
     "payable"
   >;
 
+  mintTavernKeeperWhitelist: TypedContractMethod<
+    [uri: string],
+    [bigint],
+    "nonpayable"
+  >;
+
   mintingRate: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   name: TypedContractMethod<[], [string], "view">;
@@ -992,7 +1121,19 @@ export interface TavernKeeper extends BaseContract {
 
   proxiableUUID: TypedContractMethod<[], [string], "view">;
 
+  removeFromWhitelist: TypedContractMethod<
+    [account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
+
+  resetWhitelistMinted: TypedContractMethod<
+    [account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
   safeMint: TypedContractMethod<
     [to: AddressLike, uri: string],
@@ -1114,6 +1255,12 @@ export interface TavernKeeper extends BaseContract {
 
   v2StartTime: TypedContractMethod<[], [bigint], "view">;
 
+  whitelist: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+
+  whitelistMinted: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+
+  withdrawFunds: TypedContractMethod<[], [void], "nonpayable">;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
@@ -1163,6 +1310,12 @@ export interface TavernKeeper extends BaseContract {
   getFunction(
     nameOrSignature: "UPGRADE_INTERFACE_VERSION"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "addToWhitelist"
+  ): TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "addToWhitelistBatch"
+  ): TypedContractMethod<[accounts: AddressLike[]], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "approve"
   ): TypedContractMethod<
@@ -1238,6 +1391,9 @@ export interface TavernKeeper extends BaseContract {
     "payable"
   >;
   getFunction(
+    nameOrSignature: "mintTavernKeeperWhitelist"
+  ): TypedContractMethod<[uri: string], [bigint], "nonpayable">;
+  getFunction(
     nameOrSignature: "mintingRate"
   ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
   getFunction(
@@ -1256,8 +1412,14 @@ export interface TavernKeeper extends BaseContract {
     nameOrSignature: "proxiableUUID"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "removeFromWhitelist"
+  ): TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "resetWhitelistMinted"
+  ): TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "safeMint"
   ): TypedContractMethod<
@@ -1387,6 +1549,15 @@ export interface TavernKeeper extends BaseContract {
   getFunction(
     nameOrSignature: "v2StartTime"
   ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "whitelist"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "whitelistMinted"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "withdrawFunds"
+  ): TypedContractMethod<[], [void], "nonpayable">;
 
   getEvent(
     key: "Approval"
@@ -1408,6 +1579,13 @@ export interface TavernKeeper extends BaseContract {
     BatchMetadataUpdateEvent.InputTuple,
     BatchMetadataUpdateEvent.OutputTuple,
     BatchMetadataUpdateEvent.OutputObject
+  >;
+  getEvent(
+    key: "FundsWithdrawn"
+  ): TypedContractEvent<
+    FundsWithdrawnEvent.InputTuple,
+    FundsWithdrawnEvent.OutputTuple,
+    FundsWithdrawnEvent.OutputObject
   >;
   getEvent(
     key: "Initialized"
@@ -1480,6 +1658,13 @@ export interface TavernKeeper extends BaseContract {
     TavernKeeperMintedEvent.OutputObject
   >;
   getEvent(
+    key: "TavernKeeperMintedWhitelist"
+  ): TypedContractEvent<
+    TavernKeeperMintedWhitelistEvent.InputTuple,
+    TavernKeeperMintedWhitelistEvent.OutputTuple,
+    TavernKeeperMintedWhitelistEvent.OutputObject
+  >;
+  getEvent(
     key: "TavernKeeperMintedWithSignature"
   ): TypedContractEvent<
     TavernKeeperMintedWithSignatureEvent.InputTuple,
@@ -1521,6 +1706,13 @@ export interface TavernKeeper extends BaseContract {
     UpgradedEvent.OutputTuple,
     UpgradedEvent.OutputObject
   >;
+  getEvent(
+    key: "WhitelistUpdated"
+  ): TypedContractEvent<
+    WhitelistUpdatedEvent.InputTuple,
+    WhitelistUpdatedEvent.OutputTuple,
+    WhitelistUpdatedEvent.OutputObject
+  >;
 
   filters: {
     "Approval(address,address,uint256)": TypedContractEvent<
@@ -1554,6 +1746,17 @@ export interface TavernKeeper extends BaseContract {
       BatchMetadataUpdateEvent.InputTuple,
       BatchMetadataUpdateEvent.OutputTuple,
       BatchMetadataUpdateEvent.OutputObject
+    >;
+
+    "FundsWithdrawn(address,uint256)": TypedContractEvent<
+      FundsWithdrawnEvent.InputTuple,
+      FundsWithdrawnEvent.OutputTuple,
+      FundsWithdrawnEvent.OutputObject
+    >;
+    FundsWithdrawn: TypedContractEvent<
+      FundsWithdrawnEvent.InputTuple,
+      FundsWithdrawnEvent.OutputTuple,
+      FundsWithdrawnEvent.OutputObject
     >;
 
     "Initialized(uint64)": TypedContractEvent<
@@ -1666,6 +1869,17 @@ export interface TavernKeeper extends BaseContract {
       TavernKeeperMintedEvent.OutputObject
     >;
 
+    "TavernKeeperMintedWhitelist(address,uint256)": TypedContractEvent<
+      TavernKeeperMintedWhitelistEvent.InputTuple,
+      TavernKeeperMintedWhitelistEvent.OutputTuple,
+      TavernKeeperMintedWhitelistEvent.OutputObject
+    >;
+    TavernKeeperMintedWhitelist: TypedContractEvent<
+      TavernKeeperMintedWhitelistEvent.InputTuple,
+      TavernKeeperMintedWhitelistEvent.OutputTuple,
+      TavernKeeperMintedWhitelistEvent.OutputObject
+    >;
+
     "TavernKeeperMintedWithSignature(address,uint256,uint256,uint256)": TypedContractEvent<
       TavernKeeperMintedWithSignatureEvent.InputTuple,
       TavernKeeperMintedWithSignatureEvent.OutputTuple,
@@ -1730,6 +1944,17 @@ export interface TavernKeeper extends BaseContract {
       UpgradedEvent.InputTuple,
       UpgradedEvent.OutputTuple,
       UpgradedEvent.OutputObject
+    >;
+
+    "WhitelistUpdated(address,bool)": TypedContractEvent<
+      WhitelistUpdatedEvent.InputTuple,
+      WhitelistUpdatedEvent.OutputTuple,
+      WhitelistUpdatedEvent.OutputObject
+    >;
+    WhitelistUpdated: TypedContractEvent<
+      WhitelistUpdatedEvent.InputTuple,
+      WhitelistUpdatedEvent.OutputTuple,
+      WhitelistUpdatedEvent.OutputObject
     >;
   };
 }

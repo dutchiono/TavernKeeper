@@ -35,6 +35,13 @@ const MONAD_TESTNET_ADDRESSES = {
 
     // Tokens
     CELLAR_TOKEN: '0x0000000000000000000000000000000000000000' as Address, // TODO: Deploy on testnet
+
+    // V3 Infrastructure (Placeholders for Testnet)
+    V3_FACTORY: '0x0000000000000000000000000000000000000000' as Address,
+    V3_POOL: '0x0000000000000000000000000000000000000000' as Address,
+    V3_POSITION_MANAGER: '0x0000000000000000000000000000000000000000' as Address,
+    V3_SWAP_ROUTER: '0x0000000000000000000000000000000000000000' as Address, // TODO: Deploy on testnet
+    WMON: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A' as Address, // Monad Testnet WMON?
 };
 
 // Monad Mainnet Addresses (Chain ID: 143) - From FIRSTDEPLOYMENT.md / V3 Migration
@@ -51,10 +58,17 @@ const MONAD_MAINNET_ADDRESSES = {
     DUNGEON_GATEKEEPER: '0xf454A4A4f2F960a5d5b7583A289dCAE765d57355' as Address,
 
     // Treasury / Mechanics
-    THE_CELLAR: '0x32A920be00dfCE1105De0415ba1d4f06942E9ed0' as Address, // V3 Migration (Uniswap V3 Wrapper)
-    CELLAR_ZAP: '0xf7248a01051bf297Aa56F12a05e7209C60Fc5863' as Address, // TODO: Update if Zap is needed, else direct interact
-    POOL_MANAGER: '0x27e98f6A0D3315F9f3ECDaFE0187a7637F41c7c2' as Address, // V4 Pool Manager (Legacy reference now)
-    SWAP_ROUTER_V4: '0x6Aa207465c4B8c4Ab8381baf9aB27d5F133Abb95' as Address,
+    THE_CELLAR: '0x32A920be00dfCE1105De0415ba1d4f06942E9ed0' as Address, // TheCellarV3 (Wrapper)
+    CELLAR_ZAP: '0xf7248a01051bf297Aa56F12a05e7209C60Fc5863' as Address,
+    POOL_MANAGER: '0x27e98f6A0D3315F9f3ECDaFE0187a7637F41c7c2' as Address, // Legacy V4
+    SWAP_ROUTER_V4: '0x6Aa207465c4B8c4Ab8381baf9aB27d5F133Abb95' as Address, // Legacy V4
+
+    // V3 Infrastructure
+    V3_FACTORY: '0x204faca1764b154221e35c0d20abb3c525710498' as Address,
+    V3_POOL: '0xA4E86c0B9579b4D37CB4c50fB8505dAC9f642474' as Address, // WMON/KEEP 1% (correct WMON)
+    V3_POSITION_MANAGER: '0x7197e214c0b767cfb76fb734ab638e2c192f4e53' as Address,
+    V3_SWAP_ROUTER: '0x8DF71133E100c05486B5fbE60a1c82272fb8098b' as Address, // SimpleSwapRouter for V3 swaps (fixed callback + price limits)
+    WMON: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A' as Address,
 
     // Fee recipient from env (NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS), fallback to Cellar if not set
     FEE_RECIPIENT: (process.env.NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS as Address | undefined) || '0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0' as Address,
@@ -94,6 +108,13 @@ export const LOCALHOST_ADDRESSES = {
 
     // Tokens
     CELLAR_TOKEN: '0x0000000000000000000000000000000000000000' as Address, // TODO: Deploy on localhost
+
+    // V3 Infrastructure (Placeholders for Localhost)
+    V3_FACTORY: '0x0000000000000000000000000000000000000000' as Address,
+    V3_POOL: '0x0000000000000000000000000000000000000000' as Address,
+    V3_POSITION_MANAGER: '0x0000000000000000000000000000000000000000' as Address,
+    V3_SWAP_ROUTER: '0x0000000000000000000000000000000000000000' as Address, // TODO: Deploy on localhost
+    WMON: '0x0000000000000000000000000000000000000000' as Address,
 };
 
 // Get chain ID from environment (143 = mainnet, 10143 = testnet)
@@ -152,8 +173,8 @@ if (typeof window === 'undefined') {
 export const IMPLEMENTATION_ADDRESSES = {
     KEEP_TOKEN: '0xb7160ebCd3C85189ee950570EABfA4dC22234Ec7' as Address,
     INVENTORY: '0xAD1bD3D5D21127818dDA01F07D941f0770e82600' as Address,
-    ADVENTURER: '0x533CAb1A0abc52B384C586Fd844A199759872a14' as Address,
-    TAVERNKEEPER: '0xd8fD9613DB7c57ab47cac54a53fe8EC543cf6297' as Address,
+    ADVENTURER: '0x961F7b389ebe40C61aE1b64425F23CFEA79a4458' as Address, // v4.1.0 - Payment Fix + Whitelist
+    TAVERNKEEPER: '0xfBA8a742551A56885c845b5ba4729cBb099667f8' as Address, // v4.1.1 - NFT mints to owner, treasury for Office only
     DUNGEON_GATEKEEPER: '0xcbD7B44D3B799aE25CD82a1156e18CB40Bacef99' as Address,
     THE_CELLAR: '0x3d27b2B29514Feb8B2780949579837C945003030' as Address, // CellarHook implementation (v4.1.0: new pool fee=10000, tickSpacing=200, includes price calculation fix - glaze-like behavior)
     CELLAR_ZAP: '0x74a8Da33A01D274DC5B4812596ec0944Ee51aA2c' as Address, // CellarZapV4 implementation

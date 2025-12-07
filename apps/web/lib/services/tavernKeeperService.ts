@@ -44,32 +44,46 @@ export const tavernKeeperService = {
                 transport: http(),
             });
 
+            // Retry helper
+            const retry = async <T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
+                try {
+                    return await fn();
+                } catch (error: any) {
+                    if (retries === 0) throw error;
+                    if (error.message?.includes('429') || error.message?.includes('Too Many Requests') || error.message?.includes('timeout')) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return retry(fn, retries - 1, delay * 2);
+                    }
+                    throw error;
+                }
+            };
+
             // Multicall would be better, but doing individual reads for now
             const results = await Promise.allSettled([
-                publicClient.readContract({
+                retry(() => publicClient.readContract({
                     address: contractAddress,
                     abi: contractConfig.abi,
                     functionName: 'getSlot0',
                     args: [],
-                }),
-                publicClient.readContract({
+                })),
+                retry(() => publicClient.readContract({
                     address: contractAddress,
                     abi: contractConfig.abi,
                     functionName: 'getPrice',
                     args: [],
-                }),
-                publicClient.readContract({
+                })),
+                retry(() => publicClient.readContract({
                     address: contractAddress,
                     abi: contractConfig.abi,
                     functionName: 'getDps',
                     args: [],
-                }),
-                publicClient.readContract({
+                })),
+                retry(() => publicClient.readContract({
                     address: contractAddress,
                     abi: contractConfig.abi,
                     functionName: 'getPendingOfficeRewards',
                     args: [],
-                }),
+                })),
             ]);
 
             // Default values

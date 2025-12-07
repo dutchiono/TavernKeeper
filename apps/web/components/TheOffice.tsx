@@ -124,59 +124,55 @@ export const TheOffice: React.FC<{
         setInterpolatedState(data); // Reset interpolation on fetch
     };
 
+    // Sequenced data fetching - stagger calls to avoid rate limits
     useEffect(() => {
-        fetchOfficeState();
-        const interval = setInterval(fetchOfficeState, 10000); // Poll every 10s
-        return () => clearInterval(interval);
-    }, []);
+        let cancelled = false;
 
-    // Fetch MON balance (native token)
-    useEffect(() => {
-        if (!address) {
-            setMonBalance('0');
-            return;
-        }
+        const loadData = async () => {
+            // 1. Load office state first (most important)
+            if (!cancelled) {
+                await fetchOfficeState();
+            }
 
-        const fetchMonBalance = async () => {
-            try {
-                const publicClient = createPublicClient({
-                    chain: monad,
-                    transport: http(),
-                });
-                const balance = await publicClient.getBalance({
-                    address: address as `0x${string}`,
-                });
-                setMonBalance(balance.toString());
-            } catch (error) {
-                console.error('Failed to fetch MON balance:', error);
+            // 2. Wait a bit, then load cellar state
+            await new Promise(resolve => setTimeout(resolve, 500));
+            if (!cancelled) {
+                try {
+                    const data = await theCellarService.getCellarState();
+                    setCellarState(data);
+                } catch (e) {
+                    console.error("Failed to fetch cellar", e);
+                }
+            }
+
+            // 3. Load MON balance only if address is available
+            if (address && !cancelled) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                if (!cancelled) {
+                    try {
+                        const publicClient = createPublicClient({
+                            chain: monad,
+                            transport: http(),
+                        });
+                        const balance = await publicClient.getBalance({
+                            address: address as `0x${string}`,
+                        });
+                        setMonBalance(balance.toString());
+                    } catch (error) {
+                        console.error('Failed to fetch MON balance:', error);
+                    }
+                }
             }
         };
 
-        fetchMonBalance();
-        const interval = setInterval(fetchMonBalance, 10000); // Poll every 10s
-        return () => clearInterval(interval);
+        loadData();
+
+        return () => {
+            cancelled = true;
+        };
     }, [address]);
 
-    // Fetch Cellar State (for miniapp, also works in web)
-    useEffect(() => {
-        const fetchCellar = async (forceRefresh = false) => {
-            try {
-                if (forceRefresh) {
-                    theCellarService.clearCache();
-                }
-                const data = await theCellarService.getCellarState();
-                setCellarState(data);
-            } catch (e) {
-                console.error("Failed to fetch cellar", e);
-            }
-        };
-
-        fetchCellar();
-        const interval = setInterval(() => fetchCellar(false), 5000);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Interpolation Loop
+    // Interpolation Loop - slowed down to update every 5 seconds instead of every second
     useEffect(() => {
         const interval = setInterval(() => {
             const now = Date.now();
@@ -188,18 +184,15 @@ export const TheOffice: React.FC<{
             setTimeHeld(`${minutes}m ${seconds}s`);
 
             // 2. Interpolate Price (Dutch Auction)
-            // Price decays linearly from initPrice to MIN_PRICE over 1 hour (3600s)
             const EPOCH_PERIOD = 3600;
-            const MIN_PRICE = 1.0; // Minimum price is always 1 MON (contract enforces this)
+            const MIN_PRICE = 1.0;
             const initPrice = Math.max(MIN_PRICE, parseFloat(state.initPrice || '1.0'));
             let currentPrice = MIN_PRICE;
 
             if (timeSinceStart < EPOCH_PERIOD && initPrice > MIN_PRICE) {
-                // Linear decay from initPrice to MIN_PRICE
                 const decayProgress = timeSinceStart / EPOCH_PERIOD;
                 currentPrice = initPrice - (initPrice - MIN_PRICE) * decayProgress;
             }
-            // Ensure price never goes below minimum
             currentPrice = Math.max(MIN_PRICE, currentPrice);
 
             // 3. Interpolate Earnings
@@ -207,27 +200,22 @@ export const TheOffice: React.FC<{
             const earned = timeSinceStart * dps;
 
             // 4. Calculate PNL
-            // Cost = Price Paid. We estimate this from initPrice.
-            // newInitPrice = pricePaid * 2.0. So pricePaid = initPrice / 2.0.
             const pricePaid = initPrice / 2.0;
-            // Revenue = 80% of currentPrice (if someone buys now)
             const revenue = currentPrice * 0.8;
             const pnlValue = revenue - pricePaid;
 
-            // Format PNL
             const pnlFormatted = pnlValue >= 0
                 ? `+Ξ${pnlValue.toFixed(4)}`
                 : `-Ξ${Math.abs(pnlValue).toFixed(4)}`;
             setPnl(pnlFormatted);
 
-            // Update Interpolated State
             setInterpolatedState(prev => ({
                 ...prev,
                 currentPrice: currentPrice.toFixed(4),
                 totalEarned: earned.toFixed(2)
             }));
 
-        }, 1000);
+        }, 5000); // Changed from 1000ms to 5000ms (5 seconds)
         return () => clearInterval(interval);
     }, [state.kingSince, state.initPrice, state.officeRate]);
 

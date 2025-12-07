@@ -1,7 +1,7 @@
 'use client';
 
 import { usePrivy } from '@privy-io/react-auth';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { ChatOverlay } from '../components/ChatOverlay';
 import { HomeInfoDisplay } from '../components/HomeInfoDisplay';
@@ -38,8 +38,26 @@ function HomeContent() {
     const address = user?.wallet?.address;
     const [isInMiniapp, setIsInMiniapp] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+    const router = useRouter();
+    const pathname = usePathname();
 
     console.log('HomeContent Render:', { currentView, isMounted, isInMiniapp });
+
+    // Redirect to /miniapp if accessing root route inside Farcaster miniapp
+    // This ensures miniapp users get the correct providers (MiniappProvider instead of Web3Provider)
+    useEffect(() => {
+        if (typeof window === 'undefined') return; // Skip on SSR
+
+        const inMiniapp = isInFarcasterMiniapp();
+        if (inMiniapp && pathname === '/') {
+            // Preserve query parameters (e.g., party invites, view params)
+            const searchParams = new URLSearchParams(window.location.search);
+            const queryString = searchParams.toString();
+            const redirectPath = queryString ? `/miniapp?${queryString}` : '/miniapp';
+            router.replace(redirectPath);
+            return;
+        }
+    }, [pathname, router]);
 
     // Check if in miniapp on client side only to avoid hydration mismatch
     useEffect(() => {
@@ -48,26 +66,40 @@ function HomeContent() {
         setIsInMiniapp(inMiniapp);
     }, []);
 
-    // Fetch KEEP Balance
+    // Fetch KEEP Balance - delayed to avoid rate limits
     useEffect(() => {
         if (!address) {
             setKeepBalance("0");
             return;
         }
 
+        let cancelled = false;
+
         const fetchBalance = async () => {
+            // Delay initial fetch to avoid rate limits
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            if (cancelled) return;
+
             try {
                 const balance = await keepTokenService.getBalance(address);
-                setKeepBalance(balance);
+                if (!cancelled) {
+                    setKeepBalance(balance);
+                }
             } catch (error) {
-                console.error('Failed to fetch KEEP balance:', error);
-                // Don't set to 0 on error, keep previous value
+                if (!cancelled) {
+                    console.error('Failed to fetch KEEP balance:', error);
+                    // Don't set to 0 on error, keep previous value
+                }
             }
         };
 
         fetchBalance();
         const interval = setInterval(fetchBalance, 30000); // Poll every 30s
-        return () => clearInterval(interval);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
     }, [address, setKeepBalance]);
 
     // Initial Greeting

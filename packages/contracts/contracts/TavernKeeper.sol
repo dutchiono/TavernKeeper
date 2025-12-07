@@ -70,6 +70,8 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
     event TavernKeeperMintedWithSignature(address indexed to, uint256 indexed tokenId, uint256 price, uint256 nonce);
     event TierPricesUpdated(uint256 t1, uint256 t2, uint256 t3);
     event SignerUpdated(address newSigner);
+    event WhitelistUpdated(address indexed account, bool isWhitelisted);
+    event TavernKeeperMintedWhitelist(address indexed to, uint256 indexed tokenId);
 
     // DEPRECATED: No longer used - pricing is now signature-based
     function setTierPrices(uint256 _t1, uint256 _t2, uint256 _t3) external onlyOwner {
@@ -83,6 +85,61 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         require(_signer != address(0), "Invalid signer address");
         signer = _signer;
         emit SignerUpdated(_signer);
+    }
+
+    // Whitelist management
+    function addToWhitelist(address account) external onlyOwner {
+        require(account != address(0), "Invalid address");
+        whitelist[account] = true;
+        emit WhitelistUpdated(account, true);
+    }
+
+    function removeFromWhitelist(address account) external onlyOwner {
+        whitelist[account] = false;
+        emit WhitelistUpdated(account, false);
+    }
+
+    function addToWhitelistBatch(address[] calldata accounts) external onlyOwner {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            require(accounts[i] != address(0), "Invalid address");
+            whitelist[accounts[i]] = true;
+            emit WhitelistUpdated(accounts[i], true);
+        }
+    }
+
+    /**
+     * @dev Reset whitelist minted status for testing (owner only)
+     * @param account Address to reset minted status for
+     */
+    function resetWhitelistMinted(address account) external onlyOwner {
+        whitelistMinted[account] = false;
+        emit WhitelistUpdated(account, false); // Reuse event for consistency
+    }
+
+    /**
+     * @dev Mint TavernKeeper for whitelisted addresses (free)
+     * @param uri Metadata URI
+     */
+    function mintTavernKeeperWhitelist(string memory uri) public returns (uint256) {
+        require(whitelist[msg.sender], "Not whitelisted");
+        require(!whitelistMinted[msg.sender], "Already minted");
+
+        whitelistMinted[msg.sender] = true;
+
+        uint256 tokenId = _nextTokenId;
+
+        // Mint
+        _safeMint(msg.sender, tokenId);
+        _setTokenURI(tokenId, uri);
+
+        // Initialize KEEP token data
+        lastClaimTime[tokenId] = block.timestamp;
+        mintingRate[tokenId] = DEFAULT_RATE;
+
+        _nextTokenId++;
+
+        emit TavernKeeperMintedWhitelist(msg.sender, tokenId);
+        return tokenId;
     }
 
     // DEPRECATED: Returns 0 - pricing is now signature-based
@@ -129,6 +186,13 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
         // Verify payment amount matches signed amount
         require(msg.value == amount, "Incorrect payment amount");
+
+        // Transfer NFT mint payment to owner (deployer) - NOT treasury
+        // Treasury is only for Office payments (15%)
+        if (amount > 0) {
+            (bool success, ) = payable(owner()).call{value: amount}("");
+            require(success, "Owner transfer failed");
+        }
 
         uint256 tokenId = _nextTokenId;
 
@@ -259,6 +323,7 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
     event OfficeEarningsClaimed(address indexed king, uint256 amount);
     event TreasuryFee(address indexed treasury, uint256 amount);
     event PreviousKingPaid(address indexed prevKing, uint256 amount);
+    event FundsWithdrawn(address indexed to, uint256 amount);
 
     error Reentrancy();
     error Expired();
@@ -279,6 +344,10 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
     }
 
     uint256 public v2StartTime;
+
+    // Whitelist functionality (placed at end for storage compatibility)
+    mapping(address => bool) public whitelist; // Whitelisted addresses
+    mapping(address => bool) public whitelistMinted; // Track if whitelisted address has minted
 
     function initializeOfficeV2(address _treasury) public onlyOwner {
         require(treasury == address(0), "Already initialized V2");
@@ -464,6 +533,22 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
             currentId++;
         }
         return tokenIds;
+    }
+
+    /**
+     * @dev Withdraw accumulated funds from contract
+     * @notice Transfers entire contract balance to treasury (or owner if treasury not set)
+     */
+    function withdrawFunds() external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds to withdraw");
+
+        address recipient = treasury != address(0) ? treasury : owner();
+
+        (bool success, ) = payable(recipient).call{value: balance}("");
+        require(success, "Withdrawal transfer failed");
+
+        emit FundsWithdrawn(recipient, balance);
     }
 }
 

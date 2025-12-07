@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { PixelButton, PixelPanel } from '../../../components/PixelComponents';
 import { useParams } from 'next/navigation';
+import { useSmartNavigate } from '../../../lib/utils/smartNavigation';
 
 export default function PartyInvitePage() {
     const params = useParams();
+    const { navigate } = useSmartNavigate();
     const code = params.code as string;
 
     const [loading, setLoading] = useState(true);
@@ -34,11 +36,11 @@ export default function PartyInvitePage() {
         // Redirect to party page with invite code param to auto-trigger join modal?
         // Or just go to party page and let user manually join.
         // Ideally, we pass the code.
-        window.location.href = `/miniapp-v2?party=${code}`;
+        navigate(`/miniapp-v2?party=${code}`);
     };
 
     const handleJoinMiniapp = () => {
-        // Deep link to miniapp
+        // Deep link to miniapp - this is a special protocol link, keep as is
         window.location.href = `miniapp://party/${code}`;
     };
 
@@ -55,7 +57,7 @@ export default function PartyInvitePage() {
             <main className="min-h-screen bg-[#2a1d17] flex items-center justify-center font-pixel">
                 <PixelPanel title="Error" variant="wood" className="max-w-md">
                     <p className="text-[#eaddcf] text-center mb-4">{error}</p>
-                    <PixelButton variant="neutral" onClick={() => window.location.href = '/'} className="w-full">Back to Home</PixelButton>
+                    <PixelButton variant="neutral" onClick={() => navigate('/')} className="w-full">Back to Home</PixelButton>
                 </PixelPanel>
             </main>
         );

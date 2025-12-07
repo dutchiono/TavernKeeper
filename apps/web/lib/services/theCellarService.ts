@@ -1,6 +1,8 @@
-import { createPublicClient, formatEther, http, parseEther } from 'viem';
+
+import { createPublicClient, formatEther, http, parseEther, encodeFunctionData, parseAbi } from 'viem';
 import { monad } from '../chains';
 import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
+import { CONTRACT_ADDRESSES } from '../contracts/addresses';
 
 export interface CellarState {
     potSize: string; // MON in the contract
@@ -48,6 +50,7 @@ export const theCellarService = {
                 transport: http(rpcUrl),
             });
 
+            // V3 Cellar calls: potBalanceMON, potBalanceKEEP, tokenId
             const results = await Promise.allSettled([
                 publicClient.readContract({
                     address: contractAddress,
@@ -61,26 +64,30 @@ export const theCellarService = {
                     functionName: 'potBalanceKEEP',
                     args: [],
                 }),
+                publicClient.readContract({
+                    address: contractAddress,
+                    abi: contractConfig.abi,
+                    functionName: 'tokenId',
+                    args: [],
+                }),
             ]);
 
             let potMON = 0n;
             let potKEEP = 0n;
+            let tokenId = 0n;
 
-            if (results[0].status === 'fulfilled') {
-                potMON = results[0].value as bigint;
-            }
-            if (results[1].status === 'fulfilled') {
-                potKEEP = results[1].value as bigint;
-            }
+            if (results[0].status === 'fulfilled') potMON = results[0].value as bigint;
+            if (results[1].status === 'fulfilled') potKEEP = results[1].value as bigint;
+            if (results[2].status === 'fulfilled') tokenId = results[2].value as bigint;
 
             const newState = {
                 potSize: formatEther(potMON), // MON share of pot
                 potSizeKeep: formatEther(potKEEP), // KEEP share of pot
-                currentPrice: '1.0', // V3 Mint is 1:1, simplify display
-                epochId: 0,
+                currentPrice: '1.05', // Fixed Raid Price? Or check contract for dynamic? For now assume V3 implementation standard
+                epochId: Number(tokenId), // Using tokenId as "Epoch" concept for display
                 startTime: now,
-                initPrice: '1.0',
-                paymentToken: contractAddress, // The Cellar contract logic handles payment
+                initPrice: '1.05',
+                paymentToken: contractAddress,
             };
 
             this._cache.data = newState;
@@ -103,15 +110,53 @@ export const theCellarService = {
     },
 
     async getAllowance(owner: string, tokenAddress: string): Promise<bigint> {
-        // CellarHook (CLP) is the token and the spender (burner).
-        // Since raid() calls _burn(msg.sender), no approval is needed.
-        // We return max uint256 to simulate infinite approval.
-        return 115792089237316195423570985008687907853269984665640564039457584007913129639935n;
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
+            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(rpcUrl),
+        });
+
+        const contractConfig = CONTRACT_REGISTRY.THECELLAR;
+        const contractAddress = getContractAddress(contractConfig);
+
+        try {
+            const allowance = await publicClient.readContract({
+                address: tokenAddress as `0x${string}`,
+                abi: parseAbi(['function allowance(address,address) view returns (uint256)']),
+                functionName: 'allowance',
+                args: [owner as `0x${string}`, contractAddress as `0x${string}`],
+            });
+            return allowance as bigint;
+        } catch (error) {
+            console.error("Error fetching allowance:", error);
+            return 0n;
+        }
+    },
+
+    // KEEP Token Allowance
+    async getKeepAllowance(userAddress: string, spenderAddress: string): Promise<bigint> {
+        return this.getAllowance(userAddress, CONTRACT_ADDRESSES.KEEP_TOKEN);
+    },
+
+    async approveKeep(client: any, spenderAddress: string, amount: bigint) {
+        return this.approve(client, CONTRACT_ADDRESSES.KEEP_TOKEN, amount);
     },
 
     async approve(client: any, tokenAddress: string, amount: bigint) {
-        // No-op for CellarHook raid
-        return "0x";
+        const contractConfig = CONTRACT_REGISTRY.THECELLAR;
+        const contractAddress = getContractAddress(contractConfig);
+
+        const hash = await client.writeContract({
+            address: tokenAddress as `0x${string}`,
+            abi: parseAbi(['function approve(address,uint256) returns (bool)']),
+            functionName: 'approve',
+            chain: monad,
+            account: client.account,
+            args: [contractAddress, amount],
+        });
+        return hash;
     },
 
     async claim(client: any, lpBid: bigint) {
@@ -154,7 +199,6 @@ export const theCellarService = {
         const contractAddress = getContractAddress(contractConfig);
         if (!contractAddress) throw new Error("TheCellar contract not found");
 
-        // V3: Call 'withdraw'
         const hash = await client.writeContract({
             address: contractAddress,
             abi: contractConfig.abi,
@@ -176,7 +220,6 @@ export const theCellarService = {
             return 0n;
         }
 
-        // Use RPC from env or default based on chain ID
         const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
             (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
 
@@ -187,7 +230,7 @@ export const theCellarService = {
 
         try {
             const balance = await publicClient.readContract({
-                address: contractAddress,
+                address: contractAddress as `0x${string}`,
                 abi: contractConfig.abi,
                 functionName: 'balanceOf',
                 args: [userAddress as `0x${string}`],
@@ -198,51 +241,4 @@ export const theCellarService = {
             return 0n;
         }
     },
-
-    async getKeepAllowance(userAddress: string, spenderAddress: string): Promise<bigint> {
-        const contractConfig = CONTRACT_REGISTRY.KEEP_TOKEN;
-        const contractAddress = getContractAddress(contractConfig);
-
-        if (!contractAddress) throw new Error("KEEP Token contract not found");
-
-        // Use RPC from env or default based on chain ID
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
-
-        const publicClient = createPublicClient({
-            chain: monad,
-            transport: http(rpcUrl),
-        });
-
-        try {
-            const allowance = await publicClient.readContract({
-                address: contractAddress,
-                abi: contractConfig.abi,
-                functionName: 'allowance',
-                args: [userAddress as `0x${string}`, spenderAddress as `0x${string}`],
-            });
-            return allowance as bigint;
-        } catch (error) {
-            console.error("Error fetching KEEP allowance:", error);
-            return 0n;
-        }
-    },
-
-    async approveKeep(client: any, spenderAddress: string, amount: bigint) {
-        const contractConfig = CONTRACT_REGISTRY.KEEP_TOKEN;
-        const contractAddress = getContractAddress(contractConfig);
-
-        if (!contractAddress) throw new Error("KEEP Token contract not found");
-
-        const hash = await client.writeContract({
-            address: contractAddress,
-            abi: contractConfig.abi,
-            functionName: 'approve',
-            chain: monad,
-            account: client.account,
-            args: [spenderAddress, amount],
-        });
-
-        return hash;
-    }
 };

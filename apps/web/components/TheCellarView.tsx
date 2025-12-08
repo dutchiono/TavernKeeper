@@ -417,8 +417,9 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
             }
 
             const amountMON = parseEther(amount);
-            // Calculate KEEP amount based on actual pool price
-            const amountKEEP = parseEther((parseFloat(amount) * keepPerMon).toString());
+            // Always use TARGET ratio: 10 KEEP = 1 MON (to fix pool price, not reinforce wrong ratio)
+            const TARGET_KEEP_PER_MON = 10;
+            const amountKEEP = parseEther((parseFloat(amount) * TARGET_KEEP_PER_MON).toString());
 
             // Get TheCellar address for approval
             const contractConfig = CONTRACT_REGISTRY.THECELLAR;
@@ -695,7 +696,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                             variant="primary"
                             className="w-full h-8 text-xs font-bold uppercase tracking-widest flex items-center justify-center"
                         >
-                            {isMinting ? <Loader2 className="w-3 h-3 animate-spin" /> : keepPerMonRatio !== null ? `MINT LP (1:${keepPerMonRatio.toFixed(1)})` : "MINT LP"}
+                            {isMinting ? <Loader2 className="w-3 h-3 animate-spin" /> : "MINT LP (1:10)"}
                         </PixelButton>
 
                         {lpBalance > 0n && (
@@ -831,9 +832,9 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                 const input = document.getElementById('mintAmount') as HTMLInputElement;
                                 const amount = input?.value || "1";
                                 const amountMON = parseFloat(amount);
-                                // Use actual pool ratio if available, otherwise fallback to 3:1
-                                const actualKeepPerMon = keepPerMonRatio || 3;
-                                const amountKEEP = amountMON * actualKeepPerMon;
+                                // Always use TARGET ratio: 10 KEEP = 1 MON (to fix pool price, not reinforce wrong ratio)
+                                const TARGET_KEEP_PER_MON = 10;
+                                const amountKEEP = amountMON * TARGET_KEEP_PER_MON;
                                 const needsApproval = true; // We'll check this, but show the modal anyway
 
                                 // Estimate LP tokens based on historical data

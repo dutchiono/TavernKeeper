@@ -230,6 +230,8 @@ export type { TheCellarV3 } from "./contracts/v3/TheCellarV3.sol/TheCellarV3";
 export { TheCellarV3__factory } from "./factories/contracts/v3/TheCellarV3.sol/TheCellarV3__factory";
 export type { TheCellarV3Emergency } from "./contracts/v3/TheCellarV3Emergency";
 export { TheCellarV3Emergency__factory } from "./factories/contracts/v3/TheCellarV3Emergency__factory";
+export type { TheCellarV3SetDeployer } from "./contracts/v3/TheCellarV3SetDeployer";
+export { TheCellarV3SetDeployer__factory } from "./factories/contracts/v3/TheCellarV3SetDeployer__factory";
 export type { TheCellarV3Upgrade } from "./contracts/v3/TheCellarV3Upgrade";
 export { TheCellarV3Upgrade__factory } from "./factories/contracts/v3/TheCellarV3Upgrade__factory";
 export type { V4DependencyHelper } from "./contracts/V4DependencyHelper";

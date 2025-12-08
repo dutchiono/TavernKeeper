@@ -466,6 +466,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TheCellarV3Emergency__factory>;
     getContractFactory(
+      name: "TheCellarV3SetDeployer",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TheCellarV3SetDeployer__factory>;
+    getContractFactory(
       name: "TheCellarV3Upgrade",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TheCellarV3Upgrade__factory>;
@@ -1044,6 +1048,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.TheCellarV3Emergency>;
     getContractAt(
+      name: "TheCellarV3SetDeployer",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TheCellarV3SetDeployer>;
+    getContractAt(
       name: "TheCellarV3Upgrade",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -1512,6 +1521,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3Emergency>;
     deployContract(
+      name: "TheCellarV3SetDeployer",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellarV3SetDeployer>;
+    deployContract(
       name: "TheCellarV3Upgrade",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3Upgrade>;
@@ -2089,6 +2102,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3Emergency>;
+    deployContract(
+      name: "TheCellarV3SetDeployer",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellarV3SetDeployer>;
     deployContract(
       name: "TheCellarV3Upgrade",
       args: any[],

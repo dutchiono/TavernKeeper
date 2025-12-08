@@ -5618,6 +5618,46 @@
       "artifacts": [
         "TheCellarV3Emergency"
       ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3SetDeployer.sol": {
+      "lastModificationDate": 1765210058890,
+      "contentHash": "ecd849672204a8fbb85cd00c789f7af7",
+      "sourceName": "contracts/v3/TheCellarV3SetDeployer.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./TheCellarV3Upgrade.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "TheCellarV3SetDeployer"
+      ]
     }
   }
 }

@@ -204,6 +204,18 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
 
             const hash2 = await rpgService.claimFreeHero(walletClient, address, tokenId, metadataUri);
 
+            // Wait for transaction confirmation
+            if (!publicClient) {
+                throw new Error("Public client not available");
+            }
+
+            setStatusMessage('Waiting for hero recruitment confirmation...');
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash2 });
+
+            if (receipt.status === 'reverted') {
+                throw new Error("Hero recruitment transaction failed. The free hero may have already been claimed, or there was an error.");
+            }
+
             setStatus('success');
             setStatusMessage('Tavern Established! Hero Recruited.');
 
@@ -293,6 +305,18 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
             setStatusMessage('Recruiting First Hero... Check Wallet');
 
             const hash2 = await rpgService.claimFreeHero(walletClient, address, tokenId, metadataUri);
+
+            // Wait for transaction confirmation
+            if (!publicClient) {
+                throw new Error("Public client not available");
+            }
+
+            setStatusMessage('Waiting for hero recruitment confirmation...');
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash2 });
+
+            if (receipt.status === 'reverted') {
+                throw new Error("Hero recruitment transaction failed. The free hero may have already been claimed, or there was an error.");
+            }
 
             setStatus('success');
             setStatusMessage('Tavern Established! Hero Recruited.');

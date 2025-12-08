@@ -343,6 +343,13 @@ export const CONTRACT_REGISTRY: Record<string, ContractConfig> = {
         type: 'function',
       },
       {
+        inputs: [{ name: 'tavernKeeperTokenId', type: 'uint256' }],
+        name: 'freeHeroClaimed',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+      {
         inputs: [{ name: 'tokenId', type: 'uint256' }],
         name: 'getMintPrice',
         outputs: [{ name: '', type: 'uint256' }],

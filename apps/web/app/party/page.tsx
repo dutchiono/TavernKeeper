@@ -170,6 +170,7 @@ export default function PartyPage() {
     return (
       <RecruitHeroView
         tbaAddress={selectedKeeper.tbaAddress}
+        tavernKeeperId={selectedKeeper.tokenId}
         onSuccess={handleRecruitSuccess}
         onCancel={() => setViewMode('dashboard')}
       />

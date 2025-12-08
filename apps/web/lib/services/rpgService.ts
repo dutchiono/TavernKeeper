@@ -407,6 +407,33 @@ export const rpgService = {
         });
     },
 
+    /**
+     * Check if a TavernKeeper has already claimed their free hero
+     */
+    async hasClaimedFreeHero(tavernKeeperId: string): Promise<boolean> {
+        const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
+        const contractAddress = getContractAddress(contractConfig);
+        if (!contractAddress) return false;
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(monad.rpcUrls.default.http[0]),
+        });
+
+        try {
+            const claimed = await publicClient.readContract({
+                address: contractAddress,
+                abi: contractConfig.abi,
+                functionName: 'freeHeroClaimed',
+                args: [BigInt(tavernKeeperId)],
+            });
+            return claimed as boolean;
+        } catch (error) {
+            console.error('Failed to check free hero claim status:', error);
+            return false; // Default to false if check fails
+        }
+    },
+
     async claimFreeHero(walletClient: any, address: string, tavernKeeperId: string, heroUri: string) {
         const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
         const contractAddress = getContractAddress(contractConfig);

@@ -13,15 +13,18 @@ import HeroEditor, { HeroData } from './heroes/HeroEditor';
 
 interface RecruitHeroViewProps {
     tbaAddress: string;
+    tavernKeeperId?: string; // Optional: If provided, will check for free hero claim
     onSuccess?: () => void;
     onCancel?: () => void;
 }
 
-export default function RecruitHeroView({ tbaAddress, onSuccess, onCancel }: RecruitHeroViewProps) {
+export default function RecruitHeroView({ tbaAddress, tavernKeeperId, onSuccess, onCancel }: RecruitHeroViewProps) {
     const { address } = useAccount();
     const { data: walletClient } = useWalletClient();
     const publicClient = usePublicClient();
     const [balance, setBalance] = useState<{ value: bigint; decimals: number; symbol: string } | null>(null);
+    const [hasUnclaimedFreeHero, setHasUnclaimedFreeHero] = useState<boolean>(false);
+    const [checkingFreeHero, setCheckingFreeHero] = useState<boolean>(true);
 
     // Fetch Balance
     useEffect(() => {
@@ -76,9 +79,31 @@ export default function RecruitHeroView({ tbaAddress, onSuccess, onCancel }: Rec
         tier: number;
     } | null>(null);
 
+    // Check if user has unclaimed free hero
     useEffect(() => {
-        // Fetch price signature (Tier 1 = $1 for first hero)
-        if (!address) return;
+        if (!tavernKeeperId || !address) {
+            setCheckingFreeHero(false);
+            return;
+        }
+
+        const checkFreeHero = async () => {
+            try {
+                const claimed = await rpgService.hasClaimedFreeHero(tavernKeeperId);
+                setHasUnclaimedFreeHero(!claimed);
+            } catch (error) {
+                console.error('Failed to check free hero status:', error);
+                setHasUnclaimedFreeHero(false);
+            } finally {
+                setCheckingFreeHero(false);
+            }
+        };
+
+        checkFreeHero();
+    }, [tavernKeeperId, address]);
+
+    useEffect(() => {
+        // Fetch price signature (Tier 1 = $1 for first hero) - only if no free hero available
+        if (!address || hasUnclaimedFreeHero) return;
         const fetchPrice = async () => {
             try {
                 const sig = await rpgService.getPriceSignature('adventurer', 1, address);
@@ -89,7 +114,88 @@ export default function RecruitHeroView({ tbaAddress, onSuccess, onCancel }: Rec
             }
         };
         fetchPrice();
-    }, [address]);
+    }, [address, hasUnclaimedFreeHero]);
+
+    const handleClaimFreeHero = async () => {
+        if (!address || !walletClient || !tavernKeeperId || !heroData.name) return;
+
+        // Clear any previous errors when retrying
+        setError(null);
+        setStatus('uploading');
+        setStatusMessage('Preparing Free Hero Metadata...');
+
+        try {
+            // 1. Generate sprite and upload image separately to IPFS (with retries)
+            setStatusMessage('Uploading hero image...');
+            const imageDataUri = generateSpriteURI(heroData.heroClass as HeroClass, heroData.colors, false);
+            let imageHttpUrl: string;
+            try {
+                imageHttpUrl = await metadataStorage.uploadImageFromDataUri(
+                    imageDataUri,
+                    `hero-${heroData.name.toLowerCase().replace(/\s+/g, '-')}.png`,
+                    3, // 3 retry attempts
+                    true // throw on failure so user knows
+                );
+            } catch (error) {
+                throw new Error(`Failed to upload image after retries: ${(error as Error).message}. Please try again.`);
+            }
+
+            // 2. Upload Metadata with HTTP URL reference
+            setStatusMessage('Uploading metadata...');
+            const metadata = {
+                name: heroData.name,
+                description: `A brave ${heroData.heroClass} adventurer.`,
+                image: imageHttpUrl,
+                attributes: [
+                    { trait_type: 'Class', value: heroData.heroClass },
+                    { trait_type: 'Level', value: 1 },
+                ],
+                hero: {
+                    class: heroData.heroClass,
+                    colorPalette: heroData.colors,
+                    spriteSheet: heroData.heroClass.toLowerCase(),
+                    animationFrames: {
+                        idle: [0, 1, 2, 3],
+                        walk: [4, 5, 6, 7],
+                        emote: [8],
+                        talk: [9, 10],
+                    },
+                },
+            };
+            const metadataUri = await uploadMetadata(metadata);
+
+            // 3. Claim Free Hero
+            setStatus('minting');
+            setStatusMessage('Claiming Your FREE Hero... Check Wallet');
+
+            const hash = await rpgService.claimFreeHero(walletClient, address, tavernKeeperId, metadataUri);
+
+            // Wait for transaction confirmation
+            if (!publicClient) {
+                throw new Error("Public client not available");
+            }
+
+            setStatusMessage('Waiting for confirmation...');
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+            if (receipt.status === 'reverted') {
+                throw new Error("Free hero claim transaction failed. The free hero may have already been claimed, or there was an error.");
+            }
+
+            setStatus('success');
+            setStatusMessage('Free Hero Claimed Successfully!');
+
+            // Update state to reflect that free hero is now claimed
+            setHasUnclaimedFreeHero(false);
+
+            if (onSuccess) onSuccess();
+
+        } catch (e: any) {
+            console.error('Free hero claim error:', e);
+            setStatus('error');
+            setError(e.message || 'Failed to claim free hero');
+        }
+    };
 
     const handleMint = async () => {
         if (!address || !walletClient || !heroData.name) return;
@@ -166,15 +272,39 @@ export default function RecruitHeroView({ tbaAddress, onSuccess, onCancel }: Rec
 
             const hash = await rpgService.mintHero(walletClient, address, tbaAddress, metadataUri, 1);
 
+            // Wait for transaction confirmation
+            if (!publicClient) {
+                throw new Error("Public client not available");
+            }
+
+            setStatusMessage('Waiting for confirmation...');
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+            if (receipt.status === 'reverted') {
+                throw new Error("Hero recruitment transaction failed. Please check your wallet and try again.");
+            }
+
             setStatus('success');
             setStatusMessage(`Hero Recruited! Tx: ${hash}`);
 
             if (onSuccess) onSuccess();
 
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            console.error('Paid hero mint error:', e);
             setStatus('error');
-            setError((e as Error).message);
+
+            // Check if user rejected the transaction
+            const errorMessage = e?.message || e?.toString() || 'Unknown error';
+            const isUserRejection = errorMessage.includes('User rejected') ||
+                                   errorMessage.includes('User denied') ||
+                                   errorMessage.includes('user rejected') ||
+                                   e?.name === 'UserRejectedRequestError';
+
+            if (isUserRejection) {
+                setError('Transaction cancelled. You can try again when ready.');
+            } else {
+                setError(errorMessage);
+            }
         }
     };
 
@@ -244,12 +374,59 @@ export default function RecruitHeroView({ tbaAddress, onSuccess, onCancel }: Rec
 
                 {activeTab === 'recruit' && (
                     <div className="animate-fade-in max-w-md mx-auto">
+                        {/* Free Hero Banner */}
+                        {checkingFreeHero ? (
+                            <div className="mb-6 text-center bg-[#2a1d17]/50 p-4 rounded border border-[#5c3a1e]">
+                                <p className="text-sm text-yellow-200">Checking for free hero claim...</p>
+                            </div>
+                        ) : hasUnclaimedFreeHero && tavernKeeperId ? (
+                            <div className="mb-6 bg-gradient-to-r from-green-900/50 to-emerald-900/50 border-2 border-green-500 p-6 rounded-lg">
+                                <div className="text-center mb-4">
+                                    <h3 className="text-2xl font-bold text-green-400 mb-2">🎁 FREE HERO AVAILABLE!</h3>
+                                    <p className="text-[#d4c5b0] text-sm">
+                                        You have an unclaimed free hero from your TavernKeeper NFT. Claim it now - no cost!
+                                    </p>
+                                </div>
+                                <ForgeButton
+                                    onClick={handleClaimFreeHero}
+                                    disabled={status !== 'idle' && status !== 'error' || !heroData.name}
+                                    className="w-full py-4 text-lg bg-green-600 hover:bg-green-700"
+                                >
+                                    {status === 'idle' || status === 'error' ? 'Claim FREE Hero' : 'Processing...'}
+                                </ForgeButton>
+                                {status !== 'idle' && status !== 'error' && (
+                                    <div className="mt-4 text-center bg-[#2a1d17]/50 p-4 rounded border border-[#5c3a1e]">
+                                        <p className="text-sm text-yellow-200 animate-pulse">{statusMessage}</p>
+                                    </div>
+                                )}
+                                {error && (
+                                    <div className="mt-4 bg-red-900/50 border border-red-500 p-4 rounded text-center">
+                                        <p className="text-sm text-red-200">{error}</p>
+                                    </div>
+                                )}
+                                <div className="mt-4 pt-4 border-t border-green-700/50">
+                                    <button
+                                        onClick={() => {
+                                            setHasUnclaimedFreeHero(false);
+                                            // Fetch price for paid recruitment
+                                            if (address) {
+                                                rpgService.getPriceSignature('adventurer', 1, address).then(setPriceSignature).catch(console.error);
+                                            }
+                                        }}
+                                        className="w-full text-[#8b7355] hover:text-[#d4c5b0] text-sm underline"
+                                    >
+                                        Or recruit a paid hero instead →
+                                    </button>
+                                </div>
+                            </div>
+                        ) : null}
+
                         <div className="mb-6 text-center">
                             <h2 className="text-2xl text-yellow-400 drop-shadow-md mb-2">Review Contract</h2>
                             <p className="text-[#d4c5b0]">Sign the contract to recruit this hero.</p>
                         </div>
 
-                        <ForgePanel title="Recruitment Cost" variant="wood">
+                        <ForgePanel title={hasUnclaimedFreeHero ? "Paid Recruitment Cost" : "Recruitment Cost"} variant="wood">
                             <div className="space-y-4 p-4">
                                 <div className="flex justify-between items-center text-[#d4c5b0]">
                                     <span>Hero Name</span>

@@ -42,11 +42,15 @@ export const theCellarService = {
             }
 
             // Use chain's RPC URL (includes Alchemy if configured)
-            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+            const rpcUrl = monad.rpcUrls.default.http[0];
 
             const publicClient = createPublicClient({
                 chain: monad,
-                transport: http(rpcUrl),
+                transport: http(rpcUrl, {
+                    retryCount: 3,
+                    retryDelay: 1000,
+                    timeout: 30000,
+                }),
             });
 
             // V3 Cellar calls: potBalanceMON, potBalanceKEEP, getAuctionPrice, slot0
@@ -106,8 +110,21 @@ export const theCellarService = {
             this._cache.timestamp = now;
 
             return newState;
-        } catch (error) {
-            console.error("Error fetching V3 cellar state:", error);
+        } catch (error: any) {
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            const isRateLimit = errorMessage.includes('429') || errorMessage.includes('Too Many Requests') || errorMessage.includes('rate limit');
+            const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('Timeout');
+
+            if (isRateLimit) {
+                console.error('❌ RPC Rate Limit Error:', errorMessage);
+                console.error('💡 Solution: Set NEXT_PUBLIC_ALCHEMY_API_KEY in your .env file to use Alchemy instead of the public RPC');
+            } else if (isTimeout) {
+                console.error('❌ RPC Timeout Error:', errorMessage);
+                console.error('💡 Solution: Set NEXT_PUBLIC_ALCHEMY_API_KEY in your .env file for more reliable RPC');
+            } else {
+                console.error("❌ Error fetching V3 cellar state:", error);
+            }
+
             if (this._cache.data) return this._cache.data;
             return {
                 potSize: '0',
@@ -122,11 +139,15 @@ export const theCellarService = {
     },
 
     async getAllowance(owner: string, tokenAddress: string): Promise<bigint> {
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+        const rpcUrl = monad.rpcUrls.default.http[0];
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(rpcUrl),
+            transport: http(rpcUrl, {
+                retryCount: 3,
+                retryDelay: 1000,
+                timeout: 30000,
+            }),
         });
 
         const contractConfig = CONTRACT_REGISTRY.THECELLAR;
@@ -140,8 +161,14 @@ export const theCellarService = {
                 args: [owner as `0x${string}`, contractAddress as `0x${string}`],
             });
             return allowance as bigint;
-        } catch (error) {
-            console.error("Error fetching allowance:", error);
+        } catch (error: any) {
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            const isRateLimit = errorMessage.includes('429') || errorMessage.includes('Too Many Requests');
+            if (isRateLimit) {
+                console.error('❌ RPC Rate Limit Error fetching allowance:', errorMessage);
+            } else {
+                console.error("❌ Error fetching allowance:", error);
+            }
             return 0n;
         }
     },
@@ -232,11 +259,15 @@ export const theCellarService = {
             return 0n;
         }
 
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+        const rpcUrl = monad.rpcUrls.default.http[0];
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(rpcUrl),
+            transport: http(rpcUrl, {
+                retryCount: 3,
+                retryDelay: 1000,
+                timeout: 30000,
+            }),
         });
 
         try {
@@ -255,8 +286,14 @@ export const theCellarService = {
                 args: [userAddress as `0x${string}`],
             });
             return balance as bigint;
-        } catch (error) {
-            console.error("Error fetching LP balance:", error);
+        } catch (error: any) {
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            const isRateLimit = errorMessage.includes('429') || errorMessage.includes('Too Many Requests');
+            if (isRateLimit) {
+                console.error('❌ RPC Rate Limit Error fetching LP balance:', errorMessage);
+            } else {
+                console.error("❌ Error fetching LP balance:", error);
+            }
             return 0n;
         }
     },
@@ -275,12 +312,16 @@ export const theCellarService = {
                 return null;
             }
 
-            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-                (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+            // Use chain's RPC URL (includes Alchemy if configured)
+            const rpcUrl = monad.rpcUrls.default.http[0];
 
             const publicClient = createPublicClient({
                 chain: monad,
-                transport: http(rpcUrl),
+                transport: http(rpcUrl, {
+                    retryCount: 3,
+                    retryDelay: 1000,
+                    timeout: 30000,
+                }),
             });
 
             // Get CLP token address
@@ -333,8 +374,19 @@ export const theCellarService = {
                 positionLiquidity,
                 totalLiquidity: totalLiquidity as bigint,
             };
-        } catch (error) {
-            console.error("Error fetching pool stats:", error);
+        } catch (error: any) {
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            const isRateLimit = errorMessage.includes('429') || errorMessage.includes('Too Many Requests');
+            const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('Timeout');
+
+            if (isRateLimit) {
+                console.error('❌ RPC Rate Limit Error fetching pool stats:', errorMessage);
+                console.error('💡 Solution: Set NEXT_PUBLIC_ALCHEMY_API_KEY in your .env file');
+            } else if (isTimeout) {
+                console.error('❌ RPC Timeout Error fetching pool stats:', errorMessage);
+            } else {
+                console.error("❌ Error fetching pool stats:", error);
+            }
             return null;
         }
     },

@@ -15,9 +15,9 @@ import { join } from 'path';
  */
 
 // Resolve path relative to scripts directory
-// When running via hardhat, __dirname points to the compiled JS location
-// So we need to resolve from the project root
-const projectRoot = join(__dirname, '../..');
+// When running via hardhat, __dirname points to the compiled JS location (artifacts/scripts)
+// So we need to resolve from the workspace root (go up 3 levels from artifacts/scripts)
+const projectRoot = join(__dirname, '../../..');
 const FIRSTDEPLOYMENT_PATH = join(projectRoot, 'FIRSTDEPLOYMENT.md');
 
 interface UpgradeInfo {

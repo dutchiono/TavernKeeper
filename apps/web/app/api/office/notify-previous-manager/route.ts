@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByAddress, sendNotification } from '../../../../lib/services/neynarService';
+import { getUserByAddress, sendNotification, postToFeed } from '../../../../lib/services/neynarService';
 import { supabase } from '../../../../lib/supabase';
 
 export async function POST(request: NextRequest) {
@@ -118,27 +118,45 @@ export async function POST(request: NextRequest) {
             targetUrl
         });
 
-        const success = await sendNotification(
+        // Send notification
+        const notificationSuccess = await sendNotification(
             [fid],
             notificationTitle,
             notificationBody,
             targetUrl
         );
 
-        if (success) {
+        // Post to feed (using UUID account)
+        let feedPostSuccess = false;
+        let feedPostBody: string;
+
+        if (previousManagerUsername) {
+            feedPostBody = `@${newManagerUsername} just took the Office from @${previousManagerUsername}! 👑 They paid ${parseFloat(pricePaid).toFixed(4)} MON. Take it from them at tavernkeeper.xyz/miniapp`;
+        } else {
+            feedPostBody = `@${newManagerUsername} just took the Office! 👑 They paid ${parseFloat(pricePaid).toFixed(4)} MON. Take it from them at tavernkeeper.xyz/miniapp`;
+        }
+
+        feedPostSuccess = await postToFeed(feedPostBody);
+
+        if (notificationSuccess) {
             console.log('✅ Notification sent successfully to FID:', fid);
-            return NextResponse.json({
-                success: true,
-                message: 'Notification sent successfully',
-                fid,
-            });
         } else {
             console.error('❌ Failed to send notification');
-            return NextResponse.json(
-                { success: false, message: 'Failed to send notification' },
-                { status: 500 }
-            );
         }
+
+        if (feedPostSuccess) {
+            console.log('✅ Feed post published successfully');
+        } else {
+            console.warn('⚠️ Failed to post to feed (this is non-critical)');
+        }
+
+        // Return success if at least notification worked (feed post is optional)
+        return NextResponse.json({
+            success: notificationSuccess,
+            message: notificationSuccess ? 'Notification sent successfully' : 'Failed to send notification',
+            fid,
+            feedPosted: feedPostSuccess,
+        });
     } catch (error) {
         console.error('Error in notify-previous-manager route:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';

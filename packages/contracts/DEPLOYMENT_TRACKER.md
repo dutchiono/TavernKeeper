@@ -91,7 +91,7 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 - **Purpose**: TavernKeeper NFT contract
 - **Upgradeable**: Yes ✅
 - **Proxy Address (Mainnet)**: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29`
-- **Implementation Address (Mainnet)**: `0xfBA8a742551A56885c845b5ba4729cBb099667f8` (v4.1.1 - NFT mints to owner, treasury for Office only)
+- **Implementation Address (Mainnet)**: `0x81146F855f5B0C567e9F0d3a2A082Aed81F34762` (v4.2.0 - Office timer fix: startTime no longer resets on claim)
 - **Proxy Address (Testnet)**: `0x311d8722A5cE11DF157D7a9d414bbeC2640c5Fb2`
 - **Implementation Address (Testnet)**: `0x10ee72aB13747447FE62CE07e2f1fc3d40114Ee7` (v4.0.0 - Signature-Based Pricing)
 - **Network**: Monad Mainnet & Testnet
@@ -239,7 +239,7 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 | The Cellar (OLD - Broken Pool) | Impl | `0xA349006F388DA608052395755d08E765b1960ecC` | ✅ 2025-01-XX | See upgrade tx | v3.0.0 - Broken pool, do not use |
 | KeepToken | Proxy | `0x2D1094F5CED6ba279962f9676d32BE092AFbf82E` | ✅ 2025-01-XX | See FIRSTDEPLOYMENT.md | **USE THIS** - Mainnet KeepToken |
 | TavernKeeper | Proxy | `0x56B81A60Ae343342685911bd97D1331fF4fa2d29` | ✅ 2025-01-XX | See upgrade tx | **USE THIS** - Mainnet TavernKeeper |
-| TavernKeeper | Impl | `0x390Dc36AcFA002b1dF61f659B2660e9cAD82B341` | ✅ 2025-01-XX | See upgrade tx | v4.1.0 - Payment Fix + Whitelist |
+| TavernKeeper | Impl | `0x81146F855f5B0C567e9F0d3a2A082Aed81F34762` | ✅ 2025-12-08 | See upgrade tx | v4.2.0 - Office timer fix: startTime no longer resets on claim |
 | Adventurer | Proxy | `0xb138Bf579058169e0657c12Fd9cc1267CAFcb935` | ✅ 2025-01-XX | See upgrade tx | **USE THIS** - Mainnet Adventurer |
 | Adventurer | Impl | `0x961F7b389ebe40C61aE1b64425F23CFEA79a4458` | ✅ 2025-01-XX | See upgrade tx | v4.1.0 - Payment Fix + Whitelist |
 

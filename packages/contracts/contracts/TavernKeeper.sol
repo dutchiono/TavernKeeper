@@ -304,6 +304,9 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
     Slot0 public slot0;
     address public treasury;
 
+    // Office reward claim tracking (added in upgrade - must be after existing storage)
+    uint40 public officeLastClaimTime;  // Track when office rewards were last claimed (0 = use startTime)
+
     // Constants
     uint256 public constant FEE = 2_000; // 20%
     uint256 public constant DIVISOR = 10_000;
@@ -356,6 +359,7 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
         slot0.initPrice = uint192(MIN_INIT_PRICE);
         slot0.startTime = uint40(block.timestamp);
+        officeLastClaimTime = 0;  // Initialize to 0
         slot0.miner = msg.sender; // Initial king is owner
         slot0.dps = INITIAL_DPS;
         slot0.epochId = 1;
@@ -455,6 +459,7 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         }
         slot0Cache.initPrice = uint192(newInitPrice);
         slot0Cache.startTime = uint40(block.timestamp);
+        officeLastClaimTime = 0;  // Reset for new miner
         slot0Cache.miner = msg.sender;
         slot0Cache.dps = _getDpsFromTime(block.timestamp);
         slot0Cache.uri = uri;
@@ -496,15 +501,19 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         require(msg.sender == slot0Cache.miner, "Not current king");
         require(keepToken != address(0), "KeepToken not set");
 
-        uint256 mineTime = block.timestamp - slot0Cache.startTime;
+        // Use officeLastClaimTime if set (>0), otherwise use startTime (first claim or pre-upgrade)
+        uint40 claimStartTime = officeLastClaimTime > 0
+            ? officeLastClaimTime
+            : slot0Cache.startTime;
+
+        uint256 mineTime = block.timestamp - claimStartTime;
         require(mineTime > 0, "No time passed");
 
         uint256 minedAmount = mineTime * slot0Cache.dps;
         require(minedAmount > 0, "No rewards");
 
-        // Reset start time to now (claiming resets the timer)
-        slot0Cache.startTime = uint40(block.timestamp);
-        slot0 = slot0Cache;
+        // Update officeLastClaimTime, but keep startTime unchanged (for auction price)
+        officeLastClaimTime = uint40(block.timestamp);
 
         IKeepToken(keepToken).mint(msg.sender, minedAmount);
         emit OfficeEarningsClaimed(msg.sender, minedAmount);
@@ -512,7 +521,13 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
     function getPendingOfficeRewards() external view returns (uint256) {
         Slot0 memory slot0Cache = slot0;
-        uint256 mineTime = block.timestamp - slot0Cache.startTime;
+
+        // Use officeLastClaimTime if set (>0), otherwise use startTime
+        uint40 claimStartTime = officeLastClaimTime > 0
+            ? officeLastClaimTime
+            : slot0Cache.startTime;
+
+        uint256 mineTime = block.timestamp - claimStartTime;
 
         if (mineTime <= 0) return 0;
 

@@ -4261,8 +4261,8 @@
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TavernKeeper.sol": {
-      "lastModificationDate": 1765114385110,
-      "contentHash": "04112e78fc9b3ee10e9664aa5b0f3ebc",
+      "lastModificationDate": 1765194580399,
+      "contentHash": "e9bb1d68171c330ca279371d169f697b",
       "sourceName": "contracts/TavernKeeper.sol",
       "solcConfig": {
         "version": "0.8.26",

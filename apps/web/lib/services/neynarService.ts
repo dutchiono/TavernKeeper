@@ -171,3 +171,38 @@ export async function sendNotification(
         return false;
     }
 }
+
+/**
+ * Post a cast to Farcaster feed using the UUID signer
+ *
+ * @param text The text content of the cast
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function postToFeed(text: string): Promise<boolean> {
+    try {
+        const signerUuid = process.env.NEYNAR_SIGNER_UUID;
+        if (!signerUuid) {
+            console.warn('⚠️ NEYNAR_SIGNER_UUID not found. Cannot post to feed.');
+            return false;
+        }
+
+        const client = getNeynarClient();
+
+        await client.publishCast({
+            signerUuid: signerUuid,
+            text: text,
+        });
+
+        console.log('✅ Feed post published successfully');
+        return true;
+    } catch (error: any) {
+        console.error('❌ Error posting to feed:', error);
+        if (error.response) {
+            console.error('Status:', error.response.status);
+            console.error('Data:', JSON.stringify(error.response.data, null, 2));
+        } else {
+            console.error(error.message || error);
+        }
+        return false;
+    }
+}

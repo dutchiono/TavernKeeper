@@ -191,6 +191,16 @@ Town Posse Manager: 0xE46592D8185975888b4A301DBD9b24A49933CC7D
 - **Notes**: Frontend addresses unchanged (proxy address stays the same)
 
 ### 2025-12-03: Pricing Logic Fix (Hotfix)
+### 2025-12-08: Fixed office timer: added officeLastClaimTime storage variable, startTime no longer resets on claim
+- **Reason**: Fixed office timer: added officeLastClaimTime storage variable, startTime no longer resets on claim
+- **Contracts Upgraded**:
+  - **TavernKeeper**:
+    - Proxy: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29`
+    - Old Impl: `0x26c9a9cFb2bEcABFe490050c907c466B36c74835`
+    - New Impl: `0x81146F855f5B0C567e9F0d3a2A082Aed81F34762`
+- **Status**: ✅ Success
+- **Notes**: Frontend addresses unchanged (proxy address stays the same)
+
 - **Reason**: Fixed Dutch Auction logic to enforce minimum price floor (1 MON) instead of decaying to 0.
 - **Contracts Upgraded**:
   - **TavernKeeper**:

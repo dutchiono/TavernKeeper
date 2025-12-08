@@ -96,6 +96,7 @@ export interface TavernKeeperInterface extends Interface {
       | "mintingRate"
       | "name"
       | "nonces"
+      | "officeLastClaimTime"
       | "owner"
       | "ownerOf"
       | "proxiableUUID"
@@ -286,6 +287,10 @@ export interface TavernKeeperInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(functionFragment: "nonces", values: [AddressLike]): string;
+  encodeFunctionData(
+    functionFragment: "officeLastClaimTime",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "ownerOf",
@@ -521,6 +526,10 @@ export interface TavernKeeperInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "nonces", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "officeLastClaimTime",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(
@@ -1115,6 +1124,8 @@ export interface TavernKeeper extends BaseContract {
 
   nonces: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
+  officeLastClaimTime: TypedContractMethod<[], [bigint], "view">;
+
   owner: TypedContractMethod<[], [string], "view">;
 
   ownerOf: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
@@ -1402,6 +1413,9 @@ export interface TavernKeeper extends BaseContract {
   getFunction(
     nameOrSignature: "nonces"
   ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "officeLastClaimTime"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;

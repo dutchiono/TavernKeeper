@@ -289,16 +289,43 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                             }
                         }
 
-                        alert(`Raid successful! You claimed ${formatEther(monProfit)} MON and ${formatEther(keepProfit)} KEEP.`);
+                        const monProfitFormatted = formatEther(monProfit);
+                        const keepProfitFormatted = formatEther(keepProfit);
+                        alert(`Raid successful! You claimed ${monProfitFormatted} MON and ${keepProfitFormatted} KEEP.`);
 
-                        // Trigger compose cast if in miniapp
+                        // Send notification to feed (similar to office takeover)
+                        if (address && (monProfit > 0n || keepProfit > 0n)) {
+                            console.log('📨 Sending raid notification to feed...');
+                            fetch('/api/cellar/notify-raid', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    raiderAddress: address,
+                                    monProfit: monProfitFormatted,
+                                    keepProfit: keepProfitFormatted
+                                })
+                            })
+                                .then(async (response) => {
+                                    const data = await response.json();
+                                    if (response.ok && data.success) {
+                                        console.log('✅ Raid notification sent successfully:', data);
+                                    } else {
+                                        console.error('❌ Raid notification failed:', data);
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error('❌ Failed to send raid notification:', err);
+                                });
+                        }
+
+                        // Trigger compose cast if in miniapp (optional user action)
                         const isMiniapp = await checkIsInFarcasterMiniapp();
                         if (isMiniapp && (monProfit > 0n || keepProfit > 0n)) {
                             setTimeout(async () => {
                                 try {
                                     const username = context?.user?.username;
-                                    const monFormatted = parseFloat(formatEther(monProfit)).toFixed(2);
-                                    const keepFormatted = parseFloat(formatEther(keepProfit)).toFixed(2);
+                                    const monFormatted = parseFloat(monProfitFormatted).toFixed(2);
+                                    const keepFormatted = parseFloat(keepProfitFormatted).toFixed(2);
 
                                     let shareText: string;
                                     if (username) {
@@ -508,15 +535,72 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
         setShowRecoverModal(false);
         setIsRecovering(true);
         try {
-            // Recover all LP tokens
-            await theCellarService.recoverLiquidity(walletClient, lpBalance);
+            // Check CLP allowance first
+            const contractConfig = CONTRACT_REGISTRY.THECELLAR;
+            const cellarAddress = getContractAddress(contractConfig);
+            if (!cellarAddress) throw new Error("TheCellar contract not found");
 
-            alert("Liquidity Recovered Successfully!");
-            theCellarService.clearCache();
-            fetchData();
+            // Get CLP token address
+            const clpTokenAddress = await publicClient.readContract({
+                address: cellarAddress,
+                abi: parseAbi(['function cellarToken() view returns (address)']),
+                functionName: 'cellarToken',
+            }) as string;
+
+            // Check and approve CLP if needed
+            const clpAllowance = await publicClient.readContract({
+                address: clpTokenAddress as `0x${string}`,
+                abi: parseAbi(['function allowance(address,address) view returns (uint256)']),
+                functionName: 'allowance',
+                args: [address, cellarAddress],
+            }) as bigint;
+
+            if (clpAllowance < lpBalance) {
+                console.log("Approving CLP tokens for withdrawal...");
+                const approveHash = await walletClient.writeContract({
+                    address: clpTokenAddress as `0x${string}`,
+                    abi: parseAbi(['function approve(address,uint256) returns (bool)']),
+                    functionName: 'approve',
+                    chain: monad,
+                    account: address,
+                    args: [cellarAddress, lpBalance],
+                });
+                await publicClient.waitForTransactionReceipt({ hash: approveHash });
+                console.log("CLP Approved");
+            }
+
+            // Recover all LP tokens
+            const hash = await theCellarService.recoverLiquidity(walletClient, lpBalance);
+
+            // Wait for transaction receipt
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+            if (receipt.status === 'success') {
+                alert("Liquidity Recovered Successfully!");
+                theCellarService.clearCache();
+                fetchData();
+            } else {
+                throw new Error("Transaction failed");
+            }
         } catch (e: any) {
             console.error("Recovery failed:", e);
-            alert("Recovery failed: " + (e.message || "Unknown error"));
+
+            // Provide better error messages for new contract checks
+            let errorMessage = e.message || "Unknown error";
+
+            if (errorMessage.includes("Insufficient position liquidity")) {
+                errorMessage = "Cannot withdraw: Position has less liquidity than your CLP balance. This can happen if liquidity was removed. Try withdrawing a smaller amount.";
+            } else if (errorMessage.includes("Amount exceeds uint128 max")) {
+                errorMessage = "Cannot withdraw: Amount is too large. Please contact support.";
+            } else if (errorMessage.includes("No liquidity in position")) {
+                errorMessage = "Cannot withdraw: No liquidity available in the position.";
+            } else if (errorMessage.includes("Insufficient total liquidity")) {
+                errorMessage = "Cannot withdraw: Insufficient liquidity in the contract.";
+            } else if (errorMessage.includes("user rejected") || errorMessage.includes("User rejected")) {
+                errorMessage = "Transaction cancelled by user.";
+            }
+
+            alert("Recovery failed: " + errorMessage);
         } finally {
             setIsRecovering(false);
         }
@@ -679,6 +763,13 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
 
                     <div className="mt-2 pt-2 border-t border-white/10">
                         <div className="text-[10px] text-zinc-400 mb-1 text-center uppercase tracking-wider">Need LP Tokens?</div>
+
+                        {/* LP Farming Warning */}
+                        <div className="bg-red-900/20 border border-red-800/50 rounded p-2 mb-2">
+                            <p className="text-[9px] text-red-300 leading-tight">
+                                <strong className="text-red-400">⚠️ WARNING:</strong> LP tokens are harvested by the system every hour. LP is meant to be <strong>locked by raids</strong>, not farmed. Your LP may be claimed by others through raids.
+                            </p>
+                        </div>
 
                         <div className="flex gap-1 mb-1">
                             <input
@@ -873,6 +964,19 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                             </div>
                                         </div>
 
+                                        {/* Critical LP Farming Warning */}
+                                        <div className="bg-red-900/30 border-2 border-red-600/70 rounded p-3">
+                                            <p className="text-xs text-red-200 leading-relaxed">
+                                                <strong className="text-red-400 text-sm">⚠️ CRITICAL WARNING:</strong>
+                                                <br />
+                                                LP tokens are harvested by the system <strong>every hour</strong>.
+                                                <br />
+                                                LP is meant to be <strong>locked by raids</strong>, not farmed.
+                                                <br />
+                                                Your LP may be claimed by others through raids at any time.
+                                            </p>
+                                        </div>
+
                                         {needsApproval && (
                                             <div className="bg-blue-50/10 border border-blue-800/50 rounded p-3">
                                                 <p className="text-xs text-blue-200">
@@ -948,12 +1052,20 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-zinc-400 text-sm">Amount to Recover:</span>
                                         <span className="text-xl font-bold text-orange-400">
-                                            {parseFloat(formatEther(lpBalance)).toFixed(4)} LP
+                                            {parseFloat(formatEther(lpBalance)).toFixed(4)} CLP
                                         </span>
                                     </div>
                                     <div className="mt-2 text-xs text-zinc-500">
-                                        This will burn your LP tokens and return your MON and KEEP share.
+                                        This will burn your CLP tokens and return your MON and KEEP share + 90% of your proportional fees.
                                     </div>
+                                </div>
+
+                                <div className="bg-green-900/20 border border-green-800/50 rounded p-3">
+                                    <p className="text-xs text-green-200">
+                                        <strong className="text-green-400">✅ Improved Withdrawal:</strong>
+                                        <br />
+                                        The contract now includes safety checks to ensure withdrawals work correctly, even for ZAP-created LP tokens.
+                                    </p>
                                 </div>
 
                                 <div className="flex gap-2 mt-4">

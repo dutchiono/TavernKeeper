@@ -252,28 +252,29 @@ export default function RecruitHeroView({ tbaAddress, tavernKeeperId, onSuccess,
             };
             const metadataUri = await uploadMetadata(metadata);
 
-            // 2. Get fresh price signature (in case price changed)
-            if (!priceSignature) {
-                throw new Error('Price signature not available. Please refresh and try again.');
+            // 2. Get fresh price signature right before minting to ensure nonce is current
+            // rpgService.mintHero will fetch a fresh signature, but we fetch one here for price display
+            let displayPrice = priceSignature;
+            if (!displayPrice) {
+                // Fetch signature for price display
+                displayPrice = await rpgService.getPriceSignature('adventurer', 1, address);
+                setPriceSignature(displayPrice);
             }
 
-            // Check if signature is still valid (not expired)
-            const deadline = BigInt(priceSignature.deadline);
-            const now = BigInt(Math.floor(Date.now() / 1000));
-            if (now >= deadline) {
-                // Signature expired, fetch new one
-                const newSig = await rpgService.getPriceSignature('adventurer', 1, address);
-                setPriceSignature(newSig);
-                if (BigInt(newSig.deadline) <= now) {
-                    throw new Error('Price signature expired. Please try again.');
-                }
-            }
-
-            // 3. Mint Hero to TBA with signature
+            // 3. Mint Hero to TBA with signature (rpgService.mintHero will fetch a fresh signature)
             setStatus('minting');
-            setStatusMessage(`Recruiting Hero ($${priceSignature.usdPrice.toFixed(2)} = ${priceSignature.amount} MON)... Check Wallet`);
+            setStatusMessage(`Recruiting Hero ($${displayPrice.usdPrice.toFixed(2)} = ${displayPrice.amount} MON)... Check Wallet`);
 
-            const hash = await rpgService.mintHero(walletClient, address, tbaAddress, metadataUri, 1);
+            // Validate TBA address - use wallet address as fallback if TBA is empty
+            const mintToAddress = (tbaAddress && tbaAddress.trim() !== '' && tbaAddress.startsWith('0x'))
+                ? tbaAddress
+                : address;
+
+            if (!mintToAddress || mintToAddress.trim() === '') {
+                throw new Error('Invalid address: TBA address is empty and wallet address is not available');
+            }
+
+            const hash = await rpgService.mintHero(walletClient, address, mintToAddress, metadataUri, 1);
 
             // Wait for transaction confirmation
             if (!publicClient) {

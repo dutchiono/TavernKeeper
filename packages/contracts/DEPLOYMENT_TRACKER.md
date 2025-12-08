@@ -233,6 +233,7 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 | Contract | Type | Address | Deployed | TX Hash | Notes |
 |----------|------|---------|----------|---------|-------|
 | TheCellarV3 | Proxy | `0x32A920be00dfCE1105De0415ba1d4f06942E9ed0` | ✅ 2025-12-07 | ... | V3 Migration - UUPS Proxy |
+| TheCellarV3 | Impl | `0x3Ae6fe0eD190Bd31bBE3fe7f91b310f9C8f45D5C` | ✅ 2025-01-XX | See upgrade tx | v1.4.0 - Withdrawal Fix (position liquidity checks) |
 | TheCellarV3 | Impl | `0x296d8B63c95013a6c972b3f08b0D52c859D37066` | ✅ 2025-12-07 | ... | v1.3.0 - Logic Fix (harvest/withdraw) |
 | CellarToken | Contract | `0x6eF142a2203102F6c58b0C15006BF9F6F5CFe39E` | ✅ 2025-12-06 | 0x... | Migrated V3 LP Token |
 | The Cellar (OLD - Broken Pool) | Proxy | `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755` | ✅ 2025-01-XX | See upgrade tx | **DEPRECATED** - Broken pool (price=0), replaced by new pool |

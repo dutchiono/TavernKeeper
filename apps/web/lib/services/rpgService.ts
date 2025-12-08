@@ -320,10 +320,18 @@ export const rpgService = {
             for (const idBigInt of tokenIds) {
                 const id = idBigInt.toString();
                 try {
-                    // Fetch metadata URI
+                    // Fetch metadata URI - add tokenURI to ABI if not present (ERC721URIStorage)
+                    const tokenURIAbi = {
+                        "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
+                        "name": "tokenURI",
+                        "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+                        "stateMutability": "view",
+                        "type": "function"
+                    };
+                    const abiWithTokenURI = [...contractConfig.abi, tokenURIAbi];
                     const uri = await publicClient.readContract({
                         address,
-                        abi: contractConfig.abi,
+                        abi: abiWithTokenURI,
                         functionName: 'tokenURI',
                         args: [BigInt(id)],
                     });
@@ -659,24 +667,62 @@ export const rpgService = {
         // Determine tier if not provided
         const mintTier = tier || await this.getCurrentTier('adventurer');
 
-        // Get price signature from API
+        // Get price signature from API (fresh signature ensures correct nonce)
         const priceSig = await this.getPriceSignature('adventurer', mintTier, address);
 
-        return await walletClient.writeContract({
-            address: contractAddress,
-            abi: contractConfig.abi,
-            functionName: 'mintHero',
-            args: [
-                to,
-                uri,
-                BigInt(priceSig.amountWei),
-                BigInt(priceSig.deadline),
-                priceSig.signature,
-            ],
-            value: BigInt(priceSig.amountWei),
-            account: address as `0x${string}`,
-            chain: monad
-        });
+        const args = [
+            to,
+            uri,
+            BigInt(priceSig.amountWei),
+            BigInt(priceSig.deadline),
+            priceSig.signature,
+        ] as const;
+
+        const value = BigInt(priceSig.amountWei);
+
+        // Simulate transaction first to get better error messages
+        try {
+            const rpcUrl = monad.rpcUrls.default.http[0];
+            const publicClient = createPublicClient({
+                chain: monad,
+                transport: http(rpcUrl),
+            });
+
+            const { request } = await publicClient.simulateContract({
+                address: contractAddress,
+                abi: contractConfig.abi,
+                functionName: 'mintHero',
+                args: args,
+                value: value,
+                account: address as `0x${string}`,
+            });
+
+            // If simulation succeeds, execute the transaction
+            return await walletClient.writeContract(request);
+        } catch (simError: any) {
+            // Extract the actual revert reason from simulation error
+            const errorMessage = simError?.shortMessage || simError?.message || 'Transaction simulation failed';
+
+            // Check for common revert reasons
+            if (errorMessage.includes('Public minting is disabled')) {
+                throw new Error('Public minting is currently disabled. Please try again later.');
+            }
+            if (errorMessage.includes('Signature expired')) {
+                throw new Error('Price signature expired. Please try again.');
+            }
+            if (errorMessage.includes('Invalid signature')) {
+                throw new Error('Invalid price signature. This may be due to a nonce mismatch. Please try again.');
+            }
+            if (errorMessage.includes('Incorrect payment amount')) {
+                throw new Error('Payment amount mismatch. Please refresh and try again.');
+            }
+            if (errorMessage.includes('Signer not set')) {
+                throw new Error('Contract configuration error. Please contact support.');
+            }
+
+            // Re-throw with more context
+            throw new Error(`Hero mint failed: ${errorMessage}`);
+        }
     },
 
     async mintHeroWhitelist(

@@ -278,12 +278,25 @@ contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC
         require(lpAmount > 0, "Zero amount");
         require(totalLiquidity >= lpAmount, "Insufficient total liquidity");
 
+        // Check actual position liquidity before attempting withdrawal
+        (,,,,,,,uint128 positionLiquidity,,,,) = positionManager.positions(tokenId);
+        require(positionLiquidity > 0, "No liquidity in position");
+
+        // Ensure we don't try to withdraw more than the position has
+        // This can happen if CLP was minted incorrectly or liquidity was removed without burning CLP
+        uint256 maxWithdrawable = positionLiquidity < totalLiquidity ? uint256(positionLiquidity) : totalLiquidity;
+        require(lpAmount <= maxWithdrawable, "Insufficient position liquidity");
+
+        // Check for uint128 overflow
+        require(lpAmount <= type(uint128).max, "Amount exceeds uint128 max");
+
         // 1. Burn CLP from User
         cellarToken.transferFrom(msg.sender, address(this), lpAmount);
         cellarToken.burn(address(this), lpAmount);
         totalLiquidity -= lpAmount;
 
         // 2. Remove Liquidity from V3
+        // Safe cast: we already checked lpAmount <= type(uint128).max and lpAmount <= maxWithdrawable
         uint128 liquidityToRemove = uint128(lpAmount);
 
         INonfungiblePositionManager.DecreaseLiquidityParams memory params = INonfungiblePositionManager.DecreaseLiquidityParams({
@@ -317,11 +330,18 @@ contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC
         // 5. Collect principal + user's 90% of fees to user
         // Note: amount0/amount1 from decreaseLiquidity are principal amounts
         // We add the user's fee share
+        // Check for uint128 overflow when casting
+        uint256 totalAmount0 = amount0 + userFees0;
+        uint256 totalAmount1 = amount1 + userFees1;
+
+        uint128 amount0Max = totalAmount0 > type(uint128).max ? type(uint128).max : uint128(totalAmount0);
+        uint128 amount1Max = totalAmount1 > type(uint128).max ? type(uint128).max : uint128(totalAmount1);
+
         INonfungiblePositionManager.CollectParams memory collectUserParams = INonfungiblePositionManager.CollectParams({
             tokenId: tokenId,
             recipient: msg.sender,
-            amount0Max: uint128(amount0 + userFees0),
-            amount1Max: uint128(amount1 + userFees1)
+            amount0Max: amount0Max,
+            amount1Max: amount1Max
         });
 
         positionManager.collect(collectUserParams);

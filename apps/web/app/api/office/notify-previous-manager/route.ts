@@ -100,12 +100,14 @@ export async function POST(request: NextRequest) {
         let feedPostBody: string;
 
         if (previousManagerUsername) {
-            feedPostBody = `@${newManagerUsername} just took the Office from @${previousManagerUsername}! 👑 They paid ${parseFloat(pricePaid).toFixed(4)} MON. Take it from them at tavernkeeper.xyz/miniapp`;
+            feedPostBody = `@${newManagerUsername} just took the Office from @${previousManagerUsername}! 👑 They paid ${parseFloat(pricePaid).toFixed(4)} MON. Take it from them!`;
         } else {
-            feedPostBody = `@${newManagerUsername} just took the Office! 👑 They paid ${parseFloat(pricePaid).toFixed(4)} MON. Take it from them at tavernkeeper.xyz/miniapp`;
+            feedPostBody = `@${newManagerUsername} just took the Office! 👑 They paid ${parseFloat(pricePaid).toFixed(4)} MON. Take it from them!`;
         }
 
-        feedPostSuccess = await postToFeed(feedPostBody);
+        // Use the Farcaster miniapp URL for proper embed
+        const miniappEmbedUrl = 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper';
+        feedPostSuccess = await postToFeed(feedPostBody, [miniappEmbedUrl]);
 
         // Send notification (ONLY if FID exists - optional)
         let notificationSuccess = false;

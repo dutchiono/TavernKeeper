@@ -263,4 +263,82 @@ export const theCellarService = {
             return 0n;
         }
     },
+
+    async getPoolStats(): Promise<{
+        totalCLPSupply: bigint;
+        positionLiquidity: bigint;
+        totalLiquidity: bigint;
+    } | null> {
+        try {
+            const cellarConfig = CONTRACT_REGISTRY.THECELLAR;
+            const cellarAddress = getContractAddress(cellarConfig);
+
+            if (!cellarAddress) {
+                console.error("TheCellar contract not found");
+                return null;
+            }
+
+            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
+                (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+
+            const publicClient = createPublicClient({
+                chain: monad,
+                transport: http(rpcUrl),
+            });
+
+            // Get CLP token address
+            const lpTokenAddress = await publicClient.readContract({
+                address: cellarAddress as `0x${string}`,
+                abi: parseAbi(['function cellarToken() view returns (address)']),
+                functionName: 'cellarToken',
+            }) as string;
+
+            // Get tokenId and totalLiquidity from TheCellar
+            const [tokenId, totalLiquidity] = await Promise.all([
+                publicClient.readContract({
+                    address: cellarAddress as `0x${string}`,
+                    abi: parseAbi(['function tokenId() view returns (uint256)']),
+                    functionName: 'tokenId',
+                }),
+                publicClient.readContract({
+                    address: cellarAddress as `0x${string}`,
+                    abi: parseAbi(['function totalLiquidity() view returns (uint256)']),
+                    functionName: 'totalLiquidity',
+                }),
+            ]);
+
+            if (tokenId === 0n) {
+                return null;
+            }
+
+            // Get total CLP supply
+            const totalCLPSupply = await publicClient.readContract({
+                address: lpTokenAddress as `0x${string}`,
+                abi: parseAbi(['function totalSupply() view returns (uint256)']),
+                functionName: 'totalSupply',
+            }) as bigint;
+
+            // Get position liquidity from Position Manager
+            const positionManagerAddress = CONTRACT_ADDRESSES.V3_POSITION_MANAGER;
+            const position = await publicClient.readContract({
+                address: positionManagerAddress as `0x${string}`,
+                abi: parseAbi([
+                    'function positions(uint256 tokenId) external view returns (uint96 nonce, address operator, address token0, address token1, uint24 fee, int24 tickLower, int24 tickUpper, uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128, uint128 tokensOwed0, uint128 tokensOwed1)'
+                ]),
+                functionName: 'positions',
+                args: [tokenId],
+            });
+
+            const positionLiquidity = BigInt(position[7].toString()); // liquidity is at index 7
+
+            return {
+                totalCLPSupply,
+                positionLiquidity,
+                totalLiquidity: totalLiquidity as bigint,
+            };
+        } catch (error) {
+            console.error("Error fetching pool stats:", error);
+            return null;
+        }
+    },
 };

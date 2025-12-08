@@ -37,6 +37,11 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     const [showRecoverModal, setShowRecoverModal] = useState(false);
     const [isRecovering, setIsRecovering] = useState(false);
     const [keepPerMonRatio, setKeepPerMonRatio] = useState<number | null>(null);
+    const [poolStats, setPoolStats] = useState<{
+        totalCLPSupply: bigint;
+        positionLiquidity: bigint;
+        totalLiquidity: bigint;
+    } | null>(null);
 
     const fetchPoolRatio = async () => {
         if (!publicClient) return;
@@ -103,6 +108,10 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                 const balance = await theCellarService.getUserLpBalance(address);
                 setLpBalance(balance);
             }
+
+            // Fetch pool stats for percentage calculation
+            const stats = await theCellarService.getPoolStats();
+            setPoolStats(stats);
         } catch (error) {
             console.error("Failed to fetch cellar state", error);
         }
@@ -124,6 +133,10 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                     const balance = await theCellarService.getUserLpBalance(address);
                     setLpBalance(balance);
                 }
+
+                // Fetch pool stats
+                const stats = await theCellarService.getPoolStats();
+                setPoolStats(stats);
             } catch (error) {
                 console.error("Failed to poll cellar state", error);
             }
@@ -498,6 +511,27 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                             "RAID CELLAR 🔥"
                         )}
                     </PixelButton>
+
+                    {/* Your Share of the Pool - Prominent Display */}
+                    {lpBalance > 0n && poolStats && poolStats.totalCLPSupply > 0n && (
+                        <div className="bg-gradient-to-r from-green-900/40 to-green-800/20 rounded p-2 border-2 border-green-500/50 mt-2">
+                            <div className="text-[8px] text-green-300 uppercase mb-1 text-center tracking-wider font-bold">
+                                🎯 YOUR POOL SHARE
+                            </div>
+                            <div className="text-center mb-1">
+                                <span className="text-green-400 font-bold text-lg">
+                                    {((Number(lpBalance) / Number(poolStats.totalCLPSupply)) * 100).toFixed(2)}%
+                                </span>
+                                <span className="text-[10px] text-green-300 ml-1">of the pool</span>
+                            </div>
+                            <div className="text-[8px] text-green-200/80 text-center mb-1">
+                                You own {parseFloat(formatEther(lpBalance)).toFixed(2)} CLP out of {parseFloat(formatEther(poolStats.totalCLPSupply)).toFixed(2)} total
+                            </div>
+                            <div className="text-[7px] text-green-200/60 text-center border-t border-green-500/30 pt-1 mt-1">
+                                💡 This means you own {((Number(lpBalance) / Number(poolStats.totalCLPSupply)) * 100).toFixed(2)}% of all tokens in the pool
+                            </div>
+                        </div>
+                    )}
 
                     <div className="bg-[#2a1d17] rounded p-2 border border-[#5c4033] grid grid-cols-3 gap-2 mt-2">
                         <div className="flex flex-col items-center justify-center border-r border-[#5c4033] last:border-0">

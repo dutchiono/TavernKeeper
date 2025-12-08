@@ -178,7 +178,7 @@ export async function sendNotification(
  * @param text The text content of the cast
  * @returns Promise<boolean> True if successful, false otherwise
  */
-export async function postToFeed(text: string): Promise<boolean> {
+export async function postToFeed(text: string, embeds?: string[]): Promise<boolean> {
     try {
         const signerUuid = process.env.NEYNAR_SIGNER_UUID;
         if (!signerUuid) {
@@ -191,6 +191,7 @@ export async function postToFeed(text: string): Promise<boolean> {
         await client.publishCast({
             signerUuid: signerUuid,
             text: text,
+            embeds: embeds || [],
         });
 
         console.log('✅ Feed post published successfully');

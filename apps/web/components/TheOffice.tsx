@@ -266,7 +266,7 @@ export const TheOffice: React.FC<{
                             console.log('📝 Prompting user to compose cast...');
                             await sdk.actions.composeCast({
                                 text: shareText,
-                                embeds: ['https://tavernkeeper.xyz/miniapp'],
+                                embeds: ['https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper'],
                             });
                             console.log('✅ Compose cast prompt completed');
                         } catch (error) {

@@ -32,6 +32,7 @@ interface TheOfficeViewProps {
     onClaim?: () => void;
     onViewSwitch?: (mode: 'office' | 'cellar') => void;
     refreshKey?: number; // Key to trigger refresh when changed
+    onTestComposeCast?: () => Promise<void>; // Test compose cast button
 }
 
 export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
@@ -53,6 +54,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
     onClaim,
     onViewSwitch,
     refreshKey,
+    onTestComposeCast,
 }) => {
     const [mounted, setMounted] = React.useState(false);
     const [cellarState, setCellarState] = React.useState<CellarState | null>(propCellarState || null);
@@ -418,6 +420,21 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                 <div className="text-center py-0.5">
                                     <span className="text-[8px] text-[#a8a29e] italic">Connect wallet to play</span>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Test Compose Cast Button - Only show if function is provided */}
+                        {onTestComposeCast && (
+                            <div className="mt-2 pt-2 border-t border-[#5c4033]">
+                                <PixelButton
+                                    onClick={onTestComposeCast}
+                                    variant="neutral"
+                                    className="w-full !py-1.5 !text-[9px] shadow-lg flex items-center justify-center gap-1"
+                                    title="Test the compose cast functionality without taking office"
+                                >
+                                    <span>🧪</span>
+                                    <span>Test Compose Cast</span>
+                                </PixelButton>
                             </div>
                         )}
                     </div>

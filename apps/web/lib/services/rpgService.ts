@@ -28,7 +28,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
         });
 
         try {
@@ -87,7 +87,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
         });
 
         try {
@@ -118,7 +118,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
         });
 
         try {
@@ -160,7 +160,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
         });
 
         try {
@@ -218,7 +218,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
         });
 
         const tba = await publicClient.readContract({
@@ -285,7 +285,7 @@ export const rpgService = {
 
             const publicClient = createPublicClient({
                 chain: monad,
-                transport: http(),
+                transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
             });
 
             const isWhitelisted = await publicClient.readContract({
@@ -312,7 +312,7 @@ export const rpgService = {
 
             const publicClient = createPublicClient({
                 chain: monad,
-                transport: http(),
+                transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
             });
 
             const hasMinted = await publicClient.readContract({
@@ -341,7 +341,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
         });
 
         try {
@@ -483,7 +483,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
         });
 
         const price = await publicClient.readContract({
@@ -503,7 +503,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
         });
 
         const price = await publicClient.readContract({

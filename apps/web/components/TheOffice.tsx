@@ -126,9 +126,10 @@ export const TheOffice: React.FC<{
                 await new Promise(resolve => setTimeout(resolve, 500));
                 if (!cancelled) {
                     try {
+                        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
                         const publicClient = createPublicClient({
                             chain: monad,
-                            transport: http(),
+                            transport: http(rpcUrl),
                         });
                         const balance = await publicClient.getBalance({
                             address: address,
@@ -533,6 +534,64 @@ export const TheOffice: React.FC<{
     const isLoadingState = isLoading || isWriting || isConfirming;
     const walletReady = isConnected && !!address;
 
+    // Test compose cast function - simulates what happens when someone takes office
+    const handleTestComposeCast = async () => {
+        try {
+            const isMiniapp = checkIsInFarcasterMiniapp();
+            if (!isMiniapp) {
+                alert('This test only works in the Farcaster miniapp!');
+                return;
+            }
+
+            // Get current user's username (from userContext or try to fetch)
+            let currentUsername = userContext?.username;
+            if (!currentUsername && address) {
+                // Try to get username from database
+                const currentManagerData = await getOfficeManagerData(address);
+                currentUsername = currentManagerData?.username;
+            }
+
+            // Get previous manager username if available
+            const previousManagerAddress = state.currentKing;
+            const previousManagerData = previousManagerAddress && previousManagerAddress !== '0x0000000000000000000000000000000000000000'
+                ? await getOfficeManagerData(previousManagerAddress)
+                : null;
+
+            let shareText: string;
+
+            if (previousManagerData?.username && currentUsername) {
+                shareText = `@${currentUsername} just took the Office from @${previousManagerData.username}! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
+            } else if (currentUsername) {
+                shareText = `@${currentUsername} just took the Office! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
+            } else if (previousManagerData?.username) {
+                shareText = `I just took the Office from @${previousManagerData.username}! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+            } else {
+                shareText = `I just took the Office! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+            }
+
+            console.log('🧪 Test compose cast:', {
+                isMiniapp,
+                hasUserContext: !!userContext,
+                username: currentUsername,
+                previousManager: previousManagerData?.username,
+                shareText
+            });
+
+            await sdk.actions.composeCast({
+                text: shareText,
+                embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
+            });
+
+            console.log('✅ Test compose cast completed');
+        } catch (error: any) {
+            console.error('❌ Test compose cast failed:', {
+                error: error?.message || error,
+                errorType: error?.constructor?.name,
+            });
+            alert(`Test compose cast failed: ${error?.message || error}`);
+        }
+    };
+
     return (
         <TheOfficeView
             state={interpolatedState}
@@ -553,6 +612,7 @@ export const TheOffice: React.FC<{
             cellarState={cellarState}
             onClaim={handleClaim}
             refreshKey={refreshKey}
+            onTestComposeCast={handleTestComposeCast}
         >
             {children}
         </TheOfficeView>

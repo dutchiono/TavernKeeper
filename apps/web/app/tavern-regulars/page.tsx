@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { PixelButton, PixelCard, PixelPanel } from '../../components/PixelComponents';
+import { UnfinishedFeatureWarning } from '../../components/UnfinishedFeatureWarning';
 import { TavernRegularsGroup, tavernRegularsService } from '../../lib/services/tavernRegularsService';
 
 export default function TavernRegularsPage() {
@@ -19,6 +20,11 @@ export default function TavernRegularsPage() {
     const [contributeMon, setContributeMon] = useState('');
     const [contributeKeep, setContributeKeep] = useState('');
     const [processing, setProcessing] = useState(false);
+
+    // Warning Modals
+    const [showCreateWarning, setShowCreateWarning] = useState(false);
+    const [showContributeWarning, setShowContributeWarning] = useState(false);
+    const [showClaimWarning, setShowClaimWarning] = useState(false);
 
     useEffect(() => {
         if (isConnected && address) {
@@ -40,7 +46,12 @@ export default function TavernRegularsPage() {
         }
     };
 
+    const handleCreateGroupClick = () => {
+        setShowCreateWarning(true);
+    };
+
     const handleCreateGroup = async () => {
+        setShowCreateWarning(false);
         if (!createName || !walletClient) return;
         setProcessing(true);
         try {
@@ -56,7 +67,12 @@ export default function TavernRegularsPage() {
         }
     };
 
+    const handleContributeClick = () => {
+        setShowContributeWarning(true);
+    };
+
     const handleContribute = async () => {
+        setShowContributeWarning(false);
         if (!selectedGroup || !contributeMon || !contributeKeep || !walletClient) return;
         setProcessing(true);
         try {
@@ -80,7 +96,12 @@ export default function TavernRegularsPage() {
         }
     };
 
+    const handleClaimFeesClick = () => {
+        setShowClaimWarning(true);
+    };
+
     const handleClaimFees = async () => {
+        setShowClaimWarning(false);
         if (!selectedGroup || !walletClient) return;
         setProcessing(true);
         try {
@@ -178,7 +199,7 @@ export default function TavernRegularsPage() {
                                         />
                                     </div>
                                     <PixelButton
-                                        onClick={handleCreateGroup}
+                                        onClick={handleCreateGroupClick}
                                         disabled={!createName || processing}
                                         className="w-full"
                                     >
@@ -211,7 +232,7 @@ export default function TavernRegularsPage() {
                                             </div>
 
                                             <PixelButton
-                                                onClick={handleClaimFees}
+                                                onClick={handleClaimFeesClick}
                                                 disabled={parseFloat(selectedGroup.myPendingFees) <= 0 || processing}
                                                 className="w-full"
                                                 variant="wood"
@@ -264,7 +285,7 @@ export default function TavernRegularsPage() {
                                             </div>
 
                                             <PixelButton
-                                                onClick={handleContribute}
+                                                onClick={handleContributeClick}
                                                 disabled={!contributeMon || !contributeKeep || processing}
                                                 className="w-full"
                                             >
@@ -278,6 +299,26 @@ export default function TavernRegularsPage() {
                     </>
                 )}
             </div>
+
+            {/* Warning Modals */}
+            <UnfinishedFeatureWarning
+                isOpen={showCreateWarning}
+                onClose={() => setShowCreateWarning(false)}
+                onConfirm={handleCreateGroup}
+                featureName="Tavern Regulars Group Creation"
+            />
+            <UnfinishedFeatureWarning
+                isOpen={showContributeWarning}
+                onClose={() => setShowContributeWarning(false)}
+                onConfirm={handleContribute}
+                featureName="Tavern Regulars Contribution"
+            />
+            <UnfinishedFeatureWarning
+                isOpen={showClaimWarning}
+                onClose={() => setShowClaimWarning(false)}
+                onConfirm={handleClaimFees}
+                featureName="Tavern Regulars Fee Claim"
+            />
         </main>
     );
 }

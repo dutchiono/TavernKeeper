@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatEther } from 'viem';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import { UnfinishedFeatureWarning } from './UnfinishedFeatureWarning';
 import { monad } from '../lib/chains';
 import { uploadMetadata } from '../lib/services/heroMinting';
 import { metadataStorage } from '../lib/services/metadataStorage';
@@ -60,6 +61,10 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
     const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false);
     const [hasWhitelistMinted, setHasWhitelistMinted] = useState<boolean>(false);
 
+    // Warning Modals
+    const [showMintWarning, setShowMintWarning] = useState(false);
+    const [showWhitelistMintWarning, setShowWhitelistMintWarning] = useState(false);
+
     // Calculate price display from MON/USD rate (no signature needed for display)
     useEffect(() => {
         const calculatePrice = async () => {
@@ -106,7 +111,12 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
         setColors(prev => ({ ...prev, [part]: color }));
     };
 
+    const handleMintClick = () => {
+        setShowMintWarning(true);
+    };
+
     const handleMint = async () => {
+        setShowMintWarning(false);
         if (!address || !walletClient || !name) return;
 
         // Clear any previous errors when retrying
@@ -199,7 +209,12 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
         }
     };
 
+    const handleWhitelistMintClick = () => {
+        setShowWhitelistMintWarning(true);
+    };
+
     const handleWhitelistMint = async () => {
+        setShowWhitelistMintWarning(false);
         if (!address || !walletClient || !name) return;
 
         // Clear any previous errors when retrying
@@ -464,7 +479,7 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
                                 {isWhitelisted && !hasWhitelistMinted ? (
                                     <>
                                         <ForgeButton
-                                            onClick={handleWhitelistMint}
+                                            onClick={handleWhitelistMintClick}
                                             disabled={(status !== 'idle' && status !== 'error') || !name}
                                             className="w-full py-4 text-lg bg-green-600 hover:bg-green-700"
                                         >
@@ -480,7 +495,7 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
                                     </>
                                 ) : null}
                                 <ForgeButton
-                                    onClick={handleMint}
+                                    onClick={handleMintClick}
                                     disabled={(status !== 'idle' && status !== 'error') || !name}
                                     className="w-full py-4 text-lg"
                                 >
@@ -510,6 +525,20 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
                     </div>
                 )}
             </div>
+
+            {/* Warning Modals */}
+            <UnfinishedFeatureWarning
+                isOpen={showMintWarning}
+                onClose={() => setShowMintWarning(false)}
+                onConfirm={handleMint}
+                featureName="Tavern Keeper Mint"
+            />
+            <UnfinishedFeatureWarning
+                isOpen={showWhitelistMintWarning}
+                onClose={() => setShowWhitelistMintWarning(false)}
+                onConfirm={handleWhitelistMint}
+                featureName="Tavern Keeper Whitelist Mint"
+            />
         </div>
     );
 }

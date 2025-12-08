@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { PixelButton, PixelCard, PixelPanel } from '../../components/PixelComponents';
+import { UnfinishedFeatureWarning } from '../../components/UnfinishedFeatureWarning';
 import { TownPosseGroup, townPosseService } from '../../lib/services/townPosseService';
 
 export default function TownPossePage() {
@@ -25,6 +26,11 @@ export default function TownPossePage() {
     const [contributeKeep, setContributeKeep] = useState('');
     const [processing, setProcessing] = useState(false);
 
+    // Warning Modals
+    const [showCreateWarning, setShowCreateWarning] = useState(false);
+    const [showContributeWarning, setShowContributeWarning] = useState(false);
+    const [showClaimWarning, setShowClaimWarning] = useState(false);
+
     useEffect(() => {
         if (isConnected && address) {
             fetchPosses();
@@ -45,7 +51,12 @@ export default function TownPossePage() {
         }
     };
 
+    const handleCreatePosseClick = () => {
+        setShowCreateWarning(true);
+    };
+
     const handleCreatePosse = async () => {
+        setShowCreateWarning(false);
         if (!createName || !walletClient) return;
         setProcessing(true);
         try {
@@ -67,7 +78,12 @@ export default function TownPossePage() {
         }
     };
 
+    const handleContributeClick = () => {
+        setShowContributeWarning(true);
+    };
+
     const handleContribute = async () => {
+        setShowContributeWarning(false);
         if (!selectedPosse || !contributeMon || !contributeKeep || !walletClient) return;
         setProcessing(true);
         try {
@@ -92,7 +108,12 @@ export default function TownPossePage() {
         }
     };
 
+    const handleClaimFeesClick = () => {
+        setShowClaimWarning(true);
+    };
+
     const handleClaimFees = async () => {
+        setShowClaimWarning(false);
         if (!selectedPosse || !walletClient) return;
         setProcessing(true);
         try {
@@ -240,7 +261,7 @@ export default function TownPossePage() {
                                     </div>
 
                                     <PixelButton
-                                        onClick={handleCreatePosse}
+                                        onClick={handleCreatePosseClick}
                                         disabled={!createName || processing}
                                         className="w-full"
                                     >
@@ -275,7 +296,7 @@ export default function TownPossePage() {
                                             </div>
 
                                             <PixelButton
-                                                onClick={handleClaimFees}
+                                                onClick={handleClaimFeesClick}
                                                 disabled={parseFloat(selectedPosse.myPendingFees) <= 0 || processing}
                                                 className="w-full"
                                                 variant="wood"
@@ -328,7 +349,7 @@ export default function TownPossePage() {
                                             </div>
 
                                             <PixelButton
-                                                onClick={handleContribute}
+                                                onClick={handleContributeClick}
                                                 disabled={!contributeMon || !contributeKeep || processing}
                                                 className="w-full"
                                             >
@@ -342,6 +363,26 @@ export default function TownPossePage() {
                     </>
                 )}
             </div>
+
+            {/* Warning Modals */}
+            <UnfinishedFeatureWarning
+                isOpen={showCreateWarning}
+                onClose={() => setShowCreateWarning(false)}
+                onConfirm={handleCreatePosse}
+                featureName="Town Posse Creation"
+            />
+            <UnfinishedFeatureWarning
+                isOpen={showContributeWarning}
+                onClose={() => setShowContributeWarning(false)}
+                onConfirm={handleContribute}
+                featureName="Town Posse Contribution"
+            />
+            <UnfinishedFeatureWarning
+                isOpen={showClaimWarning}
+                onClose={() => setShowClaimWarning(false)}
+                onConfirm={handleClaimFees}
+                featureName="Town Posse Fee Claim"
+            />
         </main>
     );
 }

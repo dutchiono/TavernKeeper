@@ -10,7 +10,7 @@ import { OfficeState, tavernKeeperService } from '../lib/services/tavernKeeperSe
 import { CellarState, theCellarService } from '../lib/services/theCellarService';
 import { useGameStore } from '../lib/stores/gameStore';
 import { GameView } from '../lib/types';
-import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
+import { checkIsInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 import { TheOfficeView } from './TheOfficeView';
 
 type UserContext = {
@@ -26,8 +26,21 @@ export const TheOffice: React.FC<{
 }> = ({ children, userContext }) => {
     const { keepBalance, currentView } = useGameStore();
 
-    // Detect context
-    const isMiniapp = isInFarcasterMiniapp();
+    // Detect context (async check)
+    const [isMiniapp, setIsMiniapp] = React.useState(false);
+
+    useEffect(() => {
+        const checkMiniapp = async () => {
+            try {
+                const inMiniapp = await checkIsInFarcasterMiniapp();
+                setIsMiniapp(inMiniapp);
+            } catch (error) {
+                console.error('Error checking miniapp status:', error);
+                setIsMiniapp(false);
+            }
+        };
+        checkMiniapp();
+    }, []);
 
     // Unified Wagmi Hooks (Works for both Web via RainbowKit & Miniapp via Farcaster Connector)
     const { address, isConnected, chainId } = useAccount();
@@ -221,7 +234,7 @@ export const TheOffice: React.FC<{
                 }).catch(err => console.error('Failed to save office manager to database:', err));
 
                 // Prompt user to share their office takeover on Farcaster (only in miniapp)
-                if (isInFarcasterMiniapp() && userContext?.username) {
+                if (isMiniapp && userContext?.username) {
                     // Small delay to let the transaction complete UI update
                     setTimeout(async () => {
                         try {
@@ -235,10 +248,12 @@ export const TheOffice: React.FC<{
                                 shareText = `I just took the Office! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
                             }
 
+                            console.log('📝 Prompting user to compose cast...');
                             await sdk.actions.composeCast({
                                 text: shareText,
                                 embeds: ['https://tavernkeeper.xyz/miniapp'],
                             });
+                            console.log('✅ Compose cast prompt completed');
                         } catch (error) {
                             // User cancelled or error - that's okay, don't show error
                             console.log('User chose not to share or error:', error);
@@ -251,6 +266,7 @@ export const TheOffice: React.FC<{
                 previousManagerAddress !== '0x0000000000000000000000000000000000000000' &&
                 previousManagerAddress.toLowerCase() !== address?.toLowerCase()) {
 
+                console.log('📨 Sending notification to previous manager:', previousManagerAddress);
                 fetch('/api/office/notify-previous-manager', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -259,7 +275,18 @@ export const TheOffice: React.FC<{
                         newManagerAddress: address,
                         pricePaid: state.currentPrice
                     })
-                }).catch(err => console.error('Failed to send notification:', err));
+                })
+                    .then(async (response) => {
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            console.log('✅ Notification sent successfully:', data);
+                        } else {
+                            console.error('❌ Notification failed:', data);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('❌ Failed to send notification:', err);
+                    });
             }
 
             fetchOfficeState(true);

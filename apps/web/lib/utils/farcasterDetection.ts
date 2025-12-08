@@ -6,8 +6,11 @@
  * regular browser wallets (MetaMask, WalletConnect, etc.)
  */
 
+import sdk from '@farcaster/miniapp-sdk';
+
 /**
- * Checks if the app is running inside a Farcaster miniapp
+ * Checks if the app is running inside a Farcaster miniapp (synchronous check)
+ * Uses heuristics for immediate checks, but async check is more reliable
  * @returns true if running in Farcaster miniapp context
  */
 export function isInFarcasterMiniapp(): boolean {
@@ -23,6 +26,29 @@ export function isInFarcasterMiniapp(): boolean {
   const isWarpcastUA = navigator.userAgent.includes('Warpcast');
 
   return isInIframe && (hasFarcasterSDK || isWarpcastUA);
+}
+
+/**
+ * Async check using SDK's isInMiniApp method (more reliable)
+ * @returns Promise<boolean> true if running in Farcaster miniapp context
+ */
+export async function checkIsInFarcasterMiniapp(): Promise<boolean> {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    // Use SDK's built-in method if available
+    if (sdk && typeof sdk.isInMiniApp === 'function') {
+      return await sdk.isInMiniApp();
+    }
+    // Fallback to synchronous check
+    return isInFarcasterMiniapp();
+  } catch (error) {
+    console.warn('Error checking miniapp status with SDK:', error);
+    // Fallback to synchronous check
+    return isInFarcasterMiniapp();
+  }
 }
 
 /**

@@ -7,7 +7,14 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { previousManagerAddress, newManagerAddress, pricePaid } = body;
 
+        console.log('📨 Notification request received:', {
+            previousManagerAddress,
+            newManagerAddress,
+            pricePaid
+        });
+
         if (!previousManagerAddress || !newManagerAddress || !pricePaid) {
+            console.error('❌ Missing required fields');
             return NextResponse.json(
                 { error: 'Missing required fields: previousManagerAddress, newManagerAddress, pricePaid' },
                 { status: 400 }
@@ -16,6 +23,7 @@ export async function POST(request: NextRequest) {
 
         // Skip if previous manager is the zero address
         if (previousManagerAddress === '0x0000000000000000000000000000000000000000') {
+            console.log('ℹ️ Previous manager is zero address, skipping notification');
             return NextResponse.json({ success: true, message: 'No previous manager to notify' });
         }
 
@@ -32,11 +40,14 @@ export async function POST(request: NextRequest) {
 
         if (previousManagerData?.farcaster_fid) {
             fid = previousManagerData.farcaster_fid;
+            console.log('✅ Found FID in database:', fid);
         } else {
+            console.log('🔍 FID not in database, fetching from Neynar API...');
             // Fallback: fetch from Neynar API
             const userData = await getUserByAddress(normalizedPreviousAddress);
             if (userData?.fid) {
                 fid = userData.fid;
+                console.log('✅ Found FID from Neynar API:', fid);
                 // Save to database for next time
                 await supabase
                     .from('office_managers')
@@ -49,10 +60,13 @@ export async function POST(request: NextRequest) {
                     }, {
                         onConflict: 'wallet_address'
                     });
+            } else {
+                console.warn('⚠️ Could not find user data from Neynar API');
             }
         }
 
         if (!fid) {
+            console.error('❌ Could not find FID for previous manager address:', normalizedPreviousAddress);
             return NextResponse.json(
                 { success: false, message: 'Could not find FID for previous manager address' },
                 { status: 404 }
@@ -95,7 +109,14 @@ export async function POST(request: NextRequest) {
             notificationBody = `Hey there! @${newManagerUsername} just claimed the office from you! You received ${parseFloat(pricePaid).toFixed(4)} MON as the previous manager.`;
         }
 
-        const targetUrl = 'https://tavernkeeper.xyz/';
+        const targetUrl = 'https://tavernkeeper.xyz/miniapp';
+
+        console.log('📤 Sending notification:', {
+            fid,
+            title: notificationTitle,
+            body: notificationBody,
+            targetUrl
+        });
 
         const success = await sendNotification(
             [fid],
@@ -105,12 +126,14 @@ export async function POST(request: NextRequest) {
         );
 
         if (success) {
+            console.log('✅ Notification sent successfully to FID:', fid);
             return NextResponse.json({
                 success: true,
                 message: 'Notification sent successfully',
                 fid,
             });
         } else {
+            console.error('❌ Failed to send notification');
             return NextResponse.json(
                 { success: false, message: 'Failed to send notification' },
                 { status: 500 }

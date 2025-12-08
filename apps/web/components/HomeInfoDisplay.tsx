@@ -8,7 +8,7 @@ import { CONTRACT_ADDRESSES } from '../lib/contracts/addresses';
 import { keepTokenService } from '../lib/services/keepToken';
 import { theCellarService } from '../lib/services/theCellarService';
 import { getPoolLiquidity } from '../lib/services/uniswapV4SwapService';
-import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
+import { checkIsInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 import { SmartLink } from '../lib/utils/smartNavigation';
 import { PixelBox, PixelButton } from './PixelComponents';
 
@@ -23,8 +23,24 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
     const [poolMon, setPoolMon] = useState<bigint>(0n);
     const [poolKeep, setPoolKeep] = useState<bigint>(0n);
     const [copied, setCopied] = useState(false);
+    const [isInMiniapp, setIsInMiniapp] = useState(false);
 
     const keepTokenAddress = CONTRACT_ADDRESSES.KEEP_TOKEN;
+
+    // Check if we're in a miniapp (async check)
+    useEffect(() => {
+        const checkMiniapp = async () => {
+            try {
+                const inMiniapp = await checkIsInFarcasterMiniapp();
+                setIsInMiniapp(inMiniapp);
+                console.log('Miniapp detection:', inMiniapp);
+            } catch (error) {
+                console.error('Error checking miniapp status:', error);
+                setIsInMiniapp(false);
+            }
+        };
+        checkMiniapp();
+    }, []);
 
     const handleCopyAddress = async () => {
         try {
@@ -181,7 +197,7 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
             </div>
 
             {/* Add Miniapp Button - Only show in miniapp context */}
-            {isInFarcasterMiniapp() && (
+            {isInMiniapp && (
                 <PixelBox variant="dark" className="p-2 border-2 border-purple-500/50 bg-purple-900/20">
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex flex-col">
@@ -197,7 +213,9 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
                             size="sm"
                             onClick={async () => {
                                 try {
+                                    console.log('Attempting to add miniapp...');
                                     await sdk.actions.addMiniapp();
+                                    console.log('✅ Miniapp add action completed');
                                 } catch (error) {
                                     console.error('Failed to add miniapp:', error);
                                 }

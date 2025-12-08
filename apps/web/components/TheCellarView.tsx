@@ -55,6 +55,27 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
         fetchData();
     }, [address]);
 
+    // Poll cellar state periodically
+    useEffect(() => {
+        const pollData = async () => {
+            try {
+                const data = await theCellarService.getCellarState(true); // Force refresh to bypass cache
+                setState(data);
+
+                if (address) {
+                    const balance = await theCellarService.getUserLpBalance(address);
+                    setLpBalance(balance);
+                }
+            } catch (error) {
+                console.error("Failed to poll cellar state", error);
+            }
+        };
+
+        pollData();
+        const interval = setInterval(pollData, 30000); // Update every 30 seconds
+        return () => clearInterval(interval);
+    }, [address]);
+
     const handleClaimClick = () => {
         setShowConfirmModal(true);
     };

@@ -57,5 +57,5 @@ export const wagmiConfig = getDefaultConfig({
 // Manually append the Farcaster Miniapp connector
 // This ensures it's available for autoconnection in the miniapp
 // while keeping standard RainbowKit wallets (MetaMask, etc.) for mobile consumers
-(wagmiConfig.connectors as any).push(farcasterMiniApp());
+// (wagmiConfig.connectors as any).push(farcasterMiniApp());
 

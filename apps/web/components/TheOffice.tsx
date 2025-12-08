@@ -128,6 +128,22 @@ export const TheOffice: React.FC<{
         return () => { cancelled = true; };
     }, [address]);
 
+    // Poll cellar state periodically
+    useEffect(() => {
+        const fetchCellarState = async () => {
+            try {
+                const data = await theCellarService.getCellarState(true); // Force refresh to bypass cache
+                setCellarState(data);
+            } catch (e) {
+                console.error("Failed to fetch cellar state", e);
+            }
+        };
+
+        fetchCellarState();
+        const interval = setInterval(fetchCellarState, 30000); // Update every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
+
     // Interpolation Loop
     useEffect(() => {
         const interval = setInterval(() => {

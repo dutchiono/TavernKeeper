@@ -126,7 +126,7 @@ export const TheOffice: React.FC<{
                 await new Promise(resolve => setTimeout(resolve, 500));
                 if (!cancelled) {
                     try {
-                        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+                        const rpcUrl = monad.rpcUrls.default.http[0];
                         const publicClient = createPublicClient({
                             chain: monad,
                             transport: http(rpcUrl),

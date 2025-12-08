@@ -42,3 +42,16 @@ body {
 .custom-scrollbar::-webkit-scrollbar-corner {
   background: #2a1d17;
 }
+
+/* Force RainbowKit ConnectButton to always be visible */
+[data-rk] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+}
+
+button[data-rk] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+}

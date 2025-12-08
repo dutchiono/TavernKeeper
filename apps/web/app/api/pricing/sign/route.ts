@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
         const monAmountWei = parseEther(monAmount.toFixed(18));
 
         // Get user's current nonce from contract
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+        const rpcUrl = monad.rpcUrls.default.http[0];
         const publicClient = createPublicClient({
             chain: monad,
             transport: http(rpcUrl),

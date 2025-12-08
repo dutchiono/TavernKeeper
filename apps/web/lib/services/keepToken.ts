@@ -20,7 +20,7 @@ export const keepTokenService = {
             }
 
             // Use RPC from env or default based on chain ID
-            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+            const rpcUrl = monad.rpcUrls.default.http[0];
 
             const publicClient = createPublicClient({
                 chain: monad,

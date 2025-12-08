@@ -22,7 +22,7 @@ const safeStorage = createStorage({
 
 import {
   injectedWallet,
-  // metaMaskWallet, // SDK has connection issues - use injectedWallet which detects MetaMask
+  // metaMaskWallet,
   phantomWallet,
   rainbowWallet,
   walletConnectWallet,
@@ -35,25 +35,20 @@ export const wagmiConfig = getDefaultConfig({
   ssr: true,
   storage: safeStorage,
   transports: {
-    [monad.id]: http(monad.rpcUrls.default.http[0], {
-      retryCount: 3,
-      retryDelay: 1000,
-      timeout: 30000,
-    }),
+    [monad.id]: http(monad.rpcUrls.default.http[0]),
   },
+  wallets: [
+    {
+      groupName: 'Recommended',
       wallets: [
-        {
-          groupName: 'Recommended',
-          wallets: [
-            // metaMaskWallet removed - SDK connection issues
-            // injectedWallet will detect MetaMask automatically via window.ethereum
-            injectedWallet,
-            phantomWallet,
-            rainbowWallet,
-            walletConnectWallet,
-          ],
-        },
+        // metaMaskWallet, // Causes MetaMaskSDK constructor error if SDK not installed
+        phantomWallet,
+        rainbowWallet,
+        walletConnectWallet,
+        injectedWallet,
       ],
+    },
+  ],
 });
 
 // Manually append the Farcaster Miniapp connector

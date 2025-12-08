@@ -26,7 +26,7 @@ export interface PoolState {
 
 export async function getV3PoolState(): Promise<PoolState | null> {
     try {
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+        const rpcUrl = monad.rpcUrls.default.http[0];
 
         const client = createPublicClient({
             chain: monad,

@@ -46,6 +46,13 @@ export default function PartyPage() {
     }
   }, [authenticated, address]);
 
+  // Auto-select first keeper if none selected
+  useEffect(() => {
+    if (tavernKeepers.length > 0 && !selectedKeeper) {
+      setSelectedKeeper(tavernKeepers[0]);
+    }
+  }, [tavernKeepers, selectedKeeper]);
+
   // Fetch Heroes when a Keeper is selected
   useEffect(() => {
     if (selectedKeeper && selectedKeeper.tbaAddress && selectedKeeper.tbaAddress.trim() !== '') {
@@ -54,6 +61,13 @@ export default function PartyPage() {
       setHeroes([]);
     }
   }, [selectedKeeper]);
+
+  // Add a refresh button handler
+  const handleRefreshHeroes = () => {
+    if (selectedKeeper && selectedKeeper.tbaAddress) {
+      fetchHeroes(selectedKeeper.tbaAddress);
+    }
+  };
 
   const fetchKeepers = async () => {
     if (!address) return;
@@ -114,27 +128,61 @@ export default function PartyPage() {
   const fetchHeroes = async (tbaAddress: string) => {
     // Validate TBA address before fetching
     if (!tbaAddress || tbaAddress.trim() === '' || !tbaAddress.startsWith('0x')) {
-      console.warn('Cannot fetch heroes: invalid TBA address:', tbaAddress);
+      console.warn('⚠️ Cannot fetch heroes: invalid or empty TBA address:', tbaAddress);
+      console.warn('   This usually means the TBA address calculation failed. The TavernKeeper may still exist, but heroes cannot be queried.');
       setHeroes([]);
       return;
     }
 
+    console.log(`🔄 fetchHeroes: Fetching heroes for TBA ${tbaAddress}`);
+    console.log(`   Selected Keeper: ${selectedKeeper?.tokenId || 'none'}`);
     setLoadingHeroes(true);
     try {
       const heroList = await rpgService.getHeroes(tbaAddress);
+      console.log(`✅ fetchHeroes: Got ${heroList.length} hero(es) for TBA ${tbaAddress}`);
+      if (heroList.length === 0) {
+        console.warn(`⚠️ No heroes found. Check browser console for detailed logs from getHeroes().`);
+        console.warn(`   If you just claimed a hero, wait a few seconds and click REFRESH.`);
+      }
       setHeroes(heroList);
-    } catch (e) {
-      console.error("Failed to fetch heroes", e);
+    } catch (e: any) {
+      console.error("❌ fetchHeroes: Failed to fetch heroes", e);
+      console.error("   Error details:", e?.message || e);
       setHeroes([]);
     } finally {
       setLoadingHeroes(false);
     }
   };
 
-  const handleRecruitSuccess = () => {
+  const handleRecruitSuccess = async () => {
     setViewMode('dashboard');
     if (selectedKeeper) {
-      fetchHeroes(selectedKeeper.tbaAddress);
+      // Wait a bit for the blockchain state to update, then retry fetching heroes
+      // Sometimes the hero isn't immediately queryable after minting
+      let retries = 0;
+      const maxRetries = 5;
+      const retryDelay = 2000; // 2 seconds between retries
+
+      const tryFetchHeroes = async () => {
+        try {
+          await fetchHeroes(selectedKeeper.tbaAddress);
+          // If we got heroes, we're done
+          if (heroes.length > 0 || retries >= maxRetries) {
+            return;
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch heroes (attempt ${retries + 1}/${maxRetries}):`, error);
+        }
+
+        // If no heroes found and we haven't maxed out retries, try again
+        if (retries < maxRetries) {
+          retries++;
+          setTimeout(tryFetchHeroes, retryDelay);
+        }
+      };
+
+      // Start fetching immediately
+      await tryFetchHeroes();
     }
   };
 
@@ -221,7 +269,7 @@ export default function PartyPage() {
         {/* Sidebar: Keeper Selection */}
         <div className="lg:col-span-4 space-y-6">
           <PixelCard variant="wood">
-            <h2 className="text-xl text-[#eaddcf] mb-4">Your Taverns</h2>
+            <h2 className="text-xl text-[#eaddcf] mb-4">TavernKeepers</h2>
             <div className="space-y-4">
               {tavernKeepers.map(keeper => (
                 <div
@@ -268,9 +316,19 @@ export default function PartyPage() {
                     <div className="text-sm text-[#8b7355]">Vault Address</div>
                     <div className="text-[#eaddcf] font-mono text-sm">{selectedKeeper.tbaAddress}</div>
                   </div>
-                  <PixelButton onClick={() => setViewMode('recruit')}>
-                    Recruit Hero
-                  </PixelButton>
+                  <div className="flex gap-2">
+                    <PixelButton
+                      size="sm"
+                      variant="neutral"
+                      onClick={handleRefreshHeroes}
+                      disabled={loadingHeroes}
+                    >
+                      {loadingHeroes ? 'Loading...' : 'Refresh'}
+                    </PixelButton>
+                    <PixelButton onClick={() => setViewMode('recruit')}>
+                      Recruit Hero
+                    </PixelButton>
+                  </div>
                 </div>
 
                 <h3 className="text-lg text-[#eaddcf] mb-4">Roster</h3>

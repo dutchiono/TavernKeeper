@@ -28,7 +28,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+            transport: http(monad.rpcUrls.default.http[0]),
         });
 
         try {
@@ -51,22 +51,39 @@ export const rpgService = {
             for (const idBigInt of tokenIds) {
                 const id = idBigInt.toString();
                 try {
-                    // Calculate TBA (may return empty string if TBA not created yet)
+                    // Calculate TBA (may return empty string if TBA calculation fails, but we still include the keeper)
                     const tba = await this.getTBA(id);
+
                     // Determine Tier (Simple logic based on ID)
                     const idNum = Number(id);
                     let tier = 3;
                     if (idNum <= 100) tier = 1;
                     else if (idNum <= 1000) tier = 2;
 
+                    // Always include the keeper, even if TBA is empty
+                    // Empty TBA just means we can't fetch heroes for it yet
                     ownedKeepers.push({
                         tokenId: id,
-                        tbaAddress: tba,
+                        tbaAddress: tba || '', // Ensure it's always a string, even if empty
                         tier
                     });
+
+                    if (!tba) {
+                        console.warn(`⚠️ TBA calculation returned empty for TavernKeeper #${id} - heroes may not be queryable`);
+                    }
                 } catch (error) {
-                    // Skip tokens that fail to fetch TBA (might not exist or TBA not initialized)
-                    console.warn(`Failed to get TBA for token ${id}, skipping:`, error);
+                    // Don't skip - include the keeper even if TBA calculation fails
+                    const idNum = Number(id);
+                    let tier = 3;
+                    if (idNum <= 100) tier = 1;
+                    else if (idNum <= 1000) tier = 2;
+
+                    console.error(`❌ Failed to get TBA for token ${id}, but including keeper anyway:`, error);
+                    ownedKeepers.push({
+                        tokenId: id,
+                        tbaAddress: '', // Empty TBA - can't fetch heroes
+                        tier
+                    });
                 }
             }
 
@@ -87,7 +104,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+            transport: http(monad.rpcUrls.default.http[0]),
         });
 
         try {
@@ -114,32 +131,86 @@ export const rpgService = {
         const accountImplAddress = getContractAddress(accountImplConfig);
         const tokenContractAddress = getContractAddress(CONTRACT_REGISTRY.TAVERNKEEPER);
 
-        if (!registryAddress || !accountImplAddress || !tokenContractAddress) return '';
+        if (!registryAddress || !accountImplAddress || !tokenContractAddress) {
+            console.error('❌ Missing addresses for TBA calculation:', {
+                registry: registryAddress,
+                impl: accountImplAddress,
+                tokenContract: tokenContractAddress
+            });
+            return '';
+        }
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+            transport: http(monad.rpcUrls.default.http[0]),
         });
 
+        // Try to get actual addresses from Adventurer contract (if available)
+        // This ensures we use the same addresses the contract uses
+        let actualRegistryAddress = registryAddress;
+        let actualImplAddress = accountImplAddress;
+        let actualTokenContractAddress = tokenContractAddress;
+
         try {
+            const adventurerConfig = CONTRACT_REGISTRY.ADVENTURER;
+            const adventurerAddress = getContractAddress(adventurerConfig);
+            if (adventurerAddress) {
+                const [contractRegistry, contractImpl, contractTavernKeeper] = await Promise.all([
+                    publicClient.readContract({
+                        address: adventurerAddress,
+                        abi: adventurerConfig.abi,
+                        functionName: 'erc6551Registry',
+                    }).catch(() => null),
+                    publicClient.readContract({
+                        address: adventurerAddress,
+                        abi: adventurerConfig.abi,
+                        functionName: 'erc6551AccountImpl',
+                    }).catch(() => null),
+                    publicClient.readContract({
+                        address: adventurerAddress,
+                        abi: adventurerConfig.abi,
+                        functionName: 'tavernKeeperContract',
+                    }).catch(() => null),
+                ]);
+
+                if (contractRegistry) actualRegistryAddress = contractRegistry as string;
+                if (contractImpl) actualImplAddress = contractImpl as string;
+                if (contractTavernKeeper) actualTokenContractAddress = contractTavernKeeper as string;
+
+                console.log(`🔍 TBA Calculation for TavernKeeper #${tokenId}:`);
+                console.log(`   Registry: ${actualRegistryAddress} ${actualRegistryAddress !== registryAddress ? '(from contract)' : '(from config)'}`);
+                console.log(`   Impl: ${actualImplAddress} ${actualImplAddress !== accountImplAddress ? '(from contract)' : '(from config)'}`);
+                console.log(`   TokenContract: ${actualTokenContractAddress} ${actualTokenContractAddress !== tokenContractAddress ? '(from contract)' : '(from config)'}`);
+                console.log(`   ChainId: ${monad.id}`);
+                console.log(`   Salt: 0`);
+            }
+        } catch (e) {
+            console.warn('⚠️ Could not fetch addresses from contract, using config addresses:', e);
+        }
+
+        try {
+            // Convert salt (0) to bytes32
+            const saltBytes32 = '0x' + '0'.repeat(64); // bytes32(0)
+
             const tba = await publicClient.readContract({
-                address: registryAddress,
+                address: actualRegistryAddress,
                 abi: registryConfig.abi,
                 functionName: 'account',
                 args: [
-                    accountImplAddress,      // implementation
+                    actualImplAddress,      // implementation
+                    saltBytes32 as `0x${string}`,  // salt (bytes32)
                     BigInt(monad.id),        // chainId
-                    tokenContractAddress,     // tokenContract
-                    BigInt(tokenId),         // tokenId
-                    BigInt(0)                // salt
+                    actualTokenContractAddress,     // tokenContract
+                    BigInt(tokenId)         // tokenId
                 ]
             });
 
+            console.log(`✅ TBA for TavernKeeper #${tokenId}: ${tba}`);
             return tba as string;
         } catch (error: any) {
             // If account() reverts, the TBA hasn't been created yet (token might not exist or TBA not initialized)
             // Return empty string to indicate TBA is not available
-            console.warn(`TBA not available for token ${tokenId}:`, error?.message || error);
+            console.error(`❌ TBA calculation failed for token ${tokenId}:`, error?.message || error);
             return '';
         }
     },
@@ -156,53 +227,126 @@ export const rpgService = {
 
         const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
         const address = getContractAddress(contractConfig);
-        if (!address) return [];
+        if (!address) {
+            console.error('❌ Adventurer contract address not found');
+            return [];
+        }
+
+        console.log(`🔍 getHeroes: Looking for heroes owned by ${ownerAddress}`);
+        console.log(`   Contract address: ${address}`);
+        console.log(`   Chain ID: ${monad.id}`);
+        console.log(`   RPC URL: ${monad.rpcUrls.default.http[0]}`);
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+            transport: http(monad.rpcUrls.default.http[0]),
         });
 
         try {
-            // Fetch token IDs directly from contract
-            const tokenIds = await publicClient.readContract({
-                address,
-                abi: [...contractConfig.abi, {
-                    "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }],
-                    "name": "getTokensOfOwner",
-                    "outputs": [{ "internalType": "uint256[]", "name": "", "type": "uint256[]" }],
-                    "stateMutability": "view",
-                    "type": "function"
-                }],
-                functionName: 'getTokensOfOwner',
-                args: [ownerAddress as `0x${string}`],
-            }) as bigint[];
+            // Try getTokensOfOwner first (if it exists)
+            let tokenIds: bigint[] = [];
+            try {
+                tokenIds = await publicClient.readContract({
+                    address,
+                    abi: [...contractConfig.abi, {
+                        "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }],
+                        "name": "getTokensOfOwner",
+                        "outputs": [{ "internalType": "uint256[]", "name": "", "type": "uint256[]" }],
+                        "stateMutability": "view",
+                        "type": "function"
+                    }],
+                    functionName: 'getTokensOfOwner',
+                    args: [ownerAddress as `0x${string}`],
+                }) as bigint[];
+                console.log(`✅ getTokensOfOwner returned ${tokenIds.length} token(s)`);
+            } catch (error: any) {
+                console.warn('⚠️ getTokensOfOwner failed, trying balanceOf + tokenOfOwnerByIndex:', error?.message);
 
+                // Fallback: Use balanceOf + tokenOfOwnerByIndex
+                try {
+                    const balance = await publicClient.readContract({
+                        address,
+                        abi: contractConfig.abi,
+                        functionName: 'balanceOf',
+                        args: [ownerAddress as `0x${string}`],
+                    }) as bigint;
+
+                    console.log(`   balanceOf(${ownerAddress}): ${balance.toString()}`);
+
+                    if (balance > 0n) {
+                        // Fetch each token by index
+                        for (let i = 0n; i < balance; i++) {
+                            try {
+                                const tokenId = await publicClient.readContract({
+                                    address,
+                                    abi: [...contractConfig.abi, {
+                                        "inputs": [
+                                            { "internalType": "address", "name": "owner", "type": "address" },
+                                            { "internalType": "uint256", "name": "index", "type": "uint256" }
+                                        ],
+                                        "name": "tokenOfOwnerByIndex",
+                                        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+                                        "stateMutability": "view",
+                                        "type": "function"
+                                    }],
+                                    functionName: 'tokenOfOwnerByIndex',
+                                    args: [ownerAddress as `0x${string}`, i],
+                                }) as bigint;
+                                tokenIds.push(tokenId);
+                            } catch (e) {
+                                console.warn(`   Failed to get token at index ${i}:`, e);
+                            }
+                        }
+                        console.log(`✅ Found ${tokenIds.length} token(s) using tokenOfOwnerByIndex`);
+                    }
+                } catch (fallbackError) {
+                    console.error('❌ Fallback method also failed:', fallbackError);
+                    return [];
+                }
+            }
+
+            if (tokenIds.length === 0) {
+                console.log(`ℹ️ No heroes found for address ${ownerAddress}`);
+                console.log(`   This could mean:`);
+                console.log(`   1. No heroes have been minted to this TBA yet`);
+                console.log(`   2. The TBA address is incorrect`);
+                console.log(`   3. The contract address is incorrect`);
+                console.log(`   4. The transaction hasn't been confirmed yet`);
+                return [];
+            }
+
+            console.log(`📋 Processing ${tokenIds.length} hero token(s)...`);
             const ownedHeroes: HeroNFT[] = [];
             for (const idBigInt of tokenIds) {
                 const id = idBigInt.toString();
-                // Fetch metadata URI
-                const uri = await publicClient.readContract({
-                    address,
-                    abi: contractConfig.abi,
-                    functionName: 'tokenURI',
-                    args: [BigInt(id)],
-                });
+                try {
+                    // Fetch metadata URI
+                    const uri = await publicClient.readContract({
+                        address,
+                        abi: contractConfig.abi,
+                        functionName: 'tokenURI',
+                        args: [BigInt(id)],
+                    });
 
-                // Calculate TBA for the Hero (Recursive!)
-                // Heroes can also have inventories
-                const tba = await this.getHeroTBA(id);
+                    // Calculate TBA for the Hero (Recursive!)
+                    // Heroes can also have inventories
+                    const tba = await this.getHeroTBA(id);
 
-                ownedHeroes.push({
-                    tokenId: id,
-                    metadataUri: uri as string,
-                    tbaAddress: tba
-                });
+                    ownedHeroes.push({
+                        tokenId: id,
+                        metadataUri: uri as string,
+                        tbaAddress: tba
+                    });
+                    console.log(`   ✅ Hero #${id} added (URI: ${uri.substring(0, 50)}...)`);
+                } catch (e) {
+                    console.warn(`   ⚠️ Failed to process hero #${id}:`, e);
+                }
             }
 
+            console.log(`✅ getHeroes: Returning ${ownedHeroes.length} hero(es)`);
             return ownedHeroes.sort((a, b) => Number(a.tokenId) - Number(b.tokenId));
         } catch (e) {
-            console.error("Failed to fetch heroes", e);
+            console.error("❌ Failed to fetch heroes", e);
             return [];
         }
     },
@@ -214,27 +358,66 @@ export const rpgService = {
         const accountImplAddress = getContractAddress(accountImplConfig);
         const tokenContractAddress = getContractAddress(CONTRACT_REGISTRY.ADVENTURER);
 
-        if (!registryAddress || !accountImplAddress || !tokenContractAddress) return '';
+        if (!registryAddress || !accountImplAddress || !tokenContractAddress) {
+            console.error('❌ Missing addresses for Hero TBA calculation');
+            return '';
+        }
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+            transport: http(monad.rpcUrls.default.http[0]),
         });
 
-        const tba = await publicClient.readContract({
-            address: registryAddress,
-            abi: registryConfig.abi,
-            functionName: 'account',
-            args: [
-                accountImplAddress,
-                BigInt(0),
-                BigInt(monad.id),
-                tokenContractAddress,
-                BigInt(tokenId)
-            ]
-        });
+        // Try to get actual addresses from Adventurer contract (if available)
+        let actualRegistryAddress = registryAddress;
+        let actualImplAddress = accountImplAddress;
 
-        return tba as string;
+        try {
+            const adventurerConfig = CONTRACT_REGISTRY.ADVENTURER;
+            const adventurerAddress = getContractAddress(adventurerConfig);
+            if (adventurerAddress) {
+                const [contractRegistry, contractImpl] = await Promise.all([
+                    publicClient.readContract({
+                        address: adventurerAddress,
+                        abi: adventurerConfig.abi,
+                        functionName: 'erc6551Registry',
+                    }).catch(() => null),
+                    publicClient.readContract({
+                        address: adventurerAddress,
+                        abi: adventurerConfig.abi,
+                        functionName: 'erc6551AccountImpl',
+                    }).catch(() => null),
+                ]);
+
+                if (contractRegistry) actualRegistryAddress = contractRegistry as string;
+                if (contractImpl) actualImplAddress = contractImpl as string;
+            }
+        } catch (e) {
+            console.warn('⚠️ Could not fetch addresses from contract for Hero TBA, using config:', e);
+        }
+
+        try {
+            // Convert salt (0) to bytes32 - CORRECT ORDER: implementation, salt (bytes32), chainId, tokenContract, tokenId
+            const saltBytes32 = '0x' + '0'.repeat(64); // bytes32(0)
+
+            const tba = await publicClient.readContract({
+                address: actualRegistryAddress,
+                abi: registryConfig.abi,
+                functionName: 'account',
+                args: [
+                    actualImplAddress,      // implementation (1st)
+                    saltBytes32 as `0x${string}`,  // salt (bytes32, 2nd)
+                    BigInt(monad.id),        // chainId (3rd)
+                    tokenContractAddress,     // tokenContract (4th)
+                    BigInt(tokenId)         // tokenId (5th)
+                ]
+            });
+
+            return tba as string;
+        } catch (error: any) {
+            console.error(`❌ Hero TBA calculation failed for token ${tokenId}:`, error?.message || error);
+            return '';
+        }
     },
 
     // --- Write Functions ---
@@ -285,7 +468,7 @@ export const rpgService = {
 
             const publicClient = createPublicClient({
                 chain: monad,
-                transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+                transport: http(monad.rpcUrls.default.http[0]),
             });
 
             const isWhitelisted = await publicClient.readContract({
@@ -312,7 +495,7 @@ export const rpgService = {
 
             const publicClient = createPublicClient({
                 chain: monad,
-                transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+                transport: http(monad.rpcUrls.default.http[0]),
             });
 
             const hasMinted = await publicClient.readContract({
@@ -341,7 +524,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+            transport: http(monad.rpcUrls.default.http[0]),
         });
 
         try {
@@ -420,7 +603,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+            transport: http(monad.rpcUrls.default.http[0]),
         });
 
         try {
@@ -439,7 +622,7 @@ export const rpgService = {
                 error: error?.message || error,
                 tavernKeeperId,
                 contractAddress,
-                rpcUrl: process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0],
+                rpcUrl: monad.rpcUrls.default.http[0],
             });
             // Return false on error - this means we won't show the free hero banner if there's an RPC issue
             // But at least we log it so the user can see what went wrong
@@ -523,7 +706,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+            transport: http(monad.rpcUrls.default.http[0]),
         });
 
         const price = await publicClient.readContract({
@@ -543,7 +726,7 @@ export const rpgService = {
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
+            transport: http(monad.rpcUrls.default.http[0]),
         });
 
         const price = await publicClient.readContract({

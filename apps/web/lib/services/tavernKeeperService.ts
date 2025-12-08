@@ -39,7 +39,7 @@ export const tavernKeeperService = {
 
             if (!contractAddress) throw new Error("TavernKeeper contract not found");
 
-            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+            const rpcUrl = monad.rpcUrls.default.http[0];
             const publicClient = createPublicClient({
                 chain: monad,
                 transport: http(rpcUrl),
@@ -276,7 +276,7 @@ export const tavernKeeperService = {
         try {
             // Create a public client specifically for simulation
             // WalletClient does not support simulation directly in some configurations
-            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+            const rpcUrl = monad.rpcUrls.default.http[0];
             const publicClient = createPublicClient({
                 chain: monad,
                 transport: http(rpcUrl),

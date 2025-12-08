@@ -22,7 +22,7 @@ export interface TavernRegularsGroup {
 
 export const tavernRegularsService = {
     getPublicClient() {
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+        const rpcUrl = monad.rpcUrls.default.http[0];
 
         return createPublicClient({
             chain: monad,

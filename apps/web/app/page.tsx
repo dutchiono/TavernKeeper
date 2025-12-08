@@ -131,14 +131,11 @@ function HomeContent() {
                         </div>
 
                         <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
-                            {/* Wallet Connect - RainbowKit */}
-                            {isMounted && !isInMiniapp && (
-                                <div className="flex items-center gap-2">
+                            {/* Wallet Connect - RainbowKit - ALWAYS VISIBLE */}
+                            {!isInMiniapp && (
+                                <div className="flex items-center gap-2 z-50 relative" style={{ minWidth: '120px' }}>
                                     <ConnectButton
-                                        accountStatus={{
-                                            smallScreen: 'avatar',
-                                            largeScreen: 'full',
-                                        }}
+                                        accountStatus="full"
                                         showBalance={false}
                                         chainStatus="none"
                                     />

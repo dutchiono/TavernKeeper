@@ -33,7 +33,7 @@ const nextConfig = {
       '@endo/env-options': false,
       '@endo/init': false,
       '@endo/lockdown': false,
-      '@metamask/sdk': false,
+      // '@metamask/sdk': false, // Re-enabled - needed for metaMaskWallet
     };
 
     // Ignore SES-related packages to prevent auto-execution

@@ -4,7 +4,7 @@ import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 import { supabase } from '../supabase';
 import { metadataStorage } from './metadataStorage';
 
-const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
+const rpcUrl = monad.rpcUrls.default.http[0];
 const publicClient = createPublicClient({
     chain: monad,
     transport: http(rpcUrl),

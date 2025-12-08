@@ -709,8 +709,18 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                 const input = document.getElementById('mintAmount') as HTMLInputElement;
                                 const amount = input?.value || "1";
                                 const amountMON = parseFloat(amount);
-                                const amountKEEP = amountMON * 3;
+                                // Use actual pool ratio if available, otherwise fallback to 3:1
+                                const actualKeepPerMon = keepPerMonRatio || 3;
+                                const amountKEEP = amountMON * actualKeepPerMon;
                                 const needsApproval = true; // We'll check this, but show the modal anyway
+
+                                // Estimate LP tokens based on historical data
+                                // From chain: 5 MON + 7.42 KEEP = 6,091,697,987,201,539,195 liquidity units
+                                // So roughly: 1 MON ≈ 1,218,339,597,440,307,839 liquidity units
+                                // This is an estimate - actual will vary slightly
+                                const estimatedLiquidityPerMON = 1218339597440307839n; // Approximate from recent events (BigInt)
+                                const amountMONWei = BigInt(Math.floor(amountMON * 1e18)); // Convert to wei
+                                const estimatedLPWei = (amountMONWei * estimatedLiquidityPerMON) / BigInt(1e18);
 
                                 return (
                                     <div className="space-y-4">
@@ -729,10 +739,13 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                             </div>
                                             <div className="mt-3 pt-3 border-t border-[#5c4033]">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-zinc-400 text-xs">LP Tokens (You'll Receive):</span>
+                                                    <span className="text-zinc-400 text-xs">CLP Tokens (You'll Receive):</span>
                                                     <span className="text-yellow-400 text-sm font-semibold">
-                                                        ~{amountMON.toFixed(4)} LP
+                                                        ~{parseFloat(formatEther(estimatedLPWei)).toFixed(2)} CLP
                                                     </span>
+                                                </div>
+                                                <div className="mt-2 text-xs text-zinc-500">
+                                                    (Estimate - actual amount may vary slightly)
                                                 </div>
                                             </div>
                                         </div>

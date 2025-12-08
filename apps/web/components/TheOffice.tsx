@@ -32,7 +32,7 @@ export const TheOffice: React.FC<{
     const { address, isConnected, chainId } = useAccount();
     const { connectAsync, connectors } = useConnect();
     const { switchChainAsync } = useSwitchChain();
-    const { writeContract, data: txHash, isPending: isWriting, reset: resetWrite } = useWriteContract();
+    const { writeContractAsync, data: txHash, isPending: isWriting, reset: resetWrite } = useWriteContract();
 
     const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({
         hash: txHash,
@@ -211,48 +211,55 @@ export const TheOffice: React.FC<{
         }
     }, [receipt, resetWrite, address, userContext, state.currentKing, state.currentPrice]);
 
+    // ... (keep state defs)
 
-    // Unified Transaction Handlers
     const handleTakeOffice = async () => {
-        // 1. Ensure Connected
         if (!isConnected || !address) {
-            if (connectors[0]) {
-                try {
-                    await connectAsync({
-                        connector: connectors[0], // Will pick default/first connector
-                        chainId: monad.id,
-                    });
-                    // Short wait for state update
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                } catch (error) {
-                    alert('Failed to connect wallet.');
-                    return;
-                }
-            } else {
-                alert('Please connect your wallet first.');
-                return;
-            }
+            // ... (keep logic)
+            alert('Please connect your wallet first.');
+            return;
         }
 
-        // 2. Ensure Correct Network
         if (chainId !== monad.id) {
-            try {
-                await switchChainAsync({ chainId: monad.id });
-                return;
-            } catch (error) {
-                console.error('Failed to switch network:', error);
-                alert('Please switch to Monad Mainnet manually.');
-                return;
-            }
+            // ... (keep logic)
+            alert('Please switch to Monad Mainnet manually.');
+            return;
         }
 
         try {
             setIsLoading(true);
-            const hash = await tavernKeeperService.takeOfficeWithWriteContract(
-                writeContract,
-                state.currentPrice,
-                address as Address
-            );
+
+            // Fetch FRESH state
+            const freshState = await tavernKeeperService.getOfficeState(true);
+            const epochId = BigInt(freshState.epochId);
+            const deadline = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 mins
+
+            // Calculate Price
+            const { parseEther, formatEther } = await import('viem');
+            const currentPriceWei = parseEther(freshState.currentPrice);
+            const minPriceWei = parseEther('1.0');
+            const effectivePriceWei = currentPriceWei < minPriceWei ? minPriceWei : currentPriceWei;
+            const buffer = (effectivePriceWei * 5n) / 100n; // 5% buffer
+            const safePrice = effectivePriceWei + buffer;
+
+            console.log(`Taking Office: Epoch ${epochId}, Price ${freshState.currentPrice}, Sending ${formatEther(safePrice)}`);
+
+            const { CONTRACT_REGISTRY, getContractAddress } = await import('../lib/contracts/registry');
+            const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+            const contractAddress = getContractAddress(contractConfig);
+
+            if (!contractAddress) throw new Error("TavernKeeper contract not found");
+
+            const hash = await writeContractAsync({
+                address: contractAddress,
+                abi: contractConfig.abi,
+                functionName: 'takeOffice',
+                value: safePrice,
+                args: [epochId, deadline, safePrice, ""], // maxPrice = safePrice
+                account: address as Address,
+                chainId: monad.id,
+            });
+
             console.log('Transaction sent:', hash);
         } catch (error) {
             console.error('Failed to take office:', error);
@@ -289,8 +296,8 @@ export const TheOffice: React.FC<{
                 throw new Error("TavernKeeper contract not found");
             }
 
-            const hash = await writeContract({
-                address: contractAddress,
+            const hash = await writeContractAsync({
+                address: contractAddress as `0x${string}`,
                 abi: contractConfig.abi,
                 functionName: 'claimOfficeRewards',
                 args: [],

@@ -21,8 +21,8 @@ const ADVENTURER_TESTNET = "0x4Fff2Ce5144989246186462337F0eE2C086F913E";
 const TAVERN_KEEPER = process.env.TAVERN_KEEPER_ADDRESS || TAVERN_KEEPER_MAINNET;
 const ADVENTURER = process.env.ADVENTURER_ADDRESS || ADVENTURER_MAINNET;
 
-// Address to whitelist
-const ADDRESS_TO_WHITELIST = "0x3ec3a92e44952bae7ea96fd9c1c3f6b65c9a1b6d";
+// Address to whitelist (can be overridden with ADDRESS_TO_WHITELIST env var)
+const ADDRESS_TO_WHITELIST = process.env.ADDRESS_TO_WHITELIST || "0x3ec3a92e44952bae7ea96fd9c1c3f6b65c9a1b6d";
 
 async function main() {
     const [deployer] = await ethers.getSigners();

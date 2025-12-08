@@ -121,11 +121,11 @@ export const rpgService = {
             abi: registryConfig.abi,
             functionName: 'account',
             args: [
-                accountImplAddress,
-                BigInt(0), // salt
-                BigInt(monad.id),
-                tokenContractAddress,
-                BigInt(tokenId)
+                accountImplAddress,      // implementation
+                BigInt(monad.id),        // chainId
+                tokenContractAddress,     // tokenContract
+                BigInt(tokenId),         // tokenId
+                BigInt(0)                // salt
             ]
         });
 

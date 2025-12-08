@@ -68,12 +68,28 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
         return `${address.slice(0, 8)}...${address.slice(-4)}`;
     };
 
-    // Get cached office manager data
-    const officeManagerData = React.useMemo(() => {
-        if (!state.currentKing || state.currentKing === '0x0000000000000000000000000000000000000000') {
-            return null;
+    // Get office manager data (from cache or database)
+    const [officeManagerData, setOfficeManagerData] = React.useState<{ fid?: number; username?: string; displayName?: string } | null>(null);
+
+    React.useEffect(() => {
+        // Validate address before fetching
+        if (!state.currentKing ||
+            state.currentKing === '0x0000000000000000000000000000000000000000' ||
+            state.currentKing === 'Loading...' ||
+            state.currentKing === 'Vacant' ||
+            !state.currentKing.startsWith('0x') ||
+            state.currentKing.length !== 42) {
+            setOfficeManagerData(null);
+            return;
         }
-        return getOfficeManagerData(state.currentKing);
+
+        // Fetch office manager data (checks cache first, then database)
+        getOfficeManagerData(state.currentKing).then(data => {
+            setOfficeManagerData(data);
+        }).catch(err => {
+            console.error('Failed to fetch office manager data:', err);
+            // Don't clear data on error - keep what we have
+        });
     }, [state.currentKing]);
 
 

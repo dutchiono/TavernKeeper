@@ -182,9 +182,11 @@ export const TheOffice: React.FC<{
             const dps = parseFloat(state.officeRate || '0');
             const earned = timeSinceStart * dps;
 
-            const pricePaid = initPrice / 2.0;
-            const revenue = currentPrice * 0.8;
-            const pnlValue = revenue - pricePaid;
+            // Match donut miner PnL calculation logic
+            const halfInitPrice = initPrice / 2.0;
+            const pnlValue = currentPrice > initPrice
+                ? (currentPrice * 0.8) - halfInitPrice  // If price went UP: 80% of current - half init
+                : currentPrice - halfInitPrice;          // If price went DOWN: current - half init
 
             const pnlFormatted = pnlValue >= 0
                 ? `+Ξ${pnlValue.toFixed(4)}`
@@ -252,7 +254,7 @@ export const TheOffice: React.FC<{
                     setTimeout(async () => {
                         try {
                             // Get previous manager username if available
-                            const previousManagerData = getOfficeManagerData(previousManagerAddress);
+                            const previousManagerData = await getOfficeManagerData(previousManagerAddress);
                             let shareText: string;
 
                             if (previousManagerData?.username) {

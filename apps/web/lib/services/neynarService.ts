@@ -35,29 +35,79 @@ export async function getUserByAddress(address: string): Promise<{
     displayName?: string;
 } | null> {
     try {
-        const client = getNeynarClient();
-        const normalizedAddress = address.toLowerCase();
-
-        // Use fetchBulkUsersByEthOrSolAddress instead of fetchBulkUsersByEthereumAddress
-        const response = await client.fetchBulkUsersByEthOrSolAddress({ addresses: [normalizedAddress] });
-
-        // Find the address key (case-insensitive)
-        const addressKey = Object.keys(response).find(
-            key => key.toLowerCase() === normalizedAddress
-        );
-
-        if (!addressKey || !response[addressKey] || response[addressKey].length === 0) {
+        const apiKey = process.env.NEYNAR_API_KEY;
+        if (!apiKey || apiKey === 'DUMMY_KEY') {
+            console.warn('NEYNAR_API_KEY not set, cannot fetch user by address');
             return null;
         }
 
-        const user = response[addressKey][0];
-        return {
-            fid: user.fid,
-            username: user.username || undefined,
-            displayName: user.display_name || undefined,
-        };
-    } catch (error) {
-        console.error('Error fetching user from Neynar:', error);
+        const normalizedAddress = address.toLowerCase();
+
+        // Use direct API call (more reliable than SDK methods)
+        // Try the bulk users endpoint first
+        const response = await fetch(
+            `https://api.neynar.com/v2/farcaster/user/bulk_by_address?addresses=${encodeURIComponent(normalizedAddress)}`,
+            {
+                headers: {
+                    'api_key': apiKey,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            // If bulk endpoint fails, try alternative endpoint
+            console.warn(`Bulk endpoint returned ${response.status}, trying alternative method`);
+
+            // Try using SDK method as fallback
+            try {
+                const client = getNeynarClient();
+                const sdkResponse = await client.fetchBulkUsersByEthereumAddress([normalizedAddress]);
+
+                const addressKey = Object.keys(sdkResponse).find(
+                    key => key.toLowerCase() === normalizedAddress
+                );
+
+                if (addressKey && sdkResponse[addressKey] && sdkResponse[addressKey].length > 0) {
+                    const user = sdkResponse[addressKey][0];
+                    return {
+                        fid: user.fid,
+                        username: user.username || undefined,
+                        displayName: user.display_name || undefined,
+                    };
+                }
+            } catch (sdkError) {
+                console.warn('SDK fallback also failed:', sdkError);
+            }
+
+            return null;
+        }
+
+        const data = await response.json();
+
+        // Handle different response formats
+        if (data?.result?.users && Array.isArray(data.result.users) && data.result.users.length > 0) {
+            const user = data.result.users[0];
+            return {
+                fid: user.fid,
+                username: user.username || undefined,
+                displayName: user.display_name || undefined,
+            };
+        }
+
+        // Alternative format: direct address key
+        if (data[normalizedAddress] && Array.isArray(data[normalizedAddress]) && data[normalizedAddress].length > 0) {
+            const user = data[normalizedAddress][0];
+            return {
+                fid: user.fid,
+                username: user.username || undefined,
+                displayName: user.display_name || undefined,
+            };
+        }
+
+        return null;
+    } catch (error: any) {
+        console.error('Error fetching user from Neynar:', error?.message || error);
         return null;
     }
 }

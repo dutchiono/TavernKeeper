@@ -43,25 +43,34 @@ export async function POST(request: NextRequest) {
             console.log('✅ Found FID in database:', fid);
         } else {
             console.log('🔍 FID not in database, fetching from Neynar API...');
-            // Fallback: fetch from Neynar API
-            const userData = await getUserByAddress(normalizedPreviousAddress);
-            if (userData?.fid) {
-                fid = userData.fid;
-                console.log('✅ Found FID from Neynar API:', fid);
-                // Save to database for next time
-                await supabase
-                    .from('office_managers')
-                    .upsert({
-                        wallet_address: normalizedPreviousAddress,
-                        farcaster_fid: fid,
-                        username: userData.username || null,
-                        display_name: userData.displayName || null,
-                        last_updated_at: new Date().toISOString(),
-                    }, {
-                        onConflict: 'wallet_address'
-                    });
-            } else {
-                console.warn('⚠️ Could not find user data from Neynar API');
+            // Fallback: fetch from Neynar API (but don't fail if it errors)
+            try {
+                const userData = await getUserByAddress(normalizedPreviousAddress);
+                if (userData?.fid) {
+                    fid = userData.fid;
+                    console.log('✅ Found FID from Neynar API:', fid);
+                    // Save to database for next time
+                    try {
+                        await supabase
+                            .from('office_managers')
+                            .upsert({
+                                wallet_address: normalizedPreviousAddress,
+                                farcaster_fid: fid,
+                                username: userData.username || null,
+                                display_name: userData.displayName || null,
+                                last_updated_at: new Date().toISOString(),
+                            }, {
+                                onConflict: 'wallet_address'
+                            });
+                    } catch (dbError) {
+                        console.warn('⚠️ Could not save FID to database (non-critical):', dbError);
+                    }
+                } else {
+                    console.warn('⚠️ Could not find user data from Neynar API');
+                }
+            } catch (neynarError) {
+                console.warn('⚠️ Could not fetch FID from Neynar API (non-critical):', neynarError);
+                // Continue without FID - feed post will still work
             }
         }
 
@@ -71,28 +80,43 @@ export async function POST(request: NextRequest) {
             previousManagerUsername = previousManagerData.username;
         } else if (fid) {
             // Try to get username from Neynar if we have FID but no username in DB
-            const userData = await getUserByAddress(normalizedPreviousAddress);
-            if (userData?.username) {
-                previousManagerUsername = userData.username;
+            try {
+                const userData = await getUserByAddress(normalizedPreviousAddress);
+                if (userData?.username) {
+                    previousManagerUsername = userData.username;
+                }
+            } catch (neynarError) {
+                console.warn('⚠️ Could not fetch previous manager username from Neynar (non-critical):', neynarError);
+                // Continue without username
             }
         }
 
         // Get new manager's username for @mention
         let newManagerUsername: string = 'Someone';
-        const { data: newManagerData } = await supabase
-            .from('office_managers')
-            .select('username, display_name')
-            .eq('wallet_address', normalizedNewAddress)
-            .single();
+        try {
+            const { data: newManagerData } = await supabase
+                .from('office_managers')
+                .select('username, display_name')
+                .eq('wallet_address', normalizedNewAddress)
+                .single();
 
-        if (newManagerData?.username) {
-            newManagerUsername = newManagerData.username;
-        } else {
-            // Fallback: fetch from Neynar API
-            const userData = await getUserByAddress(normalizedNewAddress);
-            if (userData?.username) {
-                newManagerUsername = userData.username;
+            if (newManagerData?.username) {
+                newManagerUsername = newManagerData.username;
+            } else {
+                // Fallback: fetch from Neynar API (but don't fail if it errors)
+                try {
+                    const userData = await getUserByAddress(normalizedNewAddress);
+                    if (userData?.username) {
+                        newManagerUsername = userData.username;
+                    }
+                } catch (neynarError) {
+                    console.warn('⚠️ Could not fetch new manager username from Neynar (non-critical):', neynarError);
+                    // Continue with 'Someone' as fallback
+                }
             }
+        } catch (dbError) {
+            console.warn('⚠️ Could not fetch new manager username from database (non-critical):', dbError);
+            // Continue with 'Someone' as fallback
         }
 
         // Post to feed (ALWAYS happens - public announcement, doesn't require FID)

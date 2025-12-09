@@ -25,20 +25,30 @@ export async function POST(request: NextRequest) {
 
         // Get raider's username for @mention
         let raiderUsername: string = 'Someone';
-        const { data: raiderData } = await supabase
-            .from('office_managers')
-            .select('username, display_name')
-            .eq('wallet_address', normalizedRaiderAddress)
-            .single();
+        try {
+            const { data: raiderData } = await supabase
+                .from('office_managers')
+                .select('username, display_name')
+                .eq('wallet_address', normalizedRaiderAddress)
+                .single();
 
-        if (raiderData?.username) {
-            raiderUsername = raiderData.username;
-        } else {
-            // Fallback: fetch from Neynar API
-            const userData = await getUserByAddress(normalizedRaiderAddress);
-            if (userData?.username) {
-                raiderUsername = userData.username;
+            if (raiderData?.username) {
+                raiderUsername = raiderData.username;
+            } else {
+                // Fallback: fetch from Neynar API (but don't fail if it errors)
+                try {
+                    const userData = await getUserByAddress(normalizedRaiderAddress);
+                    if (userData?.username) {
+                        raiderUsername = userData.username;
+                    }
+                } catch (neynarError) {
+                    console.warn('⚠️ Could not fetch username from Neynar (non-critical):', neynarError);
+                    // Continue with 'Someone' as fallback
+                }
             }
+        } catch (dbError) {
+            console.warn('⚠️ Could not fetch username from database (non-critical):', dbError);
+            // Continue with 'Someone' as fallback
         }
 
         // Format profit amounts

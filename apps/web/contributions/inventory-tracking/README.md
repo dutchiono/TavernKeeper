@@ -1,4 +1,4 @@
-# Inventory Tracking System
+﻿# Inventory Tracking System
 
 ## What This Does
 
@@ -109,16 +109,16 @@ None - this is an additive feature. Existing item systems (on-chain ERC-1155) re
 
 ```
 contributions/inventory-tracking/
-├── README.md (this file)
-├── code/
-│   ├── types/
-│   │   └── inventory.ts            # Inventory types and interfaces
-│   ├── database/
-│   │   └── migration.sql           # Database schema
-│   └── services/
-│       └── inventoryService.ts    # Service for managing inventory
-└── examples/
-    └── usage-examples.ts           # Code examples showing integration
+Γö£ΓöÇΓöÇ README.md (this file)
+Γö£ΓöÇΓöÇ code/
+Γöé   Γö£ΓöÇΓöÇ types/
+Γöé   Γöé   ΓööΓöÇΓöÇ inventory.ts            # Inventory types and interfaces
+Γöé   Γö£ΓöÇΓöÇ database/
+Γöé   Γöé   ΓööΓöÇΓöÇ migration.sql           # Database schema
+Γöé   ΓööΓöÇΓöÇ services/
+Γöé       ΓööΓöÇΓöÇ inventoryService.ts    # Service for managing inventory
+ΓööΓöÇΓöÇ examples/
+    ΓööΓöÇΓöÇ usage-examples.ts           # Code examples showing integration
 ```
 
 ## Integration Example

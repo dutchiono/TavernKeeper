@@ -12,11 +12,12 @@ const HOOK_CANDIDATES = [
     { name: 'v2 (Current)', address: '0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0' },
     { name: 'v1 (Deprecated)', address: '0xaDF53E062195C20DAD2E52b76550f0a266e40ac0' },
     { name: 'Old (Broken)', address: '0x6c7612F44B71E5E6E2bA0FEa799A23786A537755' },
-    { name: 'Accidental', address: '0xDA499a900FE25D738045CD6C299663471dE76Ae0' }
+    { name: 'Accidental', address: '0xDA499a900FE25D738045CD6C299663471dE76Ae0' },
+    { name: 'No Hook', address: '0x0000000000000000000000000000000000000000' }
 ];
 
-const FEE_OPTIONS = [3000, 10000];
-const TICK_SPACING_OPTIONS = [60, 200];
+const FEE_OPTIONS = [100, 500, 3000, 10000];
+const TICK_SPACING_OPTIONS = [10, 60, 100, 200];
 
 async function checkPoolManagerBalances(rpc: string) {
     console.log(`\n💰 Checking PoolManager Balances directly...`);

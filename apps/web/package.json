@@ -22,7 +22,11 @@
     "start-worker": "tsx workers/index.ts",
     "network:local": "node scripts/set-network.js local",
     "network:testnet": "node scripts/set-network.js testnet",
-    "network:mainnet": "node scripts/set-network.js mainnet"
+    "network:mainnet": "node scripts/set-network.js mainnet",
+    "test:v3-pool": "tsx scripts/test-v3-pool.ts",
+    "fix:pool": "tsx scripts/fix-pool-and-cellar.ts",
+    "test:notifications": "tsx scripts/test-notifications.ts",
+    "test:broadcast-notifications": "tsx scripts/test-broadcast-notifications.ts"
   },
   "dependencies": {
     "@base-org/account": "^1.0.0",
@@ -34,7 +38,6 @@
     "@innkeeper/engine": "workspace:*",
     "@innkeeper/lib": "workspace:*",
     "@neynar/nodejs-sdk": "^3.0.0",
-    "@privy-io/react-auth": "^1.0.0",
     "@rainbow-me/rainbowkit": "^2.2.9",
     "@safe-global/safe-apps-provider": "^0.18.0",
     "@safe-global/safe-apps-sdk": "^9.0.0",
@@ -45,7 +48,6 @@
     "@wagmi/connectors": "^7.0.2",
     "bullmq": "^5.3.0",
     "dotenv": "^16.3.1",
-    "ethers": "^6.15.0",
     "gray-matter": "^4.0.3",
     "ioredis": "^5.3.2",
     "lucide-react": "^0.555.0",

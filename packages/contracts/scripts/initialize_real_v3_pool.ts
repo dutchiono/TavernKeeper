@@ -23,7 +23,7 @@ function sqrt(value: bigint): bigint {
 
 // Monad Mainnet Addresses - CORRECTED
 const ADDRESSES = {
-    WMON: "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A", // Verified WMON
+    WMON: "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A", // CORRECT WMON address
     KEEP: "0x2D1094F5CED6ba279962f9676d32BE092AFbf82E", // Verified KEEP (has code)
     V3_POSITION_MANAGER: "0x7197e214c0b767cfb76fb734ab638e2c192f4e53"
 };

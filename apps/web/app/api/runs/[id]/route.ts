@@ -6,6 +6,27 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  // Mock Mode Handling
+  if (id.startsWith('mock-')) {
+    return NextResponse.json({
+      id,
+      dungeon_id: 'abandoned-cellar',
+      status: 'active',
+      start_time: new Date().toISOString(),
+      party: [],
+      seed: 'mock-seed',
+      runLogs: [],
+      events: [],
+      dungeon: {
+        id: 'abandoned-cellar',
+        name: 'Abandoned Cellar',
+        description: 'A dark and damp cellar.',
+        floor_count: 5
+      }
+    });
+  }
+
   try {
     // Fetch run
     const { data: run, error: runError } = await supabase
@@ -15,6 +36,7 @@ export async function GET(
       .single();
 
     if (runError || !run) {
+      console.error('Run not found:', id, runError);
       return NextResponse.json({ error: 'Run not found' }, { status: 404 });
     }
 

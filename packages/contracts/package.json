@@ -5,7 +5,9 @@
     "scripts": {
         "test": "hardhat test",
         "compile": "hardhat compile",
-        "deploy": "hardhat run scripts/deploy.ts"
+        "deploy": "hardhat run scripts/deploy.ts",
+        "test-staking": "hardhat run scripts/test-staking.ts",
+        "test-staking-e2e": "hardhat run scripts/test-staking-e2e.ts"
     },
     "devDependencies": {
         "@nomicfoundation/hardhat-toolbox": "^4.0.0",

@@ -76,30 +76,28 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 - **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: Adventurer NFT contract
 - **Upgradeable**: Yes ✅
-<<<<<<< HEAD
-- **Proxy Address**: `0x67e27a22B64385e0110e69Dceae7d394D2C87B06`
-- **Implementation Address**: `0xAEc92D70Db9B5516546c27E8fa0Cb309C4660Fe1` (v4.0.0 - Signature-Based Pricing)
-=======
-- **Proxy Address**: `0x3F7BBD9373AF9eDdB6b170FFc86479bEaE548407`
-- **Implementation Address**: `0x582bDC81df3c6c78B85D9409987Ab9885A24A2f6`
->>>>>>> d9c80166f06c3f6075f2ba2e63c2d068690df2ca
-- **Network**: Monad Testnet
+- **Proxy Address (Mainnet)**: `0xb138Bf579058169e0657c12Fd9cc1267CAFcb935`
+- **Implementation Address (Mainnet)**: `0x961F7b389ebe40C61aE1b64425F23CFEA79a4458` (v4.1.0 - Payment Fix + Whitelist)
+- **Proxy Address (Testnet)**: `0x67e27a22B64385e0110e69Dceae7d394D2C87B06`
+- **Implementation Address (Testnet)**: `0xAEc92D70Db9B5516546c27E8fa0Cb309C4660Fe1` (v4.0.0 - Signature-Based Pricing)
+- **Network**: Monad Mainnet & Testnet
 - **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
-- **Notes**: Successfully deployed as UUPS proxy. Upgraded to signature-based pricing (v4.0.0)
+- **Notes**: Successfully deployed as UUPS proxy. Upgraded to signature-based pricing (v4.0.0). Latest upgrade (v4.1.0) fixes payment transfer to treasury, adds treasury support, and adds whitelist functionality.
 
 #### TavernKeeper (ERC-721)
 - **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
 - **Current Type**: UUPS Upgradeable Proxy ✅
 - **Purpose**: TavernKeeper NFT contract
 - **Upgradeable**: Yes ✅
-<<<<<<< HEAD
-- **Proxy Address**: `0x311d8722A5cE11DF157D7a9d414bbeC2640c5Fb2`
-- **Implementation Address**: `0x10ee72aB13747447FE62CE07e2f1fc3d40114Ee7` (v4.0.0 - Signature-Based Pricing)
-- **Network**: Monad Testnet
+- **Proxy Address (Mainnet)**: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29`
+- **Implementation Address (Mainnet)**: `0x81146F855f5B0C567e9F0d3a2A082Aed81F34762` (v4.2.0 - Office timer fix: startTime no longer resets on claim)
+- **Proxy Address (Testnet)**: `0x311d8722A5cE11DF157D7a9d414bbeC2640c5Fb2`
+- **Implementation Address (Testnet)**: `0x10ee72aB13747447FE62CE07e2f1fc3d40114Ee7` (v4.0.0 - Signature-Based Pricing)
+- **Network**: Monad Mainnet & Testnet
 - **Deployment Date**: 2025-01-XX
 - **Deployment TX**: See deployment output
-- **Notes**: Successfully deployed as UUPS proxy. Mints KeepToken to office holders. Upgraded to signature-based pricing (v4.0.0)
+- **Notes**: Successfully deployed as UUPS proxy. Mints KeepToken to office holders. Upgraded to signature-based pricing (v4.0.0). Latest upgrade (v4.1.0) fixes payment transfer to treasury and adds whitelist functionality.
 
 #### The Cellar (CellarHook)
 - **Status**: ✅ **DEPLOYED** - UUPS upgradeable proxy
@@ -234,11 +232,19 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 | Contract | Type | Address | Deployed | TX Hash | Notes |
 |----------|------|---------|----------|---------|-------|
-| TheCellarV3 | Proxy | `0x32A920be00dfCE1105De0415ba1d4f06942E9ed0` | ✅ 2025-12-06 | 0x... | V3 Migration - UUPS Proxy |
+| TheCellarV3 | Proxy | `0x32A920be00dfCE1105De0415ba1d4f06942E9ed0` | ✅ 2025-12-07 | ... | V3 Migration - UUPS Proxy |
+| TheCellarV3 | Impl | `TBD` | ⏳ Pending | See upgrade tx | v1.6.0 - Pot-Based Pricing (stable value model) |
+| TheCellarV3 | Impl | `0x85d081275254f39d31ebC7b5b5DCBD7276C4E9dF` | ✅ 2025-01-XX | See upgrade tx | v1.5.0 - Price Calculation Fix (use currentPrice not initPrice) |
+| TheCellarV3 | Impl | `0x3Ae6fe0eD190Bd31bBE3fe7f91b310f9C8f45D5C` | ✅ 2025-01-XX | See upgrade tx | v1.4.0 - Withdrawal Fix (position liquidity checks) |
+| TheCellarV3 | Impl | `0x296d8B63c95013a6c972b3f08b0D52c859D37066` | ✅ 2025-12-07 | ... | v1.3.0 - Logic Fix (harvest/withdraw) |
 | CellarToken | Contract | `0x6eF142a2203102F6c58b0C15006BF9F6F5CFe39E` | ✅ 2025-12-06 | 0x... | Migrated V3 LP Token |
 | The Cellar (OLD - Broken Pool) | Proxy | `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755` | ✅ 2025-01-XX | See upgrade tx | **DEPRECATED** - Broken pool (price=0), replaced by new pool |
 | The Cellar (OLD - Broken Pool) | Impl | `0xA349006F388DA608052395755d08E765b1960ecC` | ✅ 2025-01-XX | See upgrade tx | v3.0.0 - Broken pool, do not use |
 | KeepToken | Proxy | `0x2D1094F5CED6ba279962f9676d32BE092AFbf82E` | ✅ 2025-01-XX | See FIRSTDEPLOYMENT.md | **USE THIS** - Mainnet KeepToken |
+| TavernKeeper | Proxy | `0x56B81A60Ae343342685911bd97D1331fF4fa2d29` | ✅ 2025-01-XX | See upgrade tx | **USE THIS** - Mainnet TavernKeeper |
+| TavernKeeper | Impl | `0x81146F855f5B0C567e9F0d3a2A082Aed81F34762` | ✅ 2025-12-08 | See upgrade tx | v4.2.0 - Office timer fix: startTime no longer resets on claim |
+| Adventurer | Proxy | `0xb138Bf579058169e0657c12Fd9cc1267CAFcb935` | ✅ 2025-01-XX | See upgrade tx | **USE THIS** - Mainnet Adventurer |
+| Adventurer | Impl | `0x961F7b389ebe40C61aE1b64425F23CFEA79a4458` | ✅ 2025-01-XX | See upgrade tx | v4.1.0 - Payment Fix + Whitelist |
 
 ---
 
@@ -274,6 +280,31 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 - **v1.2.0** - `0x32A920be00dfCE1105De0415ba1d4f06942E9ed0` (Proxy Unchanged) - Logic Fix
   - **Reason**: Fix `addLiquidity` revert on Mainnet where `KEEP < WMON`.
   - **Action**: updated `TheCellarV3` to dynamically sort tokens for V3 interactions (`token0` vs `token1`) and map amounts correctly. Matches V3 Pool (KEEP=Token0).
+
+- **v1.3.0** - `0x296d8B63c95013a6c972b3f08b0D52c859D37066` (Impl) - Fee Logic Fix
+  - **Reason**: `raid()` calling `harvest()` was draining swap fees from LPs.
+  - **Action**: Removed `harvest()` from `raid()`. Restricted `harvest()` to `onlyOwner`. Verified `withdraw()` correctly calculates user fee share without relying on `harvest()` clearing the slate.
+
+- **v1.4.0** - `0xAf3353c5f417d5906D170B304869040eb28E7B45` (Impl) - Pot Logic Fix (Receive/Sweeten)
+  - **Reason**: `potBalance` remained 0 because contract lacked `receive()` handler for Native MON. Funds were reverting.
+  - **Action**: Added `receive()` to accept and wrap Native MON to WMON. Added `sweetenPot()` for manual contributions.
+  - **Result**: "Take Office" now triggers fee deposits correctly.
+
+- **v1.5.0** - `0x85d081275254f39d31ebC7b5b5DCBD7276C4E9dF` (Impl) - Price Calculation Fix
+  - **Reason**: `raid()` was using `initPrice` (old init price) instead of `currentPrice` (price paid) to calculate next epoch price, causing unbounded price growth.
+  - **Action**: Changed `raid()` to use `currentPrice * priceMultiplier` instead of `initPrice * priceMultiplier`. Matches Office Manager behavior.
+  - **Result**: Price is now bounded by actual payments, preventing huge numbers. New init price = current price paid × multiplier.
+  - **Network**: Monad Mainnet (Chain 143)
+  - **Date**: 2025-01-XX
+
+- **v1.6.0** - `TBD` (Impl) - Pot-Based Pricing (Stable Value Model)
+  - **Reason**: Exponential growth from multiplier-based pricing (2x per epoch) would cause prices to reach trillions. Need stable, value-aligned pricing.
+  - **Action**: Changed `raid()` to use `potBalanceMON * potPriceCoefficient / 100` instead of `currentPrice * multiplier`. Added `potPriceCoefficient` state variable (10-50%).
+  - **Result**: Price is now tied to pot value. Price grows smoothly with pot, cannot exceed pot, prevents exponential growth. Self-correcting model.
+  - **Network**: Monad Mainnet (Chain 143)
+  - **Date**: 2025-01-XX
+  - **Formula**: `newInitPrice = potBalanceMON * coefficient / 100` (e.g., 30% of pot value)
+
 
 
 ---

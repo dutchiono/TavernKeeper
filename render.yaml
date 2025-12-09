@@ -37,12 +37,34 @@ services:
         value: production
       - key: RENDER_SERVICE_TYPE
         value: worker
+      - key: ENABLE_AUTO_HARVEST
+        value: "true"
+      - key: HARVEST_INTERVAL_HOURS
+        value: "1"
+      - key: KEEP_STAKING_PERCENT
+        value: "90"
+      - key: KEEP_DEPLOYER_PERCENT
+        value: "10"
+      - key: LP_STAKING_PERCENT
+        value: "45"
+      - key: WMON_BUYBACK_PERCENT
+        value: "50"
+      - key: WMON_DEPLOYER_PERCENT
+        value: "50"
       - key: NEXT_PUBLIC_SUPABASE_PROJECT_URL
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_API_KEY
         sync: false
       - key: REDIS_URL
         value: redis://default:LbE5xRYKm1OKw1xthVl70jQ3UFCAyOWi@redis-11468.c240.us-east-1-3.ec2.cloud.redislabs.com:11468
+      - key: DEPLOYER_PRIVATE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_MONAD_RPC_URL
+        sync: false
+      - key: NEXT_PUBLIC_MONAD_CHAIN_ID
+        sync: false
+      - key: NEXT_PUBLIC_USE_LOCALHOST
+        sync: false
 
   # - type: web
   #   name: innkeeper-discord-bot

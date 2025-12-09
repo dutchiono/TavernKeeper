@@ -1,4 +1,4 @@
-# Adventurer Tracking System
+﻿# Adventurer Tracking System
 
 ## What This Does
 
@@ -86,7 +86,7 @@ None - this is an additive feature. Existing hero metadata and ownership systems
 
 3. **Health Calculation (D&D 5e)**: 
    - Health is calculated from Constitution and level
-   - Formula: HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) × (level - 1)
+   - Formula: HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) ├ù (level - 1)
    - Hit dice by class: Warrior (d10), Mage (d6), Rogue (d8), Cleric (d8)
    - HP increases on level up based on Constitution modifier
 
@@ -117,16 +117,16 @@ None - this is an additive feature. Existing hero metadata and ownership systems
 
 ```
 contributions/adventurer-tracking/
-├── README.md (this file)
-├── code/
-│   ├── types/
-│   │   └── adventurer-stats.ts      # Stat types and interfaces
-│   ├── database/
-│   │   └── migration.sql             # Database schema
-│   └── services/
-│       └── adventurerService.ts     # Service for managing stats
-└── examples/
-    └── usage-examples.ts             # Code examples showing integration
+Γö£ΓöÇΓöÇ README.md (this file)
+Γö£ΓöÇΓöÇ code/
+Γöé   Γö£ΓöÇΓöÇ types/
+Γöé   Γöé   ΓööΓöÇΓöÇ adventurer-stats.ts      # Stat types and interfaces
+Γöé   Γö£ΓöÇΓöÇ database/
+Γöé   Γöé   ΓööΓöÇΓöÇ migration.sql             # Database schema
+Γöé   ΓööΓöÇΓöÇ services/
+Γöé       ΓööΓöÇΓöÇ adventurerService.ts     # Service for managing stats
+ΓööΓöÇΓöÇ examples/
+    ΓööΓöÇΓöÇ usage-examples.ts             # Code examples showing integration
 ```
 
 ## Integration Example

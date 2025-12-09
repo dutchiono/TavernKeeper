@@ -7,6 +7,9 @@ export interface Hero {
     name?: string;
     image_uri?: string;
     attributes?: any;
+    status?: 'idle' | 'dungeon';
+    lockedUntil?: string;
+    currentRunId?: string;
 }
 
 interface HeroState {

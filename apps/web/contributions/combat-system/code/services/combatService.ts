@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Combat Service
  * 
  * Main service for managing combat encounters.

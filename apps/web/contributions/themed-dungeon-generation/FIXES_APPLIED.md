@@ -1,4 +1,4 @@
-# Fixes Applied for Necromancer Integration
+﻿# Fixes Applied for Necromancer Integration
 
 ## Issues Fixed
 
@@ -74,4 +74,3 @@ The boss generator uses a limited set of names (e.g., "Vex the Death-Caller" app
 - [ ] Standout mortals retain full history when becoming bosses
 - [ ] Events are recorded when mortals become bosses
 - [ ] Map visualization tool uses themed dungeon generator
-

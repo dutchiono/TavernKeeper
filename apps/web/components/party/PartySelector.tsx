@@ -3,11 +3,26 @@
 import React, { useEffect, useState } from 'react';
 import { PixelBox, PixelButton } from '../PixelComponents';
 import { PartyMode, PartyModeSelector } from './PartyModeSelector';
+import { rpgService } from '../../lib/services/rpgService';
+import { SpritePreview } from '../heroes/SpritePreview';
+import { HeroClass, HeroColors, DEFAULT_COLORS } from '../../lib/services/spriteService';
 
 interface HeroNFT {
-    tokenId: string;
+    token_id: string;
     name: string;
-    metadata?: any;
+    image_uri?: string;
+    metadata?: {
+        name?: string;
+        hero?: {
+            class?: string;
+            gender?: string;
+            colorPalette?: HeroColors;
+        }
+    };
+    metadataUri?: string;
+    status: 'idle' | 'dungeon';
+    lockedUntil?: string;
+    tokenId?: string; // Mapped
 }
 
 interface PartySelectorProps {
@@ -29,21 +44,55 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
     }, [walletAddress]);
 
     useEffect(() => {
-        // Reset selection when mode changes
         if (mode === 'solo') {
             setSelectedTokenIds([]);
         } else if (mode === 'own') {
-            // Keep selection if valid
             if (selectedTokenIds.length > 5) {
                 setSelectedTokenIds(selectedTokenIds.slice(0, 5));
             }
         } else if (mode === 'public') {
-            // Keep selection if valid
             if (selectedTokenIds.length > 4) {
                 setSelectedTokenIds(selectedTokenIds.slice(0, 4));
             }
         }
     }, [mode]);
+
+    // Fetch metadata for a hero
+    const fetchMetadata = async (hero: HeroNFT) => {
+        if (!hero.metadataUri) return;
+
+        try {
+            let metadata = null;
+            const uri = hero.metadataUri;
+
+            if (uri.startsWith('data:application/json;base64,')) {
+                const base64 = uri.replace('data:application/json;base64,', '');
+                metadata = JSON.parse(atob(base64));
+            } else if (uri.startsWith('http')) {
+                const res = await fetch(uri);
+                if (res.ok) metadata = await res.json();
+            } else if (uri.startsWith('ipfs://')) {
+                const url = uri.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                const res = await fetch(url);
+                if (res.ok) metadata = await res.json();
+            }
+
+            if (metadata) {
+                setAvailableHeroes(prev => prev.map(h => {
+                    if (h.token_id === hero.token_id) {
+                        return {
+                            ...h,
+                            name: metadata.name || h.name,
+                            metadata: metadata,
+                        };
+                    }
+                    return h;
+                }));
+            }
+        } catch (e) {
+            console.warn('Failed to fetch metadata for hero', hero.token_id, e);
+        }
+    };
 
     const fetchOwnedHeroes = async () => {
         if (!walletAddress) return;
@@ -52,34 +101,71 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
         setError(null);
 
         try {
-            const res = await fetch(`/api/heroes/owned?walletAddress=${walletAddress}`);
-            if (!res.ok) throw new Error('Failed to fetch owned heroes');
+            // 1. Fetch TavernKeepers
+            const keepers = await rpgService.getUserTavernKeepers(walletAddress);
 
-            const { tokenIds } = await res.json();
+            // 2. Fetch Heroes for each Keeper
+            let allHeroes: HeroNFT[] = [];
 
-            // Fetch hero data for each token ID
-            const heroPromises = tokenIds.map(async (tokenId: string) => {
-                try {
-                    const res = await fetch(`/api/heroes/token?tokenId=${tokenId}`);
-                    if (!res.ok) throw new Error('Failed to fetch hero data');
-                    const heroData = await res.json();
-                    return {
-                        tokenId,
-                        name: heroData.name,
-                        metadata: heroData.metadata,
-                    };
-                } catch (e) {
-                    console.error(`Failed to fetch hero ${tokenId}:`, e);
-                    return {
-                        tokenId,
-                        name: `Hero #${tokenId}`,
-                        metadata: null,
-                    };
+            for (const keeper of keepers) {
+                if (keeper.tbaAddress) {
+                    const keeperHeroes = await rpgService.getHeroes(keeper.tbaAddress);
+                    // Map to local interface
+                    const mappedSubHeroes: HeroNFT[] = keeperHeroes.map(h => ({
+                        token_id: h.tokenId,
+                        tokenId: h.tokenId,
+                        name: `Hero #${h.tokenId}`, // Placeholder until metadata is loaded
+                        metadataUri: h.metadataUri,
+                        metadata: { hero: { class: 'Warrior' } }, // Default metadata
+                        status: 'idle'
+                    }));
+                    allHeroes = [...allHeroes, ...mappedSubHeroes];
+                }
+            }
+
+            // Trigger metadata fetch for all heroes
+            allHeroes.forEach(hero => {
+                if (hero.metadataUri) {
+                    fetchMetadata(hero);
                 }
             });
 
-            const heroes = await Promise.all(heroPromises);
-            setAvailableHeroes(heroes);
+            // 3. Fetch status for all heroes
+            const tokenIds = allHeroes.map(h => h.token_id);
+            let heroStates: any[] = [];
+
+            if (tokenIds.length > 0) {
+                try {
+                    const statusRes = await fetch('/api/heroes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tokenIds })
+                    });
+
+                    if (statusRes.ok) {
+                        heroStates = await statusRes.json();
+                    }
+                } catch (statusErr) {
+                    console.error('Failed to fetch hero statuses:', statusErr);
+                }
+            }
+
+            // 4. Merge status
+            const heroesWithStatus = allHeroes.map(hero => {
+                const state = heroStates.find((s: any) => s.token_id === hero.token_id);
+                const now = new Date();
+                const lockedUntil = state?.locked_until ? new Date(state.locked_until) : null;
+                const isLocked = state?.status === 'dungeon' && lockedUntil && lockedUntil > now;
+
+                return {
+                    ...hero,
+                    status: isLocked ? 'dungeon' : 'idle',
+                    lockedUntil: isLocked ? state.locked_until : undefined
+                };
+            });
+
+            console.log(`[PartySelector] Loaded ${heroesWithStatus.length} heroes from blockchain`);
+            setAvailableHeroes(heroesWithStatus as any);
         } catch (e) {
             console.error('Error fetching owned heroes:', e);
             setError('Failed to load your heroes');
@@ -140,9 +226,6 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
         }
     };
 
-    const maxCount = mode === 'solo' ? 1 : mode === 'own' ? 5 : 4;
-    const canSelectMore = selectedTokenIds.length < maxCount;
-
     if (loading) {
         return (
             <PixelBox variant="dark" className="w-full max-w-2xl mx-auto">
@@ -182,40 +265,64 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         {availableHeroes.map((hero) => {
-                            const isSelected = selectedTokenIds.includes(hero.tokenId);
-                            const canSelect = isSelected || canSelectMore;
+                            const isSelected = selectedTokenIds.includes(hero.token_id);
+                            const isLocked = hero.status === 'dungeon';
+                            const canSelect = !isLocked && (isSelected || selectedTokenIds.length < (mode === 'solo' ? 1 : mode === 'own' ? 5 : 4));
+
+                            const heroClass = (hero.metadata?.hero?.class || 'Warrior') as HeroClass;
+                            const colors = hero.metadata?.hero?.colorPalette || DEFAULT_COLORS;
 
                             return (
                                 <button
-                                    key={hero.tokenId}
-                                    onClick={() => canSelect && toggleHero(hero.tokenId)}
+                                    key={hero.token_id}
+                                    onClick={() => canSelect && toggleHero(hero.token_id)}
                                     disabled={!canSelect}
                                     className={`
-                                        p-3 border-4 transition-all
-                                        ${isSelected
-                                            ? 'border-yellow-400 bg-yellow-900/30 scale-105'
-                                            : canSelect
-                                                ? 'border-slate-600 bg-slate-800 hover:border-slate-500 hover:scale-105'
-                                                : 'border-slate-700 bg-slate-900 opacity-50 cursor-not-allowed'
+                                        p-3 border-4 transition-all relative overflow-hidden flex flex-col items-center
+                                        ${isLocked
+                                            ? 'border-red-900 bg-red-950/50 opacity-60 cursor-not-allowed grayscale'
+                                            : isSelected
+                                                ? 'border-yellow-400 bg-yellow-900/30 scale-105'
+                                                : canSelect
+                                                    ? 'border-slate-600 bg-slate-800 hover:border-slate-500 hover:scale-105'
+                                                    : 'border-slate-700 bg-slate-900 opacity-50 cursor-not-allowed'
                                         }
                                     `}
                                 >
-                                    <div className="text-center">
-                                        <div className="text-2xl mb-2">
-                                            {hero.metadata?.hero?.class === 'Warrior' ? '⚔️' :
-                                             hero.metadata?.hero?.class === 'Mage' ? '🔮' :
-                                             hero.metadata?.hero?.class === 'Rogue' ? '🏹' :
-                                             hero.metadata?.hero?.class === 'Cleric' ? '✨' : '👤'}
+                                    {isLocked && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10" title={`Locked until ${hero.lockedUntil ? new Date(hero.lockedUntil).toLocaleTimeString() : 'unknown'}`}>
+                                            <span className="text-2xl">🔒</span>
                                         </div>
-                                        <div className="text-[10px] font-bold text-white truncate">
+                                    )}
+
+                                    <div className="mb-2 w-full flex justify-center">
+                                        <div className="transform scale-[2] origin-top">
+                                            <SpritePreview
+                                                type={heroClass}
+                                                colors={colors}
+                                                showFrame={false}
+                                                scale={1}
+                                                isKeeper={false}
+                                                interactive={false}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="text-center mt-6 w-full">
+                                        <div className="text-[10px] font-bold text-white truncate w-full">
                                             {hero.name}
                                         </div>
                                         <div className="text-[8px] text-slate-400 mt-1">
-                                            #{hero.tokenId}
+                                            Lvl 1 {heroClass} #{hero.token_id}
                                         </div>
                                         {isSelected && (
                                             <div className="text-[8px] text-yellow-400 mt-1 font-bold">
                                                 SELECTED
+                                            </div>
+                                        )}
+                                        {isLocked && (
+                                            <div className="text-[8px] text-red-400 mt-1 font-bold">
+                                                ON MISSION
                                             </div>
                                         )}
                                     </div>
@@ -225,17 +332,36 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
                     </div>
                 )}
 
-                <div className="flex gap-2 justify-end pt-4 border-t border-slate-700">
-                    <PixelButton variant="neutral" onClick={onCancel}>
-                        Cancel
-                    </PixelButton>
-                    <PixelButton
-                        variant="primary"
-                        onClick={handleConfirm}
-                        disabled={selectedTokenIds.length === 0}
-                    >
-                        {mode === 'public' ? 'Create Lobby' : 'Confirm Party'}
-                    </PixelButton>
+                <div className="flex gap-2 justify-between pt-4 border-t border-slate-700">
+                    <div className="flex gap-2">
+                        {/* DEV ONLY BUTTON */}
+                        <PixelButton variant="danger" className="text-[10px] px-2" onClick={async () => {
+                            const { unlockAllHeroes } = await import('../../app/actions/devActions');
+                            if (confirm("Reset ALL hero locks? (Dev only)")) {
+                                const res = await unlockAllHeroes();
+                                if (res.success) {
+                                    alert('Refreshed! Reload to see changes.');
+                                    fetchOwnedHeroes();
+                                } else {
+                                    alert('Error: ' + res.message);
+                                }
+                            }
+                        }}>
+                            🔓 Unlock
+                        </PixelButton>
+                    </div>
+                    <div className="flex gap-2">
+                        <PixelButton variant="neutral" onClick={onCancel}>
+                            Cancel
+                        </PixelButton>
+                        <PixelButton
+                            variant="primary"
+                            onClick={handleConfirm}
+                            disabled={selectedTokenIds.length === 0}
+                        >
+                            {mode === 'public' ? 'Create Lobby' : 'Confirm Party'}
+                        </PixelButton>
+                    </div>
                 </div>
             </div>
         </PixelBox>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Boss Entity Helper
  * 
  * Helper functions for registering bosses and mid-bosses as entities with history
@@ -106,4 +106,3 @@ export function registerBossEntity(
 
   return bossEntity;
 }
-

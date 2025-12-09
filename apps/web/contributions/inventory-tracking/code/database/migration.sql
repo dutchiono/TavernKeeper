@@ -1,4 +1,4 @@
--- Inventory Tracking System - Database Migration
+﻿-- Inventory Tracking System - Database Migration
 -- Creates tables for tracking player inventory (equipped and non-equipped items)
 
 -- Inventory items table - stores all items owned by wallets

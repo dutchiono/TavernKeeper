@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Combat System - Type Definitions
  * 
  * Types for turn-based combat encounters between party members and monsters.

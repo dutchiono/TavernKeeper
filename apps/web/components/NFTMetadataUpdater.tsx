@@ -1,14 +1,13 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
-import { createWalletClient, custom } from 'viem';
-import { monad } from '../lib/chains';
+import { useAccount, useWalletClient } from 'wagmi';
 import { HeroMetadata, heroMinting } from '../lib/services/heroMinting';
 import { metadataStorage } from '../lib/services/metadataStorage';
 import { rpgService } from '../lib/services/rpgService';
 import { DEFAULT_COLORS, Gender, GENDERS, generateSpriteURI, HERO_CLASSES, HeroClass, HeroColors } from '../lib/services/spriteService';
 import { PixelButton, PixelPanel } from './PixelComponents';
+import { ForgePanel } from './heroes/ForgeComponents';
 import { SpritePreview } from './heroes/SpritePreview';
 
 interface NFTMetadataUpdaterProps {
@@ -39,10 +38,8 @@ export default function NFTMetadataUpdater({
     onSuccess,
     onCancel
 }: NFTMetadataUpdaterProps) {
-    const { user } = usePrivy();
-    const { wallets } = useWallets();
-    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
-    const address = user?.wallet?.address;
+    const { address } = useAccount();
+    const { data: walletClient } = useWalletClient();
 
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -63,17 +60,34 @@ export default function NFTMetadataUpdater({
             }
 
             try {
-                // Convert IPFS URI to HTTP URL
-                const url = tokenUri.startsWith('ipfs://')
-                    ? tokenUri.replace('ipfs://', 'https://ipfs.io/ipfs/')
-                    : tokenUri;
+                let metadata: HeroMetadata | TavernKeeperMetadata;
 
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch metadata');
+                // Handle data URIs (base64 encoded JSON)
+                if (tokenUri.startsWith('data:application/json;base64,')) {
+                    const base64 = tokenUri.replace('data:application/json;base64,', '');
+                    const jsonString = atob(base64); // Decode base64
+                    metadata = JSON.parse(jsonString) as HeroMetadata | TavernKeeperMetadata;
                 }
-
-                const metadata = await response.json() as HeroMetadata | TavernKeeperMetadata;
+                // Handle regular HTTP URLs
+                else if (tokenUri.startsWith('http://') || tokenUri.startsWith('https://')) {
+                    const response = await fetch(tokenUri);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch metadata');
+                    }
+                    metadata = await response.json() as HeroMetadata | TavernKeeperMetadata;
+                }
+                // Handle IPFS URIs
+                else if (tokenUri.startsWith('ipfs://')) {
+                    const url = tokenUri.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch metadata');
+                    }
+                    metadata = await response.json() as HeroMetadata | TavernKeeperMetadata;
+                }
+                else {
+                    throw new Error('Unsupported URI format');
+                }
 
                 // Extract current values based on contract type
                 setName(metadata.name || '');
@@ -99,7 +113,7 @@ export default function NFTMetadataUpdater({
     }, [tokenUri, contractType]);
 
     const handleUpdate = async () => {
-        if (!address || !wallet || !name.trim()) {
+        if (!address || !walletClient || !name.trim()) {
             setError('Please fill in all required fields');
             return;
         }
@@ -168,13 +182,8 @@ export default function NFTMetadataUpdater({
             // 4. Upload metadata to IPFS
             const newMetadataUri = await metadataStorage.upload(metadata);
 
-            // 5. Create wallet client and update contract
-            const provider = await wallet.getEthereumProvider();
-            const walletClient = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider),
-            });
+            // 5. Use existing walletClient from wagmi
+
 
             // 6. Call updateTokenURI on contract
             if (contractType === 'hero') {
@@ -213,124 +222,128 @@ export default function NFTMetadataUpdater({
     }
 
     return (
-        <PixelPanel title={`Update ${contractType === 'hero' ? 'Hero' : 'Tavern'} #${tokenId}`} variant="wood" className="max-w-md">
-            <div className="space-y-4">
-                {/* Preview */}
-                <div className="flex justify-center">
-                    {contractType === 'hero' ? (
-                        <SpritePreview
-                            type={heroClass}
-                            colors={colors}
-                            scale={3}
-                            isKeeper={false}
-                        />
-                    ) : (
-                        <SpritePreview
-                            type={gender}
-                            colors={colors}
-                            isKeeper={true}
-                            scale={3}
-                            showFrame={false}
-                        />
-                    )}
-                </div>
-
-                {/* Name Input */}
-                <div>
-                    <label className="block text-sm text-[#8b7355] mb-1">Name</label>
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full px-3 py-2 bg-[#1a120d] border-2 border-[#4a3b2a] text-[#eaddcf] rounded focus:border-yellow-400 focus:outline-none"
-                        placeholder="Enter name"
-                    />
-                </div>
-
-                {/* Class Selector (only for heroes) */}
-                {contractType === 'hero' && (
-                    <div>
-                        <label className="block text-sm text-[#8b7355] mb-1">Class</label>
-                        <select
-                            value={heroClass}
-                            onChange={(e) => setHeroClass(e.target.value as HeroClass)}
-                            className="w-full px-3 py-2 bg-[#1a120d] border-2 border-[#4a3b2a] text-[#eaddcf] rounded focus:border-yellow-400 focus:outline-none"
-                        >
-                            {HERO_CLASSES.map(cls => (
-                                <option key={cls} value={cls}>{cls}</option>
-                            ))}
-                        </select>
+        <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
+            <PixelPanel title={`Update ${contractType === 'hero' ? 'Hero' : 'TavernKeeper'} #${tokenId}`} variant="wood" className="w-full max-w-4xl max-h-full flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-hidden flex flex-col lg:flex-row gap-4 p-4">
+                    {/* Left Column: Preview */}
+                    <div className="flex-shrink-0 lg:w-1/2 flex flex-col gap-4">
+                        <ForgePanel title="Preview" variant="paper" className="flex-1 flex flex-col items-center justify-center min-h-[200px] lg:min-h-0">
+                            <div className="relative p-4 sm:p-6 w-full flex flex-col items-center">
+                                {contractType === 'hero' ? (
+                                    <SpritePreview
+                                        type={heroClass}
+                                        colors={colors}
+                                        scale={4}
+                                        isKeeper={false}
+                                        showFrame={true}
+                                        name={name || 'Unknown Hero'}
+                                    />
+                                ) : (
+                                    <SpritePreview
+                                        type={gender}
+                                        colors={colors}
+                                        isKeeper={true}
+                                        scale={4}
+                                        showFrame={true}
+                                        name={name || 'Unknown Keeper'}
+                                        subtitle="Proprietor"
+                                    />
+                                )}
+                            </div>
+                        </ForgePanel>
                     </div>
-                )}
 
-                {/* Gender Selector (only for tavern keepers) */}
-                {contractType === 'tavernKeeper' && (
-                    <div>
-                        <label className="block text-sm text-[#8b7355] mb-1">Style</label>
-                        <div className="flex gap-2">
-                            {GENDERS.map(g => (
-                                <button
-                                    key={g}
-                                    onClick={() => setGender(g)}
-                                    className={`flex-1 py-2 text-xs font-bold uppercase border-2 transition-all ${gender === g
-                                            ? 'bg-amber-600 border-amber-800 text-white'
-                                            : 'bg-[#1a120d] border-[#4a3b2a] text-[#8b7355] hover:bg-[#2a1d17]'
-                                        }`}
-                                >
-                                    {g}
-                                </button>
-                            ))}
+                    {/* Right Column: Controls */}
+                    <div className="flex-1 lg:w-1/2 flex flex-col gap-4 overflow-y-auto min-h-0">
+                        {/* Name Input */}
+                        <div>
+                            <label className="block text-sm text-[#8b7355] mb-1">Name</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full px-3 py-2 bg-[#1a120d] border-2 border-[#4a3b2a] text-[#eaddcf] rounded focus:border-yellow-400 focus:outline-none"
+                                placeholder="Enter name"
+                            />
                         </div>
-                    </div>
-                )}
 
-                {/* Color Pickers */}
-                <div className="space-y-2">
-                    <label className="block text-sm text-[#8b7355]">Colors</label>
-                    <div className="grid grid-cols-2 gap-2">
-                        {Object.entries(colors).map(([key, value]) => (
-                            <div key={key}>
-                                <label className="block text-xs text-[#8b7355] mb-1 capitalize">{key}</label>
+                        {/* Class Selector (only for heroes) */}
+                        {contractType === 'hero' && (
+                            <div>
+                                <label className="block text-sm text-[#8b7355] mb-1">Class</label>
+                                <select
+                                    value={heroClass}
+                                    onChange={(e) => setHeroClass(e.target.value as HeroClass)}
+                                    className="w-full px-3 py-2 bg-[#1a120d] border-2 border-[#4a3b2a] text-[#eaddcf] rounded focus:border-yellow-400 focus:outline-none"
+                                >
+                                    {HERO_CLASSES.map(cls => (
+                                        <option key={cls} value={cls}>{cls}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {/* Gender Selector (only for tavern keepers) */}
+                        {contractType === 'tavernKeeper' && (
+                            <div>
+                                <label className="block text-sm text-[#8b7355] mb-1">Style</label>
                                 <div className="flex gap-2">
-                                    <input
-                                        type="color"
-                                        value={value}
-                                        onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-                                        className="h-8 w-16 border-2 border-[#4a3b2a] rounded cursor-pointer"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={value}
-                                        onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-                                        className="flex-1 px-2 py-1 bg-[#1a120d] border-2 border-[#4a3b2a] text-[#eaddcf] text-xs rounded focus:border-yellow-400 focus:outline-none"
-                                    />
+                                    {GENDERS.map(g => (
+                                        <button
+                                            key={g}
+                                            onClick={() => setGender(g)}
+                                            className={`flex-1 py-2 text-xs font-bold uppercase border-2 transition-all ${gender === g
+                                                ? 'bg-amber-600 border-amber-800 text-white'
+                                                : 'bg-[#1a120d] border-[#4a3b2a] text-[#8b7355] hover:bg-[#2a1d17]'
+                                                }`}
+                                        >
+                                            {g}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
-                        ))}
+                        )}
+
+                        {/* Color Pickers */}
+                        <ForgePanel title="Palette" variant="wood">
+                            <div className="grid grid-cols-2 gap-3">
+                                {Object.entries(colors).map(([part, color]) => (
+                                    <div key={part} className="flex items-center gap-2 bg-[#1e1209] p-2 border border-[#3e2613]">
+                                        <input
+                                            type="color"
+                                            value={color}
+                                            onChange={(e) => setColors({ ...colors, [part]: e.target.value })}
+                                            className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer"
+                                        />
+                                        <span className="text-[10px] text-[#8b7b63] uppercase">{part}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </ForgePanel>
+
+                        {/* Error Message */}
+                        {error && (
+                            <div className="text-[#ef4444] text-sm">{error}</div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-2 mt-auto">
+                            {onCancel && (
+                                <PixelButton onClick={onCancel} variant="neutral" className="flex-1">
+                                    Cancel
+                                </PixelButton>
+                            )}
+                            <PixelButton
+                                onClick={handleUpdate}
+                                disabled={updating || !name.trim()}
+                                className="flex-1"
+                            >
+                                {updating ? 'Updating...' : 'Update NFT'}
+                            </PixelButton>
+                        </div>
                     </div>
                 </div>
-
-                {/* Error Message */}
-                {error && (
-                    <div className="text-[#ef4444] text-sm">{error}</div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                    {onCancel && (
-                        <PixelButton onClick={onCancel} variant="neutral" className="flex-1">
-                            Cancel
-                        </PixelButton>
-                    )}
-                    <PixelButton
-                        onClick={handleUpdate}
-                        disabled={updating || !name.trim()}
-                        className="flex-1"
-                    >
-                        {updating ? 'Updating...' : 'Update NFT'}
-                    </PixelButton>
-                </div>
-            </div>
-        </PixelPanel>
+            </PixelPanel>
+        </div>
     );
 }

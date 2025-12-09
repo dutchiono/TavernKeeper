@@ -1,5 +1,5 @@
-import { usePrivy } from '@privy-io/react-auth';
 import React, { useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { useRunStatus } from '../../lib/hooks/useRunStatus';
 import { runService } from '../../lib/services/runService';
 import { useGameStore } from '../../lib/stores/gameStore';
@@ -25,8 +25,8 @@ interface DungeonMap {
 
 export const MapScene: React.FC = () => {
     const { selectedPartyTokenIds, setSelectedPartyTokenIds, currentRunId, setCurrentRunId, switchView } = useGameStore();
-    const { user, authenticated } = usePrivy();
-    const address = user?.wallet?.address;
+    const { address, isConnected } = useAccount();
+    const authenticated = isConnected;
 
     const [map, setMap] = useState<DungeonMap | null>(null);
     const [loading, setLoading] = useState(true);
@@ -35,9 +35,13 @@ export const MapScene: React.FC = () => {
     const [creatingRun, setCreatingRun] = useState(false);
     const [currentPartyId, setCurrentPartyId] = useState<string | null>(null);
 
+    const [stats, setStats] = useState<{ dailyRuns: number; remainingFreeRuns: number } | null>(null);
+    const [runCostMon, setRunCostMon] = useState<string>('0');
+
     // Poll run status if we have a current run
     const { status: runStatus } = useRunStatus(currentRunId);
 
+    // Fetch Stats & Map
     useEffect(() => {
         const fetchMap = async () => {
             try {
@@ -54,8 +58,35 @@ export const MapScene: React.FC = () => {
             }
         };
 
+        const fetchStats = async () => {
+            if (!address) return;
+            try {
+                const res = await fetch(`/api/runs/stats?wallet=${address}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data);
+                }
+            } catch (e) {
+                console.error("Failed to fetch stats", e);
+            }
+        };
+
+        const fetchPrice = async () => {
+            try {
+                const { calculateMonAmount } = await import('../../lib/services/monPriceService');
+                const cost = await calculateMonAmount(0.25);
+                setRunCostMon(cost);
+            } catch (e) {
+                console.error("Failed to fetch price", e);
+            }
+        };
+
         fetchMap();
-    }, []);
+        if (address) {
+            fetchStats();
+            fetchPrice();
+        }
+    }, [address]);
 
     // Transition to battle when run starts (has start_time but no end_time means it's running)
     useEffect(() => {
@@ -114,8 +145,10 @@ export const MapScene: React.FC = () => {
                 <h2 className="text-amber-500 text-lg font-bold tracking-[0.2em] drop-shadow-md uppercase">
                     {map?.name || 'Unknown Location'}
                 </h2>
-                <div className="text-amber-900/60 text-[10px] mt-1 uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-full inline-block">
-                    {(map?.geographyType || 'Unknown').replace('_', ' ')} • Tier 1
+                <div className="flex flex-col gap-1 items-center mt-2">
+                    <div className="text-amber-900/60 text-[10px] uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-full inline-block">
+                        {(map?.geographyType || 'Unknown').replace('_', ' ')} • Tier 1
+                    </div>
                 </div>
             </div>
 
@@ -182,6 +215,18 @@ export const MapScene: React.FC = () => {
 
             {/* Action Area */}
             <div className="w-full px-6 pb-6 z-20 mt-auto">
+                <div className="flex flex-col gap-2 mb-4">
+                    {stats && (
+                        <div className="text-center font-pixel text-xs">
+                            {stats.remainingFreeRuns > 0 ? (
+                                <span className="text-green-400">Free Runs Available: {stats.remainingFreeRuns}/2</span>
+                            ) : (
+                                <span className="text-amber-400">Daily Limit Reached. Cost: {runCostMon} MON ($0.25)</span>
+                            )}
+                        </div>
+                    )}
+                </div>
+
                 <PixelButton
                     variant="primary"
                     className="w-full py-4 text-sm tracking-widest shadow-[0_0_20px_rgba(0,0,0,0.5)] border-amber-600"
@@ -190,7 +235,10 @@ export const MapScene: React.FC = () => {
                 >
                     <div className="flex items-center justify-center gap-3">
                         <span className="text-xl">⚔️</span>
-                        <span>{creatingRun ? 'CREATING RUN...' : 'ENTER AREA'}</span>
+                        <span>
+                            {creatingRun ? 'CREATING RUN...' :
+                                (stats && stats.remainingFreeRuns === 0) ? 'START RUN (PAY)' : 'ENTER AREA'}
+                        </span>
                     </div>
                 </PixelButton>
                 {!authenticated && (
@@ -266,6 +314,12 @@ export const MapScene: React.FC = () => {
             return;
         }
 
+        // Check availability/payment logic here or in handleCreateRun
+        if (stats && stats.remainingFreeRuns === 0) {
+            const confirmPay = confirm(`Daily free runs used. Pay ${runCostMon} MON (~$0.25) to start run?`);
+            if (!confirmPay) return;
+        }
+
         // If we have a party selected, create run
         if (selectedPartyTokenIds.length > 0) {
             await handleCreateRun(selectedPartyTokenIds);
@@ -277,18 +331,45 @@ export const MapScene: React.FC = () => {
         setError(null);
 
         try {
+            // Payment handling mock
+            let paymentHash: string | undefined = undefined;
+            if (stats && stats.remainingFreeRuns === 0) {
+                // Simulate payment tx
+                console.log("Processing payment...");
+                paymentHash = "0xmock_payment_hash_" + Date.now();
+            }
+
             const result = await runService.createRun({
                 dungeonId: map?.id || 'abandoned-cellar',
                 party: tokenIds,
+                walletAddress: address as string,
+                paymentHash
             });
 
             setCurrentRunId(result.id);
+
+            // Refetch stats
+            try {
+                const res = await fetch(`/api/runs/stats?wallet=${address}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data);
+                }
+            } catch (e) {
+                console.error("Failed to refetch stats", e);
+            }
 
             // Transition to battle view (will be handled by run status polling)
             switchView(GameView.BATTLE);
         } catch (err) {
             console.error('Failed to create run:', err);
-            setError(err instanceof Error ? err.message : 'Failed to create run');
+            // Check if error is handling JSON or just message
+            let errMsg = 'Failed to create run';
+            if (err instanceof Error) {
+                errMsg = err.message;
+                // If locking error, it might be in the message
+            }
+            setError(errMsg);
         } finally {
             setCreatingRun(false);
         }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Room Generator
  * 
  * Generates rooms for dungeon levels (pre-generated during dungeon creation).
@@ -392,4 +392,3 @@ export class RoomGenerator {
     return `${base} ${additions[roomType] || ''}`;
   }
 }
-

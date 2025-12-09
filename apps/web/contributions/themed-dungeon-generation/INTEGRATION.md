@@ -1,6 +1,6 @@
-# Integration Guide
+﻿# Integration Guide
 
-## ⚠️ TypeScript is Primary
+## ΓÜá∩╕Å TypeScript is Primary
 
 **The TypeScript code in `code/` is the PRIMARY implementation.**
 
@@ -10,16 +10,16 @@ The HTML tool in `tools/dungeon-generator/` is a simplified testing tool only. A
 
 ```
 code/
-├── index.ts                          # Main export file - USE THIS
-├── types/
-│   └── dungeon-generation.ts         # Type definitions
-├── themes/
-│   └── theme-definitions.ts           # Theme definitions
-└── generators/
-    ├── dungeon-generator.ts           # Main generator class
-    ├── boss-generator.ts              # Boss generation
-    ├── theme-generator.ts             # Theme selection
-    └── room-generator.ts              # Room generation
+Γö£ΓöÇΓöÇ index.ts                          # Main export file - USE THIS
+Γö£ΓöÇΓöÇ types/
+Γöé   ΓööΓöÇΓöÇ dungeon-generation.ts         # Type definitions
+Γö£ΓöÇΓöÇ themes/
+Γöé   ΓööΓöÇΓöÇ theme-definitions.ts           # Theme definitions
+ΓööΓöÇΓöÇ generators/
+    Γö£ΓöÇΓöÇ dungeon-generator.ts           # Main generator class
+    Γö£ΓöÇΓöÇ boss-generator.ts              # Boss generation
+    Γö£ΓöÇΓöÇ theme-generator.ts             # Theme selection
+    ΓööΓöÇΓöÇ room-generator.ts              # Room generation
 ```
 
 ## Integration Steps
@@ -148,4 +148,3 @@ Use the HTML tool in `tools/dungeon-generator/` for quick testing, but remember:
 - Rooms are generated on-demand to save memory
 - Level layout is a list for indexed access
 - Theme selection considers boss influence
-

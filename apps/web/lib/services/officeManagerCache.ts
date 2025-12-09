@@ -74,23 +74,47 @@ export function setOfficeManagerData(
 
 /**
  * Get office manager data for an address
+ * First checks cache, then fetches from database if not found
  */
-export function getOfficeManagerData(address: string): OfficeManagerData | null {
+export async function getOfficeManagerData(address: string): Promise<OfficeManagerData | null> {
     if (!address) return null;
 
     const normalizedAddress = address.toLowerCase();
-    const data = memoryCache.get(normalizedAddress);
+    const cachedData = memoryCache.get(normalizedAddress);
 
-    if (!data) return null;
-
-    // Check if expired
-    if (Date.now() - data.cachedAt > CACHE_EXPIRY) {
-        memoryCache.delete(normalizedAddress);
-        saveToLocalStorage();
-        return null;
+    // Return cached data if valid
+    if (cachedData && Date.now() - cachedData.cachedAt < CACHE_EXPIRY) {
+        return cachedData;
     }
 
-    return data;
+    // If expired or not in cache, fetch from database
+    try {
+        const response = await fetch(`/api/office/get-manager?address=${encodeURIComponent(normalizedAddress)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.fid || data.username) {
+                const managerData: OfficeManagerData = {
+                    fid: data.fid,
+                    username: data.username,
+                    displayName: data.displayName,
+                    cachedAt: Date.now(),
+                };
+                // Update cache
+                memoryCache.set(normalizedAddress, managerData);
+                saveToLocalStorage();
+                return managerData;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to fetch office manager data from database:', error);
+    }
+
+    // Return expired cache if available (better than nothing)
+    if (cachedData) {
+        return cachedData;
+    }
+
+    return null;
 }
 
 /**

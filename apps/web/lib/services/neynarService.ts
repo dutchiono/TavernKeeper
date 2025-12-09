@@ -63,6 +63,81 @@ export async function getUserByAddress(address: string): Promise<{
 }
 
 /**
+ * Get Farcaster user information by username
+ * Returns FID, username, and displayName if found
+ */
+export async function getUserByUsername(username: string): Promise<{
+    fid: number;
+    username?: string;
+    displayName?: string;
+} | null> {
+    try {
+        const apiKey = process.env.NEYNAR_API_KEY;
+        if (!apiKey) {
+            console.error('NEYNAR_API_KEY not set');
+            return null;
+        }
+
+        // Remove @ if present
+        const cleanUsername = username.replace(/^@/, '');
+
+        // Use direct API call (more reliable than SDK methods)
+        const response = await fetch(
+            `https://api.neynar.com/v2/farcaster/user/by_username?username=${encodeURIComponent(cleanUsername)}`,
+            {
+                headers: {
+                    'api_key': apiKey,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            // Try without .eth suffix if it was present
+            if (cleanUsername.endsWith('.eth')) {
+                const usernameWithoutEth = cleanUsername.replace(/\.eth$/, '');
+                const retryResponse = await fetch(
+                    `https://api.neynar.com/v2/farcaster/user/by_username?username=${encodeURIComponent(usernameWithoutEth)}`,
+                    {
+                        headers: {
+                            'api_key': apiKey,
+                            'Content-Type': 'application/json',
+                        },
+                    }
+                );
+                if (retryResponse.ok) {
+                    const retryData = await retryResponse.json();
+                    if (retryData?.result?.user) {
+                        const user = retryData.result.user;
+                        return {
+                            fid: user.fid,
+                            username: user.username || undefined,
+                            displayName: user.display_name || undefined,
+                        };
+                    }
+                }
+            }
+            return null;
+        }
+
+        const data = await response.json();
+        if (data?.result?.user) {
+            const user = data.result.user;
+            return {
+                fid: user.fid,
+                username: user.username || undefined,
+                displayName: user.display_name || undefined,
+            };
+        }
+
+        return null;
+    } catch (error: any) {
+        console.error('Error fetching user by username from Neynar:', error);
+        return null;
+    }
+}
+
+/**
  * Send notification to Farcaster mini app users
  *
  * @param targetFids Array of FIDs to send notification to (empty array = all users with notifications enabled)
@@ -78,6 +153,25 @@ export async function sendNotification(
 ): Promise<boolean> {
     try {
         const client = getNeynarClient();
+        const apiKey = process.env.NEYNAR_API_KEY;
+
+        // Check if API key is set
+        if (!apiKey || apiKey === 'DUMMY_KEY') {
+            console.error('❌ NEYNAR_API_KEY is not set or is dummy. Cannot send notifications.');
+            return false;
+        }
+
+        // Validate inputs
+        // Note: Empty targetFids array is valid - it means broadcast to all users with notifications enabled
+        if (!Array.isArray(targetFids)) {
+            console.error('❌ targetFids must be an array');
+            return false;
+        }
+
+        if (!title || !body) {
+            console.error('❌ Notification title and body are required');
+            return false;
+        }
 
         const notification = {
             title,
@@ -85,14 +179,101 @@ export async function sendNotification(
             ...(targetUrl && { target_url: targetUrl }),
         };
 
+        const isBroadcast = targetFids.length === 0;
+        console.log(`📤 Attempting to ${isBroadcast ? 'broadcast' : 'send'} notification:`, {
+            targetFids: isBroadcast ? 'ALL USERS (broadcast)' : targetFids,
+            title,
+            bodyLength: body.length,
+            targetUrl,
+        });
+
         await client.publishFrameNotifications({
-            targetFids,
+            targetFids, // Empty array = broadcast to all users with notifications enabled
             notification: notification as any, // Cast to any to avoid strict type checking on optional fields
         });
 
+        console.log('✅ Notification sent successfully to FIDs:', targetFids);
         return true;
-    } catch (error) {
-        console.error('Error sending notification via Neynar:', error);
+    } catch (error: any) {
+        console.error('❌ Error sending notification via Neynar:');
+        console.error('Error type:', error?.constructor?.name);
+        console.error('Error message:', error?.message);
+
+        // Log detailed error information if available
+        if (error?.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+        } else if (error?.data) {
+            console.error('Error data:', JSON.stringify(error.data, null, 2));
+        }
+
+        // Log stack trace for debugging
+        if (error?.stack) {
+            console.error('Stack trace:', error.stack);
+        }
+
+        return false;
+    }
+}
+
+/**
+ * Post a cast to Farcaster feed using the UUID signer
+ *
+ * @param text The text content of the cast
+ * @param embedUrls Array of URLs to embed (will be converted to embed objects)
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function postToFeed(text: string, embedUrls?: string[]): Promise<boolean> {
+    try {
+        const signerUuid = process.env.NEYNAR_SIGNER_UUID;
+        if (!signerUuid) {
+            console.error('❌ NEYNAR_SIGNER_UUID not found. Cannot post to feed.');
+            console.error('   Set NEYNAR_SIGNER_UUID in your .env file to enable feed posting.');
+            return false;
+        }
+
+        const client = getNeynarClient();
+        const apiKey = process.env.NEYNAR_API_KEY;
+
+        if (!apiKey || apiKey === 'DUMMY_KEY') {
+            console.error('❌ NEYNAR_API_KEY is not set or is dummy. Cannot post to feed.');
+            return false;
+        }
+
+        // Convert URL strings to embed objects
+        const embeds = embedUrls?.map(url => ({ url })) || [];
+
+        console.log('📝 Posting to feed:', {
+            textLength: text.length,
+            embedCount: embeds.length,
+            signerUuid: signerUuid.substring(0, 8) + '...',
+        });
+
+        const response = await client.publishCast({
+            signerUuid: signerUuid,
+            text: text,
+            embeds: embeds,
+        });
+
+        console.log('✅ Feed post published successfully');
+        console.log('   Cast hash:', response?.hash || 'N/A');
+        return true;
+    } catch (error: any) {
+        console.error('❌ Error posting to feed:');
+        console.error('Error type:', error?.constructor?.name);
+        console.error('Error message:', error?.message);
+
+        if (error?.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+        } else if (error?.data) {
+            console.error('Error data:', JSON.stringify(error.data, null, 2));
+        }
+
+        if (error?.stack) {
+            console.error('Stack trace:', error.stack);
+        }
+
         return false;
     }
 }

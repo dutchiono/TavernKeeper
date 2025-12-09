@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Attack Resolution System
  * 
  * Handles attack rolls, damage calculation, and hit determination.

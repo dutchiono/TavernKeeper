@@ -1,29 +1,15 @@
 'use client';
 
-import { usePrivy } from '@privy-io/react-auth';
-import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
+import { useAccount, useWalletClient } from 'wagmi';
 import { PixelButton, PixelCard, PixelPanel } from '../../components/PixelComponents';
-import { useSafeAccount } from '../../lib/hooks/useSafeAccount';
-import { getFarcasterEthereumProvider } from '../../lib/services/farcasterWallet';
+import { UnfinishedFeatureWarning } from '../../components/UnfinishedFeatureWarning';
 import { TownPosseGroup, townPosseService } from '../../lib/services/townPosseService';
-import { isInFarcasterMiniapp } from '../../lib/utils/farcasterDetection';
 
 export default function TownPossePage() {
-    const isMiniapp = isInFarcasterMiniapp();
-    const privy = usePrivy();
-    const { address, authenticated } = useSafeAccount();
+    const { address, isConnected } = useAccount();
+    const { data: walletClient } = useWalletClient();
 
-    // Helper to get ethers provider/signer
-    const getEthersProvider = async () => {
-        if (isMiniapp) {
-            const provider = await getFarcasterEthereumProvider();
-            if (!provider) return null;
-            return new ethers.BrowserProvider(provider);
-        } else {
-            return await privy.getEthersProvider();
-        }
-    };
     const [posses, setPosses] = useState<TownPosseGroup[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'list' | 'create' | 'details'>('list');
@@ -40,20 +26,23 @@ export default function TownPossePage() {
     const [contributeKeep, setContributeKeep] = useState('');
     const [processing, setProcessing] = useState(false);
 
+    // Warning Modals
+    const [showCreateWarning, setShowCreateWarning] = useState(false);
+    const [showContributeWarning, setShowContributeWarning] = useState(false);
+    const [showClaimWarning, setShowClaimWarning] = useState(false);
+
     useEffect(() => {
-        if (authenticated) {
+        if (isConnected && address) {
             fetchPosses();
         } else {
             setLoading(false);
         }
-    }, [authenticated]);
+    }, [isConnected, address]);
 
     const fetchPosses = async () => {
+        if (!address) return;
         try {
-            const provider = await getEthersProvider();
-            if (!provider) return;
-            const signer = await provider.getSigner();
-            const userPosses = await townPosseService.getUserPosses(signer);
+            const userPosses = await townPosseService.getUserPosses(address);
             setPosses(userPosses);
         } catch (error) {
             console.error("Failed to fetch posses:", error);
@@ -62,15 +51,17 @@ export default function TownPossePage() {
         }
     };
 
+    const handleCreatePosseClick = () => {
+        setShowCreateWarning(true);
+    };
+
     const handleCreatePosse = async () => {
-        if (!createName) return;
+        setShowCreateWarning(false);
+        if (!createName || !walletClient) return;
         setProcessing(true);
         try {
-            const provider = await getEthersProvider();
-            if (!provider) return;
-            const signer = await provider.getSigner();
             await townPosseService.createPosse(
-                signer,
+                walletClient,
                 createName,
                 parseInt(maxMembers),
                 openMembership,
@@ -87,20 +78,24 @@ export default function TownPossePage() {
         }
     };
 
+    const handleContributeClick = () => {
+        setShowContributeWarning(true);
+    };
+
     const handleContribute = async () => {
-        if (!selectedPosse || !contributeMon || !contributeKeep) return;
+        setShowContributeWarning(false);
+        if (!selectedPosse || !contributeMon || !contributeKeep || !walletClient) return;
         setProcessing(true);
         try {
-            const provider = await getEthersProvider();
-            if (!provider) return;
-            const signer = await provider.getSigner();
-            await townPosseService.contribute(signer, selectedPosse.posseId, contributeMon, contributeKeep);
+            await townPosseService.contribute(walletClient, selectedPosse.posseId, contributeMon, contributeKeep);
             await fetchPosses();
 
             // Update selected posse
-            const updatedPosses = await townPosseService.getUserPosses(signer);
-            const updated = updatedPosses.find(p => p.posseId === selectedPosse.posseId);
-            if (updated) setSelectedPosse(updated);
+            if (address) {
+                const updatedPosses = await townPosseService.getUserPosses(address);
+                const updated = updatedPosses.find(p => p.posseId === selectedPosse.posseId);
+                if (updated) setSelectedPosse(updated);
+            }
 
             setContributeMon('');
             setContributeKeep('');
@@ -113,14 +108,16 @@ export default function TownPossePage() {
         }
     };
 
+    const handleClaimFeesClick = () => {
+        setShowClaimWarning(true);
+    };
+
     const handleClaimFees = async () => {
-        if (!selectedPosse) return;
+        setShowClaimWarning(false);
+        if (!selectedPosse || !walletClient) return;
         setProcessing(true);
         try {
-            const provider = await getEthersProvider();
-            if (!provider) return;
-            const signer = await provider.getSigner();
-            await townPosseService.claimFees(signer, selectedPosse.posseId);
+            await townPosseService.claimFees(walletClient, selectedPosse.posseId);
             await fetchPosses();
             alert("Fees claimed successfully!");
         } catch (error) {
@@ -149,7 +146,7 @@ export default function TownPossePage() {
         }
     };
 
-    if (!authenticated) {
+    if (!isConnected) {
         return (
             <main className="min-h-full bg-[#2a1d17] p-8 flex items-center justify-center font-pixel">
                 <PixelPanel title="Access Denied" variant="wood" className="max-w-md text-center">
@@ -264,7 +261,7 @@ export default function TownPossePage() {
                                     </div>
 
                                     <PixelButton
-                                        onClick={handleCreatePosse}
+                                        onClick={handleCreatePosseClick}
                                         disabled={!createName || processing}
                                         className="w-full"
                                     >
@@ -299,7 +296,7 @@ export default function TownPossePage() {
                                             </div>
 
                                             <PixelButton
-                                                onClick={handleClaimFees}
+                                                onClick={handleClaimFeesClick}
                                                 disabled={parseFloat(selectedPosse.myPendingFees) <= 0 || processing}
                                                 className="w-full"
                                                 variant="wood"
@@ -352,7 +349,7 @@ export default function TownPossePage() {
                                             </div>
 
                                             <PixelButton
-                                                onClick={handleContribute}
+                                                onClick={handleContributeClick}
                                                 disabled={!contributeMon || !contributeKeep || processing}
                                                 className="w-full"
                                             >
@@ -366,6 +363,26 @@ export default function TownPossePage() {
                     </>
                 )}
             </div>
+
+            {/* Warning Modals */}
+            <UnfinishedFeatureWarning
+                isOpen={showCreateWarning}
+                onClose={() => setShowCreateWarning(false)}
+                onConfirm={handleCreatePosse}
+                featureName="Town Posse Creation"
+            />
+            <UnfinishedFeatureWarning
+                isOpen={showContributeWarning}
+                onClose={() => setShowContributeWarning(false)}
+                onConfirm={handleContribute}
+                featureName="Town Posse Contribution"
+            />
+            <UnfinishedFeatureWarning
+                isOpen={showClaimWarning}
+                onClose={() => setShowClaimWarning(false)}
+                onConfirm={handleClaimFees}
+                featureName="Town Posse Fee Claim"
+            />
         </main>
     );
 }

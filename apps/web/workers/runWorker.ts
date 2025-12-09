@@ -54,7 +54,9 @@ export const runWorker = new Worker<RunJobData>(
 
       // Load agent IDs for party members (would need to query agents table)
       // For now, use character IDs as agent IDs (simplified)
-      const agentIds = party;
+      // DISABLE REMOTE AGENTS for stability if Agent Server is missing.
+      // The Engine will fallback to default AI (nearest enemy).
+      const agentIds: string[] = []; // party; 
 
       const result = await simulateRun({
         dungeonSeed: dungeon.seed as string,
@@ -103,6 +105,14 @@ export const runWorker = new Worker<RunJobData>(
       };
     } catch (error) {
       console.error(`Error processing run ${runId}:`, error);
+
+      // Log error to database for debugging
+      await supabase.from('run_logs').insert({
+        run_id: runId,
+        text: `Simulation Failed: ${error instanceof Error ? error.message : String(error)}\nStack: ${error instanceof Error ? error.stack : ''}`,
+        type: 'system',
+        timestamp: new Date().toISOString()
+      });
 
       // Update run with error status
       await supabase

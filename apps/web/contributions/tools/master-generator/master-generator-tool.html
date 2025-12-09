@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -459,7 +459,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>⚔️ InnKeeper Master Generation Tool ⚔️</h1>
+        <h1>ΓÜö∩╕Å InnKeeper Master Generation Tool ΓÜö∩╕Å</h1>
         <p>Unified Interface for World, Map, Dungeon, and Item Generation Systems</p>
     </div>
 
@@ -829,10 +829,10 @@
             // Toggle the expanded state
             if (children.classList.contains('expanded')) {
                 children.classList.remove('expanded');
-                toggle.textContent = '▶';
+                toggle.textContent = 'Γû╢';
             } else {
                 children.classList.add('expanded');
-                toggle.textContent = '▼';
+                toggle.textContent = 'Γû╝';
             }
         }
         
@@ -2374,7 +2374,7 @@
             if (world.primordials.length > 0) {
                 const levelId = 'tree-level-1';
                 html += `<div class="tree-node">`;
-                html += `<span class="tree-toggle" data-level-id="${levelId}">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${levelId}">Γû╝</span>`;
                 html += `<strong style="color: #ffd700;">Level 1: Primordials</strong> <span style="color: #aaa;">(${world.primordials.length})</span>`;
                 html += `<div class="tree-children expanded" id="${levelId}">`;
                 world.primordials.forEach(p => {
@@ -2384,7 +2384,7 @@
                         provenanceHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #16213e; font-size: 0.85em;">`;
                         provenanceHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 3px;">Provenance Chain:</div>`;
                         provenanceChain.forEach((link, index) => {
-                            const arrow = index < provenanceChain.length - 1 ? ' → ' : '';
+                            const arrow = index < provenanceChain.length - 1 ? ' ΓåÆ ' : '';
                             const typeDisplay = link.typeLabel ? ` (${link.typeLabel})` : '';
                             provenanceHtml += `<span style="color: #aaa;">${link.name}${typeDisplay}${arrow}</span>`;
                         });
@@ -2399,7 +2399,7 @@
             if (world.cosmicCreators.length > 0) {
                 const levelId = 'tree-level-2';
                 html += `<div class="tree-node">`;
-                html += `<span class="tree-toggle" data-level-id="${levelId}">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${levelId}">Γû╝</span>`;
                 html += `<strong style="color: #ffd700;">Level 2: Cosmic Creators</strong> <span style="color: #aaa;">(${world.cosmicCreators.length})</span>`;
                 html += `<div class="tree-children expanded" id="${levelId}">`;
                 world.cosmicCreators.forEach(c => {
@@ -2409,7 +2409,7 @@
                         provenanceHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #16213e; font-size: 0.85em;">`;
                         provenanceHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 3px;">Provenance Chain:</div>`;
                         provenanceChain.forEach((link, index) => {
-                            const arrow = index < provenanceChain.length - 1 ? ' → ' : '';
+                            const arrow = index < provenanceChain.length - 1 ? ' ΓåÆ ' : '';
                             const typeDisplay = link.typeLabel ? ` (${link.typeLabel})` : '';
                             provenanceHtml += `<span style="color: #aaa;">${link.name}${typeDisplay}${arrow}</span>`;
                         });
@@ -2424,7 +2424,7 @@
             if (world.geography.length > 0) {
                 const levelId = 'tree-level-2.5';
                 html += `<div class="tree-node">`;
-                html += `<span class="tree-toggle" data-level-id="${levelId}">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${levelId}">Γû╝</span>`;
                 html += `<strong style="color: #ffd700;">Level 2.5: Geography</strong> <span style="color: #aaa;">(${world.geography.length})</span>`;
                 html += `<div class="tree-children expanded" id="${levelId}">`;
                 world.geography.forEach(g => {
@@ -2434,7 +2434,7 @@
                         provenanceHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #16213e; font-size: 0.85em;">`;
                         provenanceHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 3px;">Provenance Chain:</div>`;
                         provenanceChain.forEach((link, index) => {
-                            const arrow = index < provenanceChain.length - 1 ? ' → ' : '';
+                            const arrow = index < provenanceChain.length - 1 ? ' ΓåÆ ' : '';
                             const typeDisplay = link.typeLabel ? ` (${link.typeLabel})` : '';
                             provenanceHtml += `<span style="color: #aaa;">${link.name}${typeDisplay}${arrow}</span>`;
                         });
@@ -2449,7 +2449,7 @@
             if (world.conceptualBeings && world.conceptualBeings.length > 0) {
                 const levelId = 'tree-level-3';
                 html += `<div class="tree-node">`;
-                html += `<span class="tree-toggle" data-level-id="${levelId}">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${levelId}">Γû╝</span>`;
                 html += `<strong style="color: #ffd700;">Level 3: Conceptual Beings</strong> <span style="color: #aaa;">(${world.conceptualBeings.length})</span>`;
                 html += `<div class="tree-children expanded" id="${levelId}">`;
                 world.conceptualBeings.forEach(being => {
@@ -2459,7 +2459,7 @@
                         provenanceHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #16213e; font-size: 0.85em;">`;
                         provenanceHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 3px;">Provenance Chain:</div>`;
                         provenanceChain.forEach((link, index) => {
-                            const arrow = index < provenanceChain.length - 1 ? ' → ' : '';
+                            const arrow = index < provenanceChain.length - 1 ? ' ΓåÆ ' : '';
                             const typeDisplay = link.typeLabel ? ` (${link.typeLabel})` : '';
                             provenanceHtml += `<span style="color: #aaa;">${link.name}${typeDisplay}${arrow}</span>`;
                         });
@@ -2474,7 +2474,7 @@
             if (world.demiGods && world.demiGods.length > 0) {
                 const levelId = 'tree-level-4';
                 html += `<div class="tree-node">`;
-                html += `<span class="tree-toggle" data-level-id="${levelId}">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${levelId}">Γû╝</span>`;
                 html += `<strong style="color: #ffd700;">Level 4: Demi-Gods</strong> <span style="color: #aaa;">(${world.demiGods.length})</span>`;
                 html += `<div class="tree-children expanded" id="${levelId}">`;
                 world.demiGods.forEach(demiGod => {
@@ -2485,7 +2485,7 @@
                         provenanceHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #16213e; font-size: 0.85em;">`;
                         provenanceHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 3px;">Provenance Chain:</div>`;
                         provenanceChain.forEach((link, index) => {
-                            const arrow = index < provenanceChain.length - 1 ? ' → ' : '';
+                            const arrow = index < provenanceChain.length - 1 ? ' ΓåÆ ' : '';
                             const typeDisplay = link.typeLabel ? ` (${link.typeLabel})` : '';
                             provenanceHtml += `<span style="color: #aaa;">${link.name}${typeDisplay}${arrow}</span>`;
                         });
@@ -2511,7 +2511,7 @@
             if (world.mortalRaces && world.mortalRaces.length > 0) {
                 const levelId = 'tree-level-5';
                 html += `<div class="tree-node">`;
-                html += `<span class="tree-toggle" data-level-id="${levelId}">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${levelId}">Γû╝</span>`;
                 html += `<strong style="color: #ffd700;">Level 5: Mortal Races</strong> <span style="color: #aaa;">(${world.mortalRaces.length})</span>`;
                 html += `<div class="tree-children expanded" id="${levelId}">`;
                 world.mortalRaces.forEach(race => {
@@ -2521,7 +2521,7 @@
                         provenanceHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #16213e; font-size: 0.85em;">`;
                         provenanceHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 3px;">Provenance Chain:</div>`;
                         provenanceChain.forEach((link, index) => {
-                            const arrow = index < provenanceChain.length - 1 ? ' → ' : '';
+                            const arrow = index < provenanceChain.length - 1 ? ' ΓåÆ ' : '';
                             const typeDisplay = link.typeLabel ? ` (${link.typeLabel})` : '';
                             provenanceHtml += `<span style="color: #aaa;">${link.name}${typeDisplay}${arrow}</span>`;
                         });
@@ -2536,7 +2536,7 @@
             if (world.organizations && world.organizations.length > 0) {
                 const levelId = 'tree-level-6';
                 html += `<div class="tree-node">`;
-                html += `<span class="tree-toggle" data-level-id="${levelId}">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${levelId}">Γû╝</span>`;
                 html += `<strong style="color: #ffd700;">Level 6: Organizations</strong> <span style="color: #aaa;">(${world.organizations.length})</span>`;
                 html += `<div class="tree-children expanded" id="${levelId}">`;
                 world.organizations.forEach(org => {
@@ -2546,7 +2546,7 @@
                         provenanceHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #16213e; font-size: 0.85em;">`;
                         provenanceHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 3px;">Provenance Chain:</div>`;
                         provenanceChain.forEach((link, index) => {
-                            const arrow = index < provenanceChain.length - 1 ? ' → ' : '';
+                            const arrow = index < provenanceChain.length - 1 ? ' ΓåÆ ' : '';
                             const typeDisplay = link.typeLabel ? ` (${link.typeLabel})` : '';
                             provenanceHtml += `<span style="color: #aaa;">${link.name}${typeDisplay}${arrow}</span>`;
                         });
@@ -2561,7 +2561,7 @@
             if (world.standoutMortals && world.standoutMortals.length > 0) {
                 const levelId = 'tree-level-6.5';
                 html += `<div class="tree-node">`;
-                html += `<span class="tree-toggle" data-level-id="${levelId}">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${levelId}">Γû╝</span>`;
                 html += `<strong style="color: #ffd700;">Level 6.5: Standout Mortals</strong> <span style="color: #aaa;">(${world.standoutMortals.length})</span>`;
                 html += `<div class="tree-children expanded" id="${levelId}">`;
                 world.standoutMortals.forEach(standout => {
@@ -2572,7 +2572,7 @@
                         provenanceHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #16213e; font-size: 0.85em;">`;
                         provenanceHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 3px;">Provenance Chain:</div>`;
                         provenanceChain.forEach((link, index) => {
-                            const arrow = index < provenanceChain.length - 1 ? ' → ' : '';
+                            const arrow = index < provenanceChain.length - 1 ? ' ΓåÆ ' : '';
                             const typeDisplay = link.typeLabel ? ` (${link.typeLabel})` : '';
                             provenanceHtml += `<span style="color: #aaa;">${link.name}${typeDisplay}${arrow}</span>`;
                         });
@@ -2595,7 +2595,7 @@
             if (world.dungeons && world.dungeons.length > 0) {
                 const levelId = 'tree-level-7.5';
                 html += `<div class="tree-node">`;
-                html += `<span class="tree-toggle" data-level-id="${levelId}">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${levelId}">Γû╝</span>`;
                 html += `<strong style="color: #ffd700;">Level 7.5: Dungeons</strong> <span style="color: #aaa;">(${world.dungeons.length})</span>`;
                 html += `<div class="tree-children expanded" id="${levelId}">`;
                 world.dungeons.forEach(dungeon => {
@@ -2622,7 +2622,7 @@
                         provenanceHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #16213e; font-size: 0.85em;">`;
                         provenanceHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 3px;">Creator's Provenance:</div>`;
                         provenanceChain.forEach((link, index) => {
-                            const arrow = index < provenanceChain.length - 1 ? ' → ' : '';
+                            const arrow = index < provenanceChain.length - 1 ? ' ΓåÆ ' : '';
                             const typeDisplay = link.typeLabel ? ` (${link.typeLabel})` : '';
                             provenanceHtml += `<span style="color: #aaa;">${link.name}${typeDisplay}${arrow}</span>`;
                         });
@@ -3208,7 +3208,7 @@
             world.dungeons.forEach((dungeon, index) => {
                 const dungeonId = `dungeon-${index}`;
                 html += `<div class="tree-node" style="margin-bottom: 15px;">`;
-                html += `<span class="tree-toggle" data-level-id="${dungeonId}" style="cursor: pointer; user-select: none;">▼</span>`;
+                html += `<span class="tree-toggle" data-level-id="${dungeonId}" style="cursor: pointer; user-select: none;">Γû╝</span>`;
                 html += `<div style="display: inline-block; margin-left: 5px;">`;
                 html += `<strong style="color: #ffd700; font-size: 1.1em;">${dungeon.name}</strong>`;
                 html += ` <span style="color: #aaa;">(${dungeon.dungeonType})</span>`;
@@ -3380,30 +3380,30 @@
                     if (room.type === 'boss') {
                         // Boss room - show boss name
                         const bossName = room.bossInfo?.bossName || room.encounters?.[0] || 'Boss';
-                        html += `<span style="color: #ff4444;">→ <strong>Boss: ${bossName}</strong></span>`;
+                        html += `<span style="color: #ff4444;">ΓåÆ <strong>Boss: ${bossName}</strong></span>`;
                     } else if (room.type === 'combat' && room.encounters && room.encounters.length > 0) {
-                        html += `<span style="color: #aaa;">→ ${room.encounters.join(', ')}</span>`;
+                        html += `<span style="color: #aaa;">ΓåÆ ${room.encounters.join(', ')}</span>`;
                     } else if (room.type === 'safe') {
                         if (room.subtype === 'treasure') {
-                            html += `<span style="color: #aaa;">→ Safe room with treasure</span>`;
+                            html += `<span style="color: #aaa;">ΓåÆ Safe room with treasure</span>`;
                         } else {
-                            html += `<span style="color: #aaa;">→ Safe room (rest/heal)</span>`;
+                            html += `<span style="color: #aaa;">ΓåÆ Safe room (rest/heal)</span>`;
                         }
                     } else if (room.type === 'trap') {
                         if (room.subtype === 'mechanical') {
-                            html += `<span style="color: #aaa;">→ Mechanical traps</span>`;
+                            html += `<span style="color: #aaa;">ΓåÆ Mechanical traps</span>`;
                         } else if (room.subtype === 'magical') {
-                            html += `<span style="color: #aaa;">→ Magical traps</span>`;
+                            html += `<span style="color: #aaa;">ΓåÆ Magical traps</span>`;
                         } else if (room.subtype === 'ambush') {
                             if (room.encounters && room.encounters.length > 0) {
-                                html += `<span style="color: #aaa;">→ Ambush (${room.encounters.join(', ')})</span>`;
+                                html += `<span style="color: #aaa;">ΓåÆ Ambush (${room.encounters.join(', ')})</span>`;
                             } else {
-                                html += `<span style="color: #aaa;">→ Ambush room</span>`;
+                                html += `<span style="color: #aaa;">ΓåÆ Ambush room</span>`;
                             }
                         } else if (room.subtype === 'trapped_treasure') {
-                            html += `<span style="color: #aaa;">→ Trapped treasure</span>`;
+                            html += `<span style="color: #aaa;">ΓåÆ Trapped treasure</span>`;
                         } else if (room.subtype === 'puzzle') {
-                            html += `<span style="color: #aaa;">→ Puzzle room</span>`;
+                            html += `<span style="color: #aaa;">ΓåÆ Puzzle room</span>`;
                         }
                     }
                     
@@ -3986,7 +3986,7 @@
                 else if (cell.geographyId) html += 'G';
                 else if (cell.features.some(f => f.type === 'landmark')) html += 'L';
                 else if (cell.features.some(f => f.type === 'ruin')) html += 'R';
-                else html += '·';
+                else html += '┬╖';
                 
                 html += '</div>';
             });
@@ -4063,7 +4063,7 @@
                                 (e.type === 'built_tower' || e.type === 'constructed_tower')
                             );
                             if (towerEvents.length > 0) {
-                                html += `<div style="color: #ffd700; margin-top: 5px;">✨ Linked to world event: Necromancer Tower Construction</div>`;
+                                html += `<div style="color: #ffd700; margin-top: 5px;">Γ£¿ Linked to world event: Necromancer Tower Construction</div>`;
                                 const event = towerEvents[0];
                                 if (event.entityId && world.standoutMortals) {
                                     const necromancer = world.standoutMortals.find(m => m.id === event.entityId);
@@ -4512,7 +4512,7 @@
                     html += `<div style="color: #aaa;">Location: ${dungeon.locationId}</div>`;
                 }
                 if (dungeon.usedStandoutMortal) {
-                    html += `<div style="color: #ffd700; margin-top: 5px;">✨ Boss is a standout mortal from the generated world!</div>`;
+                    html += `<div style="color: #ffd700; margin-top: 5px;">Γ£¿ Boss is a standout mortal from the generated world!</div>`;
                 }
                 if (dungeon.worldContext && dungeon.worldContext.worldEvents && dungeon.worldContext.worldEvents.length > 0) {
                     html += `<div style="color: #aaa; margin-top: 5px;">World Events at location: ${dungeon.worldContext.worldEvents.length}</div>`;
@@ -6252,7 +6252,7 @@
                                 }
                             });
                             
-                            html += `<div style="color: #00ff00; margin-top: 5px;">✓ Victory! ${combatResult.totalTurns} turns, ${combatResult.xpAwarded || 0} XP</div>`;
+                            html += `<div style="color: #00ff00; margin-top: 5px;">Γ£ô Victory! ${combatResult.totalTurns} turns, ${combatResult.xpAwarded || 0} XP</div>`;
                             
                             if (options.showDetails && !options.fastMode) {
                                 html += `<div style="margin-top: 5px; font-size: 0.85em; color: #aaa;">`;
@@ -6277,7 +6277,7 @@
                                 html += `</div>`;
                             }
                         } else {
-                            html += `<div style="color: #ff4444; margin-top: 5px;">✗ Defeat! Party was defeated.</div>`;
+                            html += `<div style="color: #ff4444; margin-top: 5px;">Γ£ù Defeat! Party was defeated.</div>`;
                             
                             if (options.showDetails && !options.fastMode) {
                                 html += `<div style="margin-top: 5px; font-size: 0.85em; color: #aaa;">`;
@@ -6319,7 +6319,7 @@
                         member.stats.health = member.stats.maxHealth;
                         member.stats.mana = member.stats.maxMana;
                     });
-                    html += `<div style="color: #00ff00; margin-top: 5px;">✓ Safe room - Party rested (HP/mana restored)</div>`;
+                    html += `<div style="color: #00ff00; margin-top: 5px;">Γ£ô Safe room - Party rested (HP/mana restored)</div>`;
                 } else if (room.type === 'boss') {
                     // Boss encounter
                     if (room.bossInfo) {
@@ -6367,7 +6367,7 @@
                                 }
                             });
                             
-                            html += `<div style="color: #00ff00; margin-top: 5px; font-weight: bold;">✓ BOSS DEFEATED! ${combatResult.totalTurns} turns, ${combatResult.xpAwarded || 0} XP</div>`;
+                            html += `<div style="color: #00ff00; margin-top: 5px; font-weight: bold;">Γ£ô BOSS DEFEATED! ${combatResult.totalTurns} turns, ${combatResult.xpAwarded || 0} XP</div>`;
                             
                             if (options.showDetails && !options.fastMode) {
                                 html += `<div style="margin-top: 5px; font-size: 0.85em; color: #aaa;">`;
@@ -6392,7 +6392,7 @@
                                 html += `</div>`;
                             }
                         } else {
-                            html += `<div style="color: #ff4444; margin-top: 5px; font-weight: bold;">✗ BOSS DEFEAT! Party was defeated by ${room.bossInfo.bossName}.</div>`;
+                            html += `<div style="color: #ff4444; margin-top: 5px; font-weight: bold;">Γ£ù BOSS DEFEAT! Party was defeated by ${room.bossInfo.bossName}.</div>`;
                             
                             if (options.showDetails && !options.fastMode) {
                                 html += `<div style="margin-top: 5px; font-size: 0.85em; color: #aaa;">`;
@@ -6429,7 +6429,7 @@
                     }
                 } else if (room.type === 'trap') {
                     // Trap room - simplified: skip or apply damage
-                    html += `<div style="color: #ffaa00; margin-top: 5px;">⚠ Trap room - Skipped (simplified)</div>`;
+                    html += `<div style="color: #ffaa00; margin-top: 5px;">ΓÜá Trap room - Skipped (simplified)</div>`;
                 }
                 
                 dungeonRunState.completedRooms.push(room.level);
@@ -6448,11 +6448,11 @@
             const allAlive = finalAliveCount === dungeonRunState.partyStatus.length;
             
             if (allAlive && dungeonRunState.completedRooms.length === rooms.length) {
-                html += `<div style="color: #00ff00; margin-top: 10px; font-weight: bold; font-size: 1.1em;">✓ DUNGEON CLEARED! All party members survived.</div>`;
+                html += `<div style="color: #00ff00; margin-top: 10px; font-weight: bold; font-size: 1.1em;">Γ£ô DUNGEON CLEARED! All party members survived.</div>`;
             } else if (finalAliveCount > 0) {
                 html += `<div style="color: #ffaa00; margin-top: 10px; font-weight: bold;">Party Status: ${finalAliveCount}/${dungeonRunState.partyStatus.length} members alive</div>`;
             } else {
-                html += `<div style="color: #ff4444; margin-top: 10px; font-weight: bold; font-size: 1.1em;">✗ PARTY DEFEATED! All members fell in battle.</div>`;
+                html += `<div style="color: #ff4444; margin-top: 10px; font-weight: bold; font-size: 1.1em;">Γ£ù PARTY DEFEATED! All members fell in battle.</div>`;
             }
             
             html += '</div>'; // Close final summary

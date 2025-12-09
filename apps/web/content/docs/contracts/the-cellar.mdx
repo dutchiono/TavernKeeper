@@ -1,14 +1,131 @@
 
 # The Cellar Contract
 
-The Cellar is a central pot system that accumulates MON tokens from various game activities. Players can "buy" the pot by burning LP tokens, with prices that decrease over time in epochs.
+The Cellar is a central pot system that accumulates MON and KEEP tokens from Uniswap V3 pool fees. Players can "raid" the pot by burning LP tokens (CLP), with prices that decrease over time in epochs via a Dutch auction mechanism.
+
+## 💡 Understanding Your Pool Share
+
+**CLP tokens represent your ownership percentage of the pool:**
+
+- **Your Share** = (Your CLP Balance / Total CLP Supply) × 100%
+- Example: If you have 100 CLP and total supply is 1000 CLP, you own **10% of the pool**
+- Your CLP tokens stay in your wallet until you raid or withdraw
+- The more CLP you have, the bigger your share of the pool
+- When you withdraw, you get your proportional share of the pool's tokens + fees
+
+## 🛡️ Safety: How LP Locking Works
+
+### Critical Understanding: CLP Tokens ≠ Actual Liquidity
+
+**CLP tokens are ERC20 receipt tokens** - they represent your proportional share of the Uniswap V3 position but are NOT the actual liquidity itself.
+
+### Two-Layer System
+
+1. **Uniswap V3 NFT Position** (Actual Liquidity)
+   - The real WMON and KEEP tokens locked in Uniswap V3
+   - Managed via NonfungiblePositionManager
+   - **NEVER touched during raids** - continues earning fees normally
+   - Can only be removed via `withdraw()` function
+
+2. **CLP Tokens** (ERC20 Receipts)
+   - Minted 1:1 when you add liquidity
+   - Represent your share but are separate from actual LP
+   - **Burned during raids** - only the token supply decreases
+   - Think of them like movie tickets - burning a ticket doesn't destroy the theater seat!
+
+### What Happens During a Raid
+
+When someone calls `raid()`:
+
+```368:410:packages/contracts/contracts/v3/TheCellarV3.sol
+function raid(uint256 lpBid) external nonReentrant {
+    require(lpBid > 0, "Bid > 0");
+    require(epochPeriod > 0, "Auction not initialized");
+
+    Slot0 memory slot0Cache = slot0;
+
+    // Calculate current auction price
+    uint256 currentPrice = getPriceFromCache(slot0Cache);
+    require(lpBid >= currentPrice, "Bid too low");
+
+    // 1. Burn Bid
+    cellarToken.transferFrom(msg.sender, address(this), lpBid);
+    cellarToken.burn(address(this), lpBid);
+
+    // 2. Payout (Dump Pot)
+    uint256 serveMon = potBalanceMON;
+    uint256 serveKeep = potBalanceKEEP;
+
+    potBalanceMON = 0;
+    potBalanceKEEP = 0;
+
+    if (serveMon > 0) IERC20(wmon).transfer(msg.sender, serveMon);
+    if (serveKeep > 0) IERC20(keepToken).transfer(msg.sender, serveKeep);
+
+    // 3. Setup new auction (use initPrice to ensure growth even if raided at floor)
+    uint256 newInitPrice = slot0Cache.initPrice * priceMultiplier / PRICE_MULTIPLIER_SCALE;
+
+    if (newInitPrice > ABS_MAX_INIT_PRICE) {
+        newInitPrice = ABS_MAX_INIT_PRICE;
+    } else if (newInitPrice < minInitPrice) {
+        newInitPrice = minInitPrice;
+    }
+
+    unchecked {
+        slot0Cache.epochId++;
+    }
+    slot0Cache.initPrice = uint192(newInitPrice);
+    slot0Cache.startTime = uint40(block.timestamp);
+
+    slot0 = slot0Cache;
+
+    emit Raid(msg.sender, lpBid, serveMon, serveKeep, newInitPrice, slot0Cache.epochId);
+}
+```
+
+**Key Points:**
+- ✅ Only calls `cellarToken.burn()` - burns CLP tokens
+- ✅ Does NOT call `decreaseLiquidity()` - Uniswap position untouched
+- ✅ Does NOT modify the Uniswap V3 NFT position
+- ✅ Your actual liquidity remains locked and earning fees
+
+### Comparison: Raid vs Withdraw
+
+| Operation | CLP Tokens | Uniswap V3 Position | Result |
+|-----------|------------|---------------------|--------|
+| **Raid** | Burned (supply ↓) | **UNTOUCHED** | Get pot, LP stays safe |
+| **Withdraw** | Burned | **Decreased** (liquidity removed) | Get tokens back |
+
+### Safety Guarantees
+
+1. **Your LP position is NEVER at risk during raids**
+   - Only CLP token supply decreases
+   - Uniswap V3 position continues earning fees normally
+   - You can withdraw liquidity anytime via `withdraw()`
+
+2. **Only the raider's CLP balance decreases**
+   - Everyone else's LP is completely unaffected
+   - Your CLP tokens remain in your wallet
+   - Your proportional share of fees continues accumulating
+
+3. **The Uniswap V3 position is completely separate**
+   - Managed independently by NonfungiblePositionManager
+   - Raids never interact with it
+   - Only `withdraw()` actually removes liquidity
+
+### Common Misconception (WRONG)
+
+**❌ WRONG:** "Raids remove liquidity from Uniswap V3"
+
+**✅ CORRECT:** Raids only burn CLP tokens (ERC20 supply reduction). The Uniswap V3 position is completely separate and untouched. Think of CLP tokens like movie tickets - burning a ticket doesn't destroy the theater seat!
 
 ## Overview
 
-- **Type**: Pot/Auction System
-- **Upgradeable**: No (immutable)
+- **Type**: Pot/Auction System with Uniswap V3 Integration
+- **Upgradeable**: Yes (UUPS proxy)
 - **Network**: Monad Mainnet
-- **Mechanics**: Epoch-based price decay
+- **Mechanics**: Epoch-based Dutch auction with LP token burning
+- **DEX**: Uniswap V3 (using NonfungiblePositionManager)
 
 ## Key Features
 
@@ -27,89 +144,166 @@ Price decreases over time:
 - Decreases linearly to 0 over `epochPeriod`
 - Formula: `price = initPrice - (initPrice * timePassed / epochPeriod)`
 
-### LP Token Burning
+### LP Token Burning (Raid)
 
-To buy the pot:
-- User burns LP tokens (sent to dead address)
-- Amount burned equals current pot price
-- Pot contents (MON) are sent to buyer
+To raid the pot:
+- User burns CLP tokens (Cellar LP tokens) - **ERC20 receipt tokens, NOT actual liquidity**
+- Amount burned equals current auction price
+- Pot contents (MON and KEEP) are sent to raider
+- New epoch starts with higher initial price
+- **⚠️ CRITICAL: Only CLP tokens are burned - the Uniswap V3 position is NEVER touched**
+
+### Uniswap V3 Integration
+
+The Cellar manages a single Uniswap V3 NFT position:
+- Uses NonfungiblePositionManager for liquidity
+- Full range position (tickLower: -887200, tickUpper: 887200)
+- Collects fees from swaps: 90% to deployer, 10% to pot
+- CLP tokens represent 1:1 with V3 liquidity units
 
 ## Functions
 
 ### Public Functions
 
-#### `buy(address assetsReceiver, uint256 epochId, uint256 deadline, uint256 maxPaymentTokenAmount)`
-Buy the pot by burning LP tokens.
+#### `raid(uint256 lpBid)`
+Raid the pot by burning CLP tokens.
 
 **Parameters:**
-- `assetsReceiver`: Address to receive the MON
-- `epochId`: Current epoch ID (for validation)
-- `deadline`: Transaction deadline
-- `maxPaymentTokenAmount`: Maximum LP tokens to burn
-
-**Returns:** `paymentAmount` - Actual LP tokens burned
+- `lpBid`: Amount of CLP tokens to burn
 
 **Mechanics:**
-1. Validates epoch ID matches current epoch
-2. Calculates current price
-3. Transfers LP tokens to payment receiver (burn)
-4. Sends MON to assets receiver
-5. Starts new epoch with higher price
+1. Validates bid is >= current auction price
+2. Burns CLP tokens from caller (ERC20 supply decreases)
+3. Transfers entire pot (MON + KEEP) to caller
+4. Resets pot to zero
+5. New epoch starts automatically
 
-#### `getPrice()`
-Get the current pot price in LP tokens.
+**⚠️ CRITICAL SAFETY:**
+- **Only CLP tokens are burned** - calls `cellarToken.burn()` only
+- **Does NOT call `decreaseLiquidity()`** - Uniswap V3 position untouched
+- **Your actual liquidity remains safe** - continues earning fees normally
+- **You can still withdraw** - use `withdraw()` function to remove actual LP
 
-**Returns:** Current price (decreases over time)
+#### `addLiquidity(uint256 amountMonDesired, uint256 amountKeepDesired)`
+Add liquidity to the Uniswap V3 position.
 
-#### `getSlot0()`
-Get the current slot0 state (epoch ID, init price, start time).
+**Parameters:**
+- `amountMonDesired`: Desired WMON amount
+- `amountKeepDesired`: Desired KEEP amount
+
+**Returns:** `liquidity` - V3 liquidity units added
+
+**Mechanics:**
+1. Transfers WMON and KEEP from caller
+2. Mints or increases V3 position via PositionManager
+3. Mints CLP tokens 1:1 with liquidity units
+4. Refunds unused tokens
+
+#### `withdraw(uint256 lpAmount)`
+Withdraw liquidity by burning CLP tokens. **This is the ONLY function that removes actual liquidity from Uniswap V3.**
+
+**Parameters:**
+- `lpAmount`: Amount of CLP to burn
+
+**Mechanics:**
+1. Burns CLP tokens
+2. **Calls `decreaseLiquidity()` on Uniswap V3** - actually removes liquidity
+3. Collects fees: 90% to user, 10% to pot
+4. Returns underlying tokens (WMON + KEEP) plus user's share of fees
+
+**Difference from `raid()`:**
+- `raid()` only burns CLP tokens, never touches Uniswap V3
+- `withdraw()` actually removes liquidity from the pool
+- Use `withdraw()` when you want to exit your LP position
+
+#### `harvest()`
+Collect fees from the V3 position and distribute them.
+
+**Mechanics:**
+- Calls PositionManager.collect() on the NFT position
+- Splits collected fees: 90% to deployer/owner, 10% to pot
+- Adds 10% to potBalanceMON and potBalanceKEEP
+- Can be called by anyone (public function)
 
 ## Configuration
 
 ### Constants
 
-- **MIN_EPOCH_PERIOD**: 1 hour
-- **MAX_EPOCH_PERIOD**: 365 days
-- **MIN_PRICE_MULTIPLIER**: 1.1x (110%)
-- **MAX_PRICE_MULTIPLIER**: 3x (300%)
+- **POOL_FEE**: 10000 (1.0% fee tier)
+- **TICK_SPACING**: 200
+- **Full Range**: tickLower: -887200, tickUpper: 887200
 
-### Immutable Parameters
+### Contract Addresses
 
-Set at deployment:
-- `paymentToken`: LP token to burn
-- `paymentReceiver`: Where burned tokens go (dead address)
-- `epochPeriod`: Duration of each epoch
-- `priceMultiplier`: Multiplier for next epoch price
-- `minInitPrice`: Minimum starting price
+Set at initialization:
+- `positionManager`: Uniswap V3 NonfungiblePositionManager
+- `cellarToken`: CLP token contract (ERC20)
+- `wmon`: Wrapped MON token address
+- `keepToken`: KEEP token address
 
 ## Integration
 
-### Contributing to Pot
+### Adding Liquidity
 
-Groups and contracts can contribute MON to the pot:
-- Via `CellarHook.contributeToPot()`
-- Direct MON transfer (receive function)
-- Increases pot value
+1. Approve WMON and KEEP tokens to TheCellarV3
+2. Call `addLiquidity()` with desired amounts
+3. Receive CLP tokens 1:1 with liquidity units
+4. Liquidity is added to the shared V3 position
 
-### Buying the Pot
+### Raiding the Pot
 
-1. Query current price with `getPrice()`
-2. Check current epoch with `getSlot0()`
-3. Call `buy()` with appropriate parameters
-4. Receive MON, new epoch starts
+1. Ensure you have enough CLP tokens
+2. Call `raid()` with the amount of CLP to burn
+3. Receive entire pot (MON + KEEP)
+4. New epoch starts automatically
+
+### Fee Collection
+
+Fees accumulate in the pot from:
+- 10% of Uniswap V3 swap fees (collected via `harvest()`)
+- 90% of swap fees go to deployer/owner
+- Can be called by anyone to update pot balance
 
 ## Events
 
-- `Cellar__Buy(address indexed buyer, address indexed assetsReceiver, uint256 paymentAmount)`
+- `LiquidityAdded(address indexed user, uint256 amount0, uint256 amount1, uint256 liquidityMinted)`
+- `LiquidityRemoved(address indexed user, uint256 liquidityBurned, uint256 amount0, uint256 amount1)`
+- `FeesCollected(uint256 amount0, uint256 amount1)`
+- `Raid(address indexed user, uint256 lpBurned, uint256 monPayout, uint256 keepPayout)`
 
 ## Security
 
 - Reentrancy protection
-- Epoch ID validation prevents stale transactions
-- Deadline checks
-- Immutable configuration (no owner functions)
+- UUPS upgradeable (owner can upgrade)
+- Token approvals required before operations
+- Position Manager handles V3 security
+- **LP Safety:** Raids never touch Uniswap V3 position - only CLP token supply decreases
+
+## FAQ
+
+### Q: Will raids remove my liquidity from Uniswap V3?
+
+**A: NO.** Raids only burn CLP tokens (ERC20 receipt tokens). The Uniswap V3 NFT position is completely separate and never touched during raids. Your actual liquidity stays locked and continues earning fees.
+
+### Q: Can I still withdraw my liquidity after someone raids?
+
+**A: YES.** Raids don't affect your ability to withdraw. Use the `withdraw()` function to remove your actual liquidity from Uniswap V3. Raids only reduce CLP token supply, not your LP position.
+
+### Q: What's the difference between `raid()` and `withdraw()`?
+
+**A:**
+- `raid()`: Burns CLP tokens only, gives you the pot, **does NOT touch Uniswap V3**
+- `withdraw()`: Burns CLP tokens AND calls `decreaseLiquidity()` to **actually remove liquidity**
+
+### Q: Will my fees stop accumulating if someone raids?
+
+**A: NO.** Your LP position continues earning fees normally. Raids don't affect fee accumulation at all - they only burn CLP tokens and transfer the pot.
+
+### Q: Are CLP tokens the same as my actual LP?
+
+**A: NO.** CLP tokens are ERC20 receipt tokens representing your share. The actual liquidity is in a Uniswap V3 NFT position. Think of CLP tokens like movie tickets - they represent your right to the seat, but burning the ticket doesn't destroy the seat itself.
 
 ## See Also
 
 - [Groups Documentation](/docs/groups/overview)
-- [CellarHook Integration](/docs/contracts/tavern-regulars)
+- [Uniswap V3 Documentation](https://docs.uniswap.org/contracts/v3/overview)

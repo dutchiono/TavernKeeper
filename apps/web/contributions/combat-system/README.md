@@ -1,4 +1,4 @@
-# Combat System
+﻿# Combat System
 
 ## What This Does
 
@@ -103,17 +103,17 @@ None - this is an additive feature.
 
 ```
 contributions/combat-system/
-├── README.md (this file)
-├── code/
-│   ├── types/
-│   │   └── combat.ts              # Combat types and interfaces
-│   ├── engine/
-│   │   ├── turn-order.ts          # Initiative and turn order logic
-│   │   └── attack-resolution.ts  # Attack rolls and damage calculation
-│   ├── services/
-│   │   └── combatService.ts      # Main combat service
-│   └── examples/
-│       └── usage-examples.ts      # Code examples
+Γö£ΓöÇΓöÇ README.md (this file)
+Γö£ΓöÇΓöÇ code/
+Γöé   Γö£ΓöÇΓöÇ types/
+Γöé   Γöé   ΓööΓöÇΓöÇ combat.ts              # Combat types and interfaces
+Γöé   Γö£ΓöÇΓöÇ engine/
+Γöé   Γöé   Γö£ΓöÇΓöÇ turn-order.ts          # Initiative and turn order logic
+Γöé   Γöé   ΓööΓöÇΓöÇ attack-resolution.ts  # Attack rolls and damage calculation
+Γöé   Γö£ΓöÇΓöÇ services/
+Γöé   Γöé   ΓööΓöÇΓöÇ combatService.ts      # Main combat service
+Γöé   ΓööΓöÇΓöÇ examples/
+Γöé       ΓööΓöÇΓöÇ usage-examples.ts      # Code examples
 ```
 
 ## Integration Example

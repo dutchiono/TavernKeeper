@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Adventurer Tracking System - Type Definitions
  * 
  * These types define the structure for tracking hero/adventurer stats and attributes.
@@ -78,8 +78,8 @@ export function calculateLevelFromXP(totalXP: number): number {
 
 /**
  * Calculate HP from Constitution and level (D&D 5e)
- * HP = (Hit Die + CON modifier) + (Hit Die + CON modifier) × (level - 1)
- * Or simplified: HP = level × (Hit Die Average + CON modifier)
+ * HP = (Hit Die + CON modifier) + (Hit Die + CON modifier) ├ù (level - 1)
+ * Or simplified: HP = level ├ù (Hit Die Average + CON modifier)
  */
 export function calculateMaxHP(
   constitution: number,

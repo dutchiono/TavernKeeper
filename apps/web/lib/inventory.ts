@@ -29,14 +29,15 @@ const ERC6551_ACCOUNT_PROXY = {
 } as const;
 
 // ERC-6551 Registry ABI (simplified - just the account function)
+// CORRECT ORDER: implementation, salt (bytes32), chainId, tokenContract, tokenId
 const ERC6551_REGISTRY_ABI = [
   {
     inputs: [
       { name: 'implementation', type: 'address' },
+      { name: 'salt', type: 'bytes32' },
       { name: 'chainId', type: 'uint256' },
       { name: 'tokenContract', type: 'address' },
       { name: 'tokenId', type: 'uint256' },
-      { name: 'salt', type: 'uint256' },
     ],
     name: 'account',
     outputs: [{ name: '', type: 'address' }],
@@ -98,11 +99,16 @@ export async function getTBAAddress(
     throw new Error(`ERC-6551 not configured for Monad chain`);
   }
 
+  // Convert salt to bytes32 - CORRECT ORDER: implementation, salt (bytes32), chainId, tokenContract, tokenId
+  const saltBytes32 = typeof salt === 'bigint'
+    ? ('0x' + salt.toString(16).padStart(64, '0')) as `0x${string}`
+    : (salt === 0n ? '0x' + '0'.repeat(64) : salt) as `0x${string}`;
+
   const tbaAddress = await publicClient.readContract({
     address: registryAddress,
     abi: ERC6551_REGISTRY_ABI,
     functionName: 'account',
-    args: [implementation, BigInt(chainId), tokenContract, tokenId, salt],
+    args: [implementation, saltBytes32, BigInt(chainId), tokenContract, tokenId],
   });
 
   return getAddress(tbaAddress);

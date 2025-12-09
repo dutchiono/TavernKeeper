@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Themed Dungeon Generation System
  * 
  * Main entry point for the themed dungeon generation system.
@@ -52,4 +52,3 @@ export type {
   DungeonWorldContext,
   DungeonProvenance,
 } from './types/dungeon-generation';
-

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Adventurer Tracking Service
  * 
  * Service for managing hero/adventurer stats and attributes.
@@ -460,7 +460,7 @@ function shouldRecordHistory(update: StatUpdate): boolean {
 
 /**
  * Calculate max HP from Constitution and level (D&D 5e)
- * HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) × (level - 1)
+ * HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) ├ù (level - 1)
  */
 export function calculateMaxHPFromConstitution(
   constitution: number,

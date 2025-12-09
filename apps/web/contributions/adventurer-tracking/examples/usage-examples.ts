@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Adventurer Tracking System - Usage Examples
  * 
  * Examples showing how to integrate and use the adventurer tracking system.
@@ -333,7 +333,7 @@ export async function levelUpAdventurer(
   const hitDie = hitDice[adventurer.class];
   
   // Calculate HP gain from Constitution (D&D 5e)
-  // HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) × (level - 1)
+  // HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) ├ù (level - 1)
   const conModifier = Math.floor((adventurer.stats.constitution - 10) / 2);
   const hitDieAverage = Math.floor(hitDie / 2) + 1; // Average of hit die
   

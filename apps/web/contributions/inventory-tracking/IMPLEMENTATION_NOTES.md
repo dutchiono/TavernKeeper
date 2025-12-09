@@ -1,4 +1,4 @@
-# Inventory Tracking - Implementation Notes
+﻿# Inventory Tracking - Implementation Notes
 
 ## Current Implementation (Simplified)
 

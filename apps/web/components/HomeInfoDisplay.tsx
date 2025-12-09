@@ -1,13 +1,18 @@
 'use client';
 
+import sdk from '@farcaster/miniapp-sdk';
 import { useEffect, useState } from 'react';
 import { createPublicClient, formatEther, http } from 'viem';
 import { monad } from '../lib/chains';
+import { CONTRACT_ADDRESSES } from '../lib/contracts/addresses';
 import { keepTokenService } from '../lib/services/keepToken';
+import { mcapService, type KeepMcapData } from '../lib/services/mcapService';
 import { theCellarService } from '../lib/services/theCellarService';
 import { getPoolLiquidity } from '../lib/services/uniswapV4SwapService';
-import { PixelBox } from './PixelComponents';
-import { SwapInterface } from './SwapInterface';
+import { checkIsInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
+import { SmartLink } from '../lib/utils/smartNavigation';
+import { PixelBox, PixelButton } from './PixelComponents';
+import StakingInterface from './StakingInterface';
 
 interface HomeInfoDisplayProps {
     address: string | undefined;
@@ -19,29 +24,105 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
     const [keepBalance, setKeepBalance] = useState<string>('0');
     const [poolMon, setPoolMon] = useState<bigint>(0n);
     const [poolKeep, setPoolKeep] = useState<bigint>(0n);
+    const [mcapData, setMcapData] = useState<KeepMcapData | null>(null);
+    const [copied, setCopied] = useState(false);
+    const [isInMiniapp, setIsInMiniapp] = useState(false);
 
-    // Fetch pool liquidity separately (doesn't need user address)
+    const keepTokenAddress = CONTRACT_ADDRESSES.KEEP_TOKEN;
+
+    // Check if we're in a miniapp (async check)
     useEffect(() => {
+        const checkMiniapp = async () => {
+            try {
+                const inMiniapp = await checkIsInFarcasterMiniapp();
+                setIsInMiniapp(inMiniapp);
+                console.log('Miniapp detection:', inMiniapp);
+            } catch (error) {
+                console.error('Error checking miniapp status:', error);
+                setIsInMiniapp(false);
+            }
+        };
+        checkMiniapp();
+    }, []);
+
+    const handleCopyAddress = async () => {
+        try {
+            await navigator.clipboard.writeText(keepTokenAddress);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy address:', err);
+        }
+    };
+
+    // Fetch pool liquidity separately (doesn't need user address) - delayed to avoid rate limits
+    useEffect(() => {
+        let cancelled = false;
+
         const fetchPoolLiquidity = async () => {
+            // Delay initial fetch to let other components load first
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            if (cancelled) return;
+
             try {
                 console.log('Fetching pool liquidity...');
                 const poolLiquidity = await getPoolLiquidity();
-                if (poolLiquidity) {
+                if (poolLiquidity && !cancelled) {
                     console.log('✅ Pool MON:', formatEther(poolLiquidity.mon));
                     console.log('✅ Pool KEEP:', formatEther(poolLiquidity.keep));
                     setPoolMon(poolLiquidity.mon);
                     setPoolKeep(poolLiquidity.keep);
-                } else {
+                } else if (!cancelled) {
                     console.warn('❌ Failed to fetch pool liquidity - returned null');
                 }
             } catch (error) {
-                console.error('❌ Error fetching pool liquidity:', error);
+                if (!cancelled) {
+                    console.error('❌ Error fetching pool liquidity:', error);
+                }
             }
         };
 
         fetchPoolLiquidity();
         const interval = setInterval(fetchPoolLiquidity, 30000); // Poll every 30s
-        return () => clearInterval(interval);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, []); // Run once on mount, doesn't depend on address
+
+    // Fetch MCAP data separately (doesn't need user address)
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchMcap = async () => {
+            // Delay initial fetch to let other components load first
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            if (cancelled) return;
+
+            try {
+                console.log('Fetching MCAP data...');
+                const data = await mcapService.getKeepMcap();
+                if (data && !cancelled) {
+                    console.log('✅ MCAP:', `$${data.mcapUsd}`);
+                    setMcapData(data);
+                } else if (!cancelled) {
+                    console.warn('❌ Failed to fetch MCAP - returned null');
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.error('❌ Error fetching MCAP:', error);
+                }
+            }
+        };
+
+        fetchMcap();
+        const interval = setInterval(fetchMcap, 30000); // Poll every 30s
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
     }, []); // Run once on mount, doesn't depend on address
 
     // Fetch user-specific data
@@ -54,6 +135,9 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
         }
 
         const fetchUserData = async () => {
+            // Delay user data fetch to avoid rate limits
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
             try {
                 console.log('Fetching user data for address:', address);
 
@@ -62,14 +146,19 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
                 console.log('LP Balance:', lp.toString());
                 setLpBalance(lp);
 
+                // Small delay between calls
+                await new Promise(resolve => setTimeout(resolve, 300));
+
                 // Fetch KEEP Balance
                 const keep = await keepTokenService.getBalance(address);
                 console.log('KEEP Balance:', keep);
                 setKeepBalance(keep);
 
+                // Small delay between calls
+                await new Promise(resolve => setTimeout(resolve, 300));
+
                 // Fetch MON Balance (native token)
-                const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-                    (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+                const rpcUrl = monad.rpcUrls.default.http[0];
 
                 const publicClient = createPublicClient({
                     chain: monad,
@@ -90,8 +179,8 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
 
     return (
         <div className="w-full p-2 sm:p-3 space-y-2 max-w-full overflow-x-hidden [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [-ms-overflow-style:auto] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {/* Pool Liquidity - Compact */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Pool Liquidity & MCAP - Compact */}
+            <div className="grid grid-cols-3 gap-2">
                 <PixelBox variant="dark" className="p-2 flex flex-col items-center justify-center min-w-0">
                     <div className="text-[8px] text-zinc-400 uppercase tracking-wider mb-0.5">Pool MON</div>
                     <div className="text-yellow-400 font-bold text-xs font-mono truncate w-full text-center">
@@ -104,11 +193,115 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
                         {parseFloat(formatEther(poolKeep)).toFixed(2)}
                     </div>
                 </PixelBox>
+                <PixelBox variant="dark" className="p-2 flex flex-col items-center justify-center min-w-0">
+                    <div className="text-[8px] text-zinc-400 uppercase tracking-wider mb-0.5">MCAP</div>
+                    <div className="text-green-400 font-bold text-xs font-mono truncate w-full text-center">
+                        {mcapData?.mcapUsd ? `$${parseFloat(mcapData.mcapUsd).toFixed(2)}` : '...'}
+                    </div>
+                    {mcapData?.mcap && (
+                        <div className="text-[6px] text-zinc-500 mt-0.5 text-center">
+                            {parseFloat(mcapData.mcap).toFixed(2)} MON
+                        </div>
+                    )}
+                </PixelBox>
             </div>
 
-            {/* Swap Interface - Shows user balances internally */}
-            <div className="w-full max-w-full overflow-hidden min-w-0">
-                <SwapInterface />
+            {/* KEEP Token Contract Address */}
+            <PixelBox variant="dark" className="p-2">
+                <div className="text-[8px] text-zinc-400 uppercase tracking-wider mb-1.5">KEEP Token</div>
+                <div className="flex items-center gap-1.5">
+                    <div className="flex-1 font-mono text-[10px] text-yellow-400 break-all">
+                        {keepTokenAddress}
+                    </div>
+                    <PixelButton
+                        variant="wood"
+                        size="sm"
+                        onClick={handleCopyAddress}
+                        className="flex-shrink-0"
+                    >
+                        {copied ? '✓' : '📋'}
+                    </PixelButton>
+                </div>
+            </PixelBox>
+
+            {/* Staking Interface */}
+            <StakingInterface />
+
+            {/* Add Miniapp Button - Only show in miniapp context */}
+            {isInMiniapp && (
+                <PixelBox variant="dark" className="p-2 border-2 border-purple-500/50 bg-purple-900/20">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col">
+                            <div className="text-[8px] text-purple-300 uppercase tracking-wider mb-0.5">
+                                Get Notifications
+                            </div>
+                            <div className="text-[7px] text-zinc-400">
+                                Add miniapp to receive updates
+                            </div>
+                        </div>
+                        <PixelButton
+                            variant="primary"
+                            size="sm"
+                            onClick={async () => {
+                                try {
+                                    console.log('Attempting to add miniapp...');
+                                    await sdk.actions.addMiniapp();
+                                    console.log('✅ Miniapp add action completed');
+                                } catch (error) {
+                                    console.error('Failed to add miniapp:', error);
+                                }
+                            }}
+                            className="flex-shrink-0 text-[8px] px-2"
+                        >
+                            Add
+                        </PixelButton>
+                    </div>
+                </PixelBox>
+            )}
+
+            {/* Navigation Links */}
+            <div className="grid grid-cols-3 gap-1.5">
+                <SmartLink href="/tutorial" className="block">
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider">
+                        Tutorial
+                    </PixelButton>
+                </SmartLink>
+                <SmartLink href="/docs" className="block">
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider">
+                        Docs
+                    </PixelButton>
+                </SmartLink>
+                <SmartLink href="/info" className="block">
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider">
+                        Info
+                    </PixelButton>
+                </SmartLink>
+            </div>
+
+            {/* Community Links */}
+            <div className="grid grid-cols-2 gap-1.5">
+                <a
+                    href="https://discord.gg/85RxzdaR"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                >
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                        <span>💬</span>
+                        <span>Discord</span>
+                    </PixelButton>
+                </a>
+                <a
+                    href="https://t.me/tavernkeeper_portal"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                >
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                        <span>📱</span>
+                        <span>Telegram</span>
+                    </PixelButton>
+                </a>
             </div>
         </div>
     );

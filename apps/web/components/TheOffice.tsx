@@ -1,17 +1,20 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import sdk from '@farcaster/miniapp-sdk';
 import React, { useEffect, useState } from 'react';
-import { createPublicClient, createWalletClient, custom, http, type Address } from 'viem';
+import { createPublicClient, http, type Address } from 'viem';
 import { useAccount, useConnect, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { monad } from '../lib/chains';
-import { getFarcasterWalletAddress } from '../lib/services/farcasterWallet';
-import { setOfficeManagerData } from '../lib/services/officeManagerCache';
+import { mcapService, type KeepMcapData } from '../lib/services/mcapService';
+import { getMonPrice } from '../lib/services/monPriceService';
+import { getOfficeManagerData, setOfficeManagerData } from '../lib/services/officeManagerCache';
+import { officePnlService, type OfficePnlData } from '../lib/services/officePnlService';
 import { OfficeState, tavernKeeperService } from '../lib/services/tavernKeeperService';
 import { CellarState, theCellarService } from '../lib/services/theCellarService';
+import { getPoolLiquidity } from '../lib/services/uniswapV4SwapService';
 import { useGameStore } from '../lib/stores/gameStore';
 import { GameView } from '../lib/types';
-import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
+import { checkIsInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 import { TheOfficeView } from './TheOfficeView';
 
 type UserContext = {
@@ -27,55 +30,32 @@ export const TheOffice: React.FC<{
 }> = ({ children, userContext }) => {
     const { keepBalance, currentView } = useGameStore();
 
-    // Detect context
-    const isMiniapp = isInFarcasterMiniapp();
+    // Detect context (async check)
+    const [isMiniapp, setIsMiniapp] = React.useState(false);
 
-    // Use context-appropriate hooks (both available, just use the right one)
-    const privy = usePrivy(); // Available in web context
-    const { wallets } = useWallets(); // For web
-    const { address: wagmiAddress, isConnected: wagmiConnected, chainId: wagmiChainId } = useAccount(); // Available in miniapp
-    const { connectAsync, connectors } = useConnect(); // For miniapp
-    const { writeContract, data: txHash, isPending: isWriting, reset: resetWrite } = useWriteContract(); // For miniapp
+    useEffect(() => {
+        const checkMiniapp = async () => {
+            try {
+                const inMiniapp = await checkIsInFarcasterMiniapp();
+                setIsMiniapp(inMiniapp);
+            } catch (error) {
+                console.error('Error checking miniapp status:', error);
+                setIsMiniapp(false);
+            }
+        };
+        checkMiniapp();
+    }, []);
+
+    // Unified Wagmi Hooks (Works for both Web via RainbowKit & Miniapp via Farcaster Connector)
+    const { address, isConnected, chainId } = useAccount();
+    const { connectAsync, connectors } = useConnect();
+    const { switchChainAsync } = useSwitchChain();
+    const { writeContractAsync, data: txHash, isPending: isWriting, reset: resetWrite } = useWriteContract();
+
     const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({
         hash: txHash,
         chainId: monad.id,
     });
-
-    // Fallback to Farcaster SDK if wagmi connection fails (for miniapp context)
-    const [farcasterAddress, setFarcasterAddress] = useState<Address | null>(null);
-
-    useEffect(() => {
-        if (!isMiniapp) {
-            setFarcasterAddress(null);
-            return;
-        }
-
-        // Check Farcaster SDK immediately on mount and as fallback
-        const checkFarcaster = async () => {
-            try {
-                const addr = await getFarcasterWalletAddress();
-                setFarcasterAddress(addr);
-            } catch (error) {
-                console.debug('Farcaster wallet not available:', error);
-                setFarcasterAddress(null);
-            }
-        };
-
-        checkFarcaster();
-
-        // Only poll if wagmi is not connected (to avoid unnecessary checks)
-        if (!wagmiConnected) {
-            const interval = setInterval(checkFarcaster, 2000);
-            return () => clearInterval(interval);
-        }
-    }, [isMiniapp, wagmiConnected]);
-
-    // Unified state based on context
-    const privyWallet = wallets.find((w) => w.address === privy.user?.wallet?.address);
-    const address = isMiniapp ? (wagmiAddress || farcasterAddress) : privy.user?.wallet?.address;
-    // Treat as connected if we have a wagmi address (even if isConnected is false during rehydration)
-    const isConnected = isMiniapp ? (wagmiConnected || !!wagmiAddress || !!farcasterAddress) : (privy.authenticated && !!privyWallet);
-    const chainId = isMiniapp ? wagmiChainId : (privyWallet?.chainId ? parseInt(privyWallet.chainId.split(':')[1]) : undefined);
 
     const [state, setState] = useState<OfficeState>({
         currentKing: 'Loading...',
@@ -87,175 +67,372 @@ export const TheOffice: React.FC<{
         totalEarned: '0',
         totalEarnedUsd: '$0.00',
         epochId: 0,
-        startTime: isMiniapp ? Math.floor(Date.now() / 1000) : 0,
+        startTime: Math.floor(Date.now() / 1000),
         nextDps: '0',
         initPrice: '0'
     });
+
     const [isLoading, setIsLoading] = useState(false);
     const [timeHeld, setTimeHeld] = useState<string>('0m 0s');
-    const [viewMode, setViewMode] = useState<'office' | 'cellar'>('office');
+    const [viewMode, setViewMode] = useState<'office' | 'cellar' | 'staking' | 'posse' | 'regulars' | null>(null);
     const [monBalance, setMonBalance] = useState<string>('0');
     const [cellarState, setCellarState] = useState<CellarState | null>(null);
     const [pnl, setPnl] = useState<string>('$0.00');
+    const [enhancedPnl, setEnhancedPnl] = useState<OfficePnlData | null>(null);
     const [interpolatedState, setInterpolatedState] = useState<OfficeState>(state);
     const [refreshKey, setRefreshKey] = useState<number>(0);
+    const [poolMon, setPoolMon] = useState<bigint>(0n);
+    const [poolKeep, setPoolKeep] = useState<bigint>(0n);
+    const [mcapData, setMcapData] = useState<KeepMcapData | null>(null);
 
-    // Sync viewMode with GameView.CELLAR
+    // Set viewMode based on currentView
     useEffect(() => {
         if (currentView === GameView.CELLAR) {
-            setViewMode('cellar');
-        } else if (currentView === GameView.INN) {
+            // When entering Office view, always start on Office tab
             setViewMode('office');
+        } else {
+            // When not in Office view (e.g., Tavern/INN), clear viewMode so tabs don't show
+            setViewMode(null);
         }
     }, [currentView]);
+
+    // Fetch pool liquidity and MCAP
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchPoolData = async () => {
+            // Delay initial fetch to let other components load first
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            if (cancelled) return;
+
+            try {
+                // Fetch pool liquidity
+                const poolLiquidity = await getPoolLiquidity();
+                if (poolLiquidity && !cancelled) {
+                    setPoolMon(poolLiquidity.mon);
+                    setPoolKeep(poolLiquidity.keep);
+                }
+
+                // Fetch MCAP data
+                const data = await mcapService.getKeepMcap();
+                if (data && !cancelled) {
+                    setMcapData(data);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.error('Error fetching pool data:', error);
+                }
+            }
+        };
+
+        fetchPoolData();
+        const interval = setInterval(fetchPoolData, 30000); // Poll every 30s
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, []);
 
     // Fetch Office State
     const fetchOfficeState = async (forceRefresh = false) => {
         const data = await tavernKeeperService.getOfficeState(forceRefresh);
 
-        // Prevent flashing: If we have valid data and the new data is an error/offline state,
-        // ignore the update to keep the UI stable.
         if (state.currentKing !== 'Loading...' && data.currentKing === 'OFFLINE') {
             console.warn("Background fetch failed, preserving existing state.");
             return;
         }
 
         setState(data);
-        setInterpolatedState(data); // Reset interpolation on fetch
+        setInterpolatedState(data);
     };
 
+    // Sequenced data fetching
     useEffect(() => {
-        fetchOfficeState();
-        const interval = setInterval(fetchOfficeState, 10000); // Poll every 10s
-        return () => clearInterval(interval);
-    }, []);
+        let cancelled = false;
 
-    // Fetch MON balance (native token)
-    useEffect(() => {
-        if (!address) {
-            setMonBalance('0');
-            return;
-        }
+        const loadData = async () => {
+            if (!cancelled) {
+                await fetchOfficeState();
+            }
 
-        const fetchMonBalance = async () => {
-            try {
-                const publicClient = createPublicClient({
-                    chain: monad,
-                    transport: http(),
-                });
-                const balance = await publicClient.getBalance({
-                    address: address as `0x${string}`,
-                });
-                setMonBalance(balance.toString());
-            } catch (error) {
-                console.error('Failed to fetch MON balance:', error);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            if (!cancelled) {
+                try {
+                    const data = await theCellarService.getCellarState();
+                    setCellarState(data);
+                } catch (e) {
+                    console.error("Failed to fetch cellar", e);
+                }
+            }
+
+            // Load MON balance
+            if (address && !cancelled) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                if (!cancelled) {
+                    try {
+                        const rpcUrl = monad.rpcUrls.default.http[0];
+                        const publicClient = createPublicClient({
+                            chain: monad,
+                            transport: http(rpcUrl),
+                        });
+                        const balance = await publicClient.getBalance({
+                            address: address,
+                        });
+                        setMonBalance(balance.toString());
+                    } catch (error) {
+                        console.error('Failed to fetch MON balance:', error);
+                    }
+                }
             }
         };
 
-        fetchMonBalance();
-        const interval = setInterval(fetchMonBalance, 10000); // Poll every 10s
-        return () => clearInterval(interval);
+        loadData();
+        return () => { cancelled = true; };
     }, [address]);
 
-    // Fetch Cellar State (for miniapp, also works in web)
+    // Poll office state periodically (every 30 seconds)
     useEffect(() => {
-        const fetchCellar = async (forceRefresh = false) => {
+        const pollOfficeState = async () => {
             try {
-                if (forceRefresh) {
-                    theCellarService.clearCache();
-                }
-                const data = await theCellarService.getCellarState();
-                setCellarState(data);
+                await fetchOfficeState(true); // Force refresh to get latest on-chain data
             } catch (e) {
-                console.error("Failed to fetch cellar", e);
+                console.error("Failed to poll office state", e);
             }
         };
 
-        fetchCellar();
-        const interval = setInterval(() => fetchCellar(false), 5000);
+        pollOfficeState();
+        const interval = setInterval(pollOfficeState, 30000); // Update every 30 seconds
         return () => clearInterval(interval);
     }, []);
 
-    // Interpolation Loop
+    // Poll cellar state periodically
+    useEffect(() => {
+        const fetchCellarState = async () => {
+            try {
+                const data = await theCellarService.getCellarState(true); // Force refresh to bypass cache
+                setCellarState(data);
+            } catch (e) {
+                console.error("Failed to fetch cellar state", e);
+            }
+        };
+
+        fetchCellarState();
+        const interval = setInterval(fetchCellarState, 30000); // Update every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
+
+    // Poll office state periodically (every 30 seconds) - ensures price and other state updates
+    useEffect(() => {
+        const pollOfficeState = async () => {
+            try {
+                await fetchOfficeState(true); // Force refresh to get latest on-chain data
+            } catch (e) {
+                console.error("Failed to poll office state", e);
+            }
+        };
+
+        pollOfficeState();
+        const interval = setInterval(pollOfficeState, 30000); // Update every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
+
+    // Interpolation Loop (updates UI smoothly between polling intervals)
     useEffect(() => {
         const interval = setInterval(() => {
             const now = Date.now();
-            const timeSinceStart = (now - state.kingSince) / 1000; // seconds
+            const timeSinceStart = (now - state.kingSince) / 1000;
 
-            // 1. Time Held
             const minutes = Math.floor(timeSinceStart / 60);
             const seconds = Math.floor(timeSinceStart % 60);
             setTimeHeld(`${minutes}m ${seconds}s`);
 
-            // 2. Interpolate Price (Dutch Auction)
-            // Price decays linearly from initPrice to MIN_PRICE over 1 hour (3600s)
             const EPOCH_PERIOD = 3600;
-            const MIN_PRICE = 1.0; // Minimum price is always 1 MON (contract enforces this)
+            const MIN_PRICE = 1.0;
             const initPrice = Math.max(MIN_PRICE, parseFloat(state.initPrice || '1.0'));
             let currentPrice = MIN_PRICE;
 
             if (timeSinceStart < EPOCH_PERIOD && initPrice > MIN_PRICE) {
-                // Linear decay from initPrice to MIN_PRICE
                 const decayProgress = timeSinceStart / EPOCH_PERIOD;
                 currentPrice = initPrice - (initPrice - MIN_PRICE) * decayProgress;
             }
-            // Ensure price never goes below minimum
             currentPrice = Math.max(MIN_PRICE, currentPrice);
 
-            // 3. Interpolate Earnings
             const dps = parseFloat(state.officeRate || '0');
             const earned = timeSinceStart * dps;
 
-            // 4. Calculate PNL
-            // Cost = Price Paid. We estimate this from initPrice.
-            // newInitPrice = pricePaid * 2.0. So pricePaid = initPrice / 2.0.
-            const pricePaid = initPrice / 2.0;
-            // Revenue = 80% of currentPrice (if someone buys now)
-            const revenue = currentPrice * 0.8;
-            const pnlValue = revenue - pricePaid;
+            // Match donut miner PnL calculation logic
+            const halfInitPrice = initPrice / 2.0;
+            const pnlValue = currentPrice > initPrice
+                ? (currentPrice * 0.8) - halfInitPrice  // If price went UP: 80% of current - half init
+                : currentPrice - halfInitPrice;          // If price went DOWN: current - half init
 
-            // Format PNL
             const pnlFormatted = pnlValue >= 0
                 ? `+Ξ${pnlValue.toFixed(4)}`
                 : `-Ξ${Math.abs(pnlValue).toFixed(4)}`;
             setPnl(pnlFormatted);
 
-            // Update Interpolated State
             setInterpolatedState(prev => ({
                 ...prev,
                 currentPrice: currentPrice.toFixed(4),
                 totalEarned: earned.toFixed(2)
             }));
 
-        }, 1000);
+        }, 5000);
         return () => clearInterval(interval);
     }, [state.kingSince, state.initPrice, state.officeRate]);
 
-    // Handle transaction receipt (for miniapp/wagmi)
+    // Calculate enhanced PnL (Dutch Auction + KEEP Earnings)
     useEffect(() => {
-        if (!isMiniapp || !receipt) return;
+        // Only calculate if user is the current king
+        if (!address || !state.currentKing || address.toLowerCase() !== state.currentKing.toLowerCase()) {
+            setEnhancedPnl(null);
+            return;
+        }
+
+        let cancelled = false;
+
+        const calculateEnhancedPnl = async () => {
+            try {
+                const monPriceUsd = await getMonPrice();
+                const pnlData = await officePnlService.calculateOfficePnl(state, monPriceUsd);
+
+                if (!cancelled && pnlData) {
+                    setEnhancedPnl(pnlData);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.error('Error calculating enhanced PnL:', error);
+                }
+            }
+        };
+
+        // Calculate immediately
+        calculateEnhancedPnl();
+
+        // Recalculate every 30 seconds
+        const interval = setInterval(calculateEnhancedPnl, 30000);
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, [state, address]);
+
+    // Handle transaction receipt
+    useEffect(() => {
+        if (!receipt) return;
         if (receipt.status === 'success' || receipt.status === 'reverted') {
             setIsLoading(false);
             theCellarService.clearCache();
 
-            // Capture previous manager address before state refresh
-            const previousManagerAddress = state.currentKing;
-
-            // If transaction was successful and we have userContext, cache the FID/name
-            if (receipt.status === 'success' && address && userContext && (userContext.fid || userContext.username)) {
-                setOfficeManagerData(address, {
-                    fid: userContext.fid,
-                    username: userContext.username,
-                    displayName: userContext.displayName,
-                });
+            // Try to get previous manager from sessionStorage first (captured before transaction)
+            // Fallback to state.currentKing if not found
+            let previousManagerAddress: string | undefined;
+            if (typeof window !== 'undefined' && receipt.transactionHash) {
+                const stored = sessionStorage.getItem(`previousManager_${receipt.transactionHash}`);
+                if (stored) {
+                    previousManagerAddress = stored;
+                    sessionStorage.removeItem(`previousManager_${receipt.transactionHash}`); // Clean up
+                }
+            }
+            // Fallback to state.currentKing (might be updated already, but better than nothing)
+            if (!previousManagerAddress) {
+                previousManagerAddress = state.currentKing;
             }
 
-            // Send notification to previous manager if office was taken
+            // Save office manager data to database (always try, even without userContext)
+            if (receipt.status === 'success' && address) {
+                // Save to local cache first (for immediate UI updates)
+                if (userContext && (userContext.fid || userContext.username)) {
+                    setOfficeManagerData(address, {
+                        fid: userContext.fid,
+                        username: userContext.username,
+                        displayName: userContext.displayName,
+                    });
+                }
+
+                // Always save to database (will fetch from Neynar if needed)
+                fetch('/api/office/save-manager', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        address,
+                        fid: userContext?.fid,
+                        username: userContext?.username,
+                        displayName: userContext?.displayName,
+                    })
+                }).catch(err => console.error('Failed to save office manager to database:', err));
+
+                // Prompt user to share their office takeover on Farcaster (only in miniapp)
+                // Double-check miniapp status before triggering compose cast
+                (async () => {
+                    try {
+                        const doubleCheckMiniapp = await checkIsInFarcasterMiniapp();
+                        if (doubleCheckMiniapp) {
+                            // Small delay to let the transaction complete UI update
+                            setTimeout(async () => {
+                                try {
+                                    // Get current user's username (from userContext or try to fetch)
+                                    let currentUsername = userContext?.username;
+                                    if (!currentUsername && address) {
+                                        // Try to get username from database
+                                        const currentManagerData = await getOfficeManagerData(address);
+                                        currentUsername = currentManagerData?.username;
+                                    }
+
+                                    // Get previous manager username if available
+                                    const previousManagerData = await getOfficeManagerData(previousManagerAddress);
+                                    let shareText: string;
+
+                                    if (previousManagerData?.username && currentUsername) {
+                                        shareText = `@${currentUsername} just took the Office from @${previousManagerData.username}! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
+                                    } else if (currentUsername) {
+                                        shareText = `@${currentUsername} just took the Office! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
+                                    } else if (previousManagerData?.username) {
+                                        shareText = `I just took the Office from @${previousManagerData.username}! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+                                    } else {
+                                        shareText = `I just took the Office! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+                                    }
+
+                                    console.log('📝 Prompting user to compose cast...', {
+                                        isMiniapp,
+                                        doubleCheckMiniapp,
+                                        hasUserContext: !!userContext,
+                                        username: currentUsername,
+                                        shareText
+                                    });
+
+                                    await sdk.actions.composeCast({
+                                        text: shareText,
+                                        embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
+                                    });
+                                    console.log('✅ Compose cast prompt completed');
+                                } catch (error: any) {
+                                    // User cancelled or error - log for debugging but don't show error to user
+                                    console.warn('⚠️ Compose cast failed (user may have cancelled or SDK error):', {
+                                        error: error?.message || error,
+                                        errorType: error?.constructor?.name,
+                                        isMiniapp,
+                                        doubleCheckMiniapp,
+                                        hasUserContext: !!userContext
+                                    });
+                                }
+                            }, 1500);
+                        } else {
+                            console.log('ℹ️ Skipping compose cast - not in miniapp', { isMiniapp, doubleCheckMiniapp, hasUserContext: !!userContext });
+                        }
+                    } catch (error) {
+                        console.error('Error checking miniapp status:', error);
+                    }
+                })();
+            }
+
             if (receipt.status === 'success' && previousManagerAddress &&
                 previousManagerAddress !== '0x0000000000000000000000000000000000000000' &&
                 previousManagerAddress.toLowerCase() !== address?.toLowerCase()) {
 
-                // Send notification asynchronously (don't await - don't block UI)
+                console.log('📨 Sending notification to previous manager:', previousManagerAddress);
                 fetch('/api/office/notify-previous-manager', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -264,169 +441,104 @@ export const TheOffice: React.FC<{
                         newManagerAddress: address,
                         pricePaid: state.currentPrice
                     })
-                }).catch(err => console.error('Failed to send notification:', err));
+                })
+                    .then(async (response) => {
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            console.log('✅ Notification sent successfully:', data);
+                        } else {
+                            console.error('❌ Notification failed:', data);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('❌ Failed to send notification:', err);
+                    });
             }
 
-            fetchOfficeState(true); // Force refresh after transaction
+            fetchOfficeState(true);
             const resetTimer = setTimeout(() => {
                 resetWrite();
             }, 500);
             return () => clearTimeout(resetTimer);
         }
-    }, [receipt, resetWrite, address, userContext, state.currentKing, state.currentPrice, isMiniapp]);
+    }, [receipt, resetWrite, address, userContext, state.currentKing, state.currentPrice]);
 
-    const { switchChainAsync } = useSwitchChain(); // For miniapp
+    // ... (keep state defs)
 
-    // Unified transaction handlers
     const handleTakeOffice = async () => {
-        if (isMiniapp) {
-            // Miniapp: Use wagmi writeContract
-
-            // 1. Ensure Connected
-            if (!isConnected || !address) {
-                // Try to connect if not connected
-                if (!isConnected && connectors[0]) {
-                    try {
-                        await connectAsync({
-                            connector: connectors[0],
-                            chainId: monad.id,
-                        });
-                        // Wait a bit for connection to complete
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        // Re-check after connection
-                        if (!address) {
-                            alert('Wallet connected but address not available. Please try again.');
-                            return;
-                        }
-                    } catch (error) {
-                        alert('Failed to connect wallet. Please try again.');
-                        return;
-                    }
-                } else {
-                    alert('Wallet not connected. Please connect your wallet.');
-                    return;
-                }
-            }
-
-            // 2. Ensure Correct Network
-            if (chainId !== monad.id) {
-                try {
-                    await switchChainAsync({ chainId: monad.id });
-                    // Return here to prevent "double popup" (switching then immediately trying to buy)
-                    // The user will click again once network is switched.
-                    return;
-                } catch (error) {
-                    console.error('Failed to switch network:', error);
-                    alert('Please switch to Monad Mainnet manually.');
-                    return;
-                }
-            }
-
-            if (!address) {
-                alert('Could not determine wallet address.');
-                return;
-            }
-
-            try {
-                setIsLoading(true);
-                const hash = await tavernKeeperService.takeOfficeWithWriteContract(
-                    writeContract,
-                    state.currentPrice,
-                    address as Address
-                );
-                console.log('Transaction sent:', hash);
-                // Don't set isLoading to false here - let the receipt handler do it
-            } catch (error) {
-                console.error('Failed to take office:', error);
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                alert(`Failed to take office: ${errorMessage}`);
-                setIsLoading(false);
-            }
-        } else {
-            // Web: Use Privy wallet client
-            if (!address || !isConnected || !privyWallet) {
-                alert('Please connect your wallet first!');
-                return;
-            }
-
-            if (chainId !== monad.id) {
-                try {
-                    await privyWallet.switchChain(monad.id);
-                } catch (error) {
-                    console.error('Failed to switch chain:', error);
-                    alert('Please switch to Monad Mainnet manually.');
-                }
-                return;
-            }
-
-            await executeTakeOffice(privyWallet, address);
+        if (!isConnected || !address) {
+            // ... (keep logic)
+            alert('Please connect your wallet first.');
+            return;
         }
-    };
 
-    const executeTakeOffice = async (wallet: any, clientAddress: string) => {
+        if (chainId !== monad.id) {
+            // ... (keep logic)
+            alert('Please switch to Monad Mainnet manually.');
+            return;
+        }
+
+        // Check if user is trying to take office from themselves
+        const currentKing = state.currentKing?.toLowerCase();
+        const userAddress = address?.toLowerCase();
+        if (currentKing && userAddress && currentKing === userAddress) {
+            alert('⚠️ You already own the Office!\n\nTaking it from yourself does nothing - you\'ll just pay yourself back (minus fees).\n\nThe Office PnL shown is what the PREVIOUS owner would receive, not what you get from taking it.');
+            return;
+        }
+
         try {
             setIsLoading(true);
-            const provider = await wallet.getEthereumProvider();
-            const client = createWalletClient({
-                account: clientAddress as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
+
+            // Fetch FRESH state BEFORE transaction to capture previous manager
+            const freshState = await tavernKeeperService.getOfficeState(true);
+            const previousManagerAddress = freshState.currentKing; // Capture BEFORE transaction
+
+            const epochId = BigInt(freshState.epochId);
+            const deadline = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 mins
+
+            // Calculate Price
+            const { parseEther, formatEther } = await import('viem');
+            const currentPriceWei = parseEther(freshState.currentPrice);
+            const minPriceWei = parseEther('1.0');
+            const effectivePriceWei = currentPriceWei < minPriceWei ? minPriceWei : currentPriceWei;
+            const buffer = (effectivePriceWei * 5n) / 100n; // 5% buffer
+            const safePrice = effectivePriceWei + buffer;
+
+            console.log(`Taking Office: Epoch ${epochId}, Price ${freshState.currentPrice}, Sending ${formatEther(safePrice)}`);
+            console.log(`Previous Manager: ${previousManagerAddress}`);
+
+            const { CONTRACT_REGISTRY, getContractAddress } = await import('../lib/contracts/registry');
+            const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+            const contractAddress = getContractAddress(contractConfig);
+
+            if (!contractAddress) throw new Error("TavernKeeper contract not found");
+
+            // Store previous manager address in a way that survives state updates
+            // We'll use a ref or store it in the receipt handler
+            const hash = await writeContractAsync({
+                address: contractAddress,
+                abi: contractConfig.abi,
+                functionName: 'takeOffice',
+                value: safePrice,
+                args: [epochId, deadline, safePrice, ""], // maxPrice = safePrice
+                account: address as Address,
+                chainId: monad.id,
             });
 
-            // The takeOffice function will fetch fresh state and use the contract's actual price
-            // We pass a placeholder value - the service will use the contract's price directly
-            const hash = await tavernKeeperService.takeOffice(client, '0', clientAddress);
-            console.log('Transaction sent:', hash);
-            alert('Transaction sent! Waiting for confirmation...');
-
-            // Wait for transaction confirmation
-            try {
-                const publicClient = createPublicClient({
-                    chain: monad,
-                    transport: http(),
-                });
-                await publicClient.waitForTransactionReceipt({ hash });
-                console.log('Transaction confirmed!');
-
-                // Clear caches and force refresh both states
-                theCellarService.clearCache();
-                tavernKeeperService._cache.data = null;
-                tavernKeeperService._cache.timestamp = 0;
-
-                // Force refresh office state
-                await fetchOfficeState(true);
-
-                // Trigger cellar refresh in TheOfficeView
-                setRefreshKey(prev => prev + 1);
-            } catch (waitError) {
-                console.error('Error waiting for transaction:', waitError);
-                // Still refresh after delay if wait fails
-                setTimeout(async () => {
-                    theCellarService.clearCache();
-                    tavernKeeperService._cache.data = null;
-                    tavernKeeperService._cache.timestamp = 0;
-                    await fetchOfficeState(true);
-                    setRefreshKey(prev => prev + 1);
-                }, 5000);
+            // Store previous manager address with the transaction hash for later retrieval
+            // We'll use sessionStorage or a ref to persist this
+            if (typeof window !== 'undefined') {
+                sessionStorage.setItem(`previousManager_${hash}`, previousManagerAddress);
             }
+
+            console.log('Transaction sent:', hash);
         } catch (error) {
             console.error('Failed to take office:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             alert(`Failed to take office: ${errorMessage}`);
-        } finally {
             setIsLoading(false);
         }
     };
-
-    const isKing = address && state.currentKing && address.toLowerCase() === state.currentKing.toLowerCase();
-    const isLoadingState = isLoading || (isMiniapp && (isWriting || isConfirming));
-
-    // Additional loading state check for miniapp
-    useEffect(() => {
-        if (isMiniapp && receipt && (receipt.status === 'success' || receipt.status === 'reverted')) {
-            setIsLoading(false);
-        }
-    }, [receipt, isMiniapp]);
 
     const handleClaim = async () => {
         if (!address || !isConnected || !isKing) {
@@ -434,64 +546,106 @@ export const TheOffice: React.FC<{
             return;
         }
 
-        if (isMiniapp) {
-            // Miniapp: Use wagmi writeContract
+        if (chainId !== monad.id) {
             try {
-                setIsLoading(true);
-
-                // Get contract address and ABI
-                const { CONTRACT_REGISTRY, getContractAddress } = await import('../lib/contracts/registry');
-                const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
-                const contractAddress = getContractAddress(contractConfig);
-
-                if (!contractAddress) {
-                    throw new Error("TavernKeeper contract not found");
-                }
-
-                const hash = await writeContract({
-                    address: contractAddress,
-                    abi: contractConfig.abi,
-                    functionName: 'claimOfficeRewards',
-                    args: [],
-                    account: address as Address,
-                    chainId: monad.id,
-                });
-
-                console.log('Claim transaction sent:', hash);
-                // Don't set isLoading to false here - let the receipt handler do it
+                await switchChainAsync({ chainId: monad.id });
+                return;
             } catch (error) {
-                console.error('Failed to claim rewards:', error);
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                alert(`Failed to claim rewards: ${errorMessage}`);
-                setIsLoading(false);
+                alert('Please switch to Monad Mainnet manually.');
+                return;
             }
-        } else {
-            // Web: Use Privy wallet client
-            if (!privyWallet) return;
+        }
 
-            try {
-                setIsLoading(true);
-                const provider = await privyWallet.getEthereumProvider();
-                const client = createWalletClient({
-                    account: address as `0x${string}`,
-                    chain: monad,
-                    transport: custom(provider)
-                });
+        try {
+            setIsLoading(true);
 
-                await tavernKeeperService.claimOfficeRewards(client, address);
-                alert('Rewards claimed successfully!');
-                fetchOfficeState();
-            } catch (error) {
-                console.error('Failed to claim rewards:', error);
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                alert(`Failed to claim rewards: ${errorMessage}`);
-            } finally {
-                setIsLoading(false);
+            const { CONTRACT_REGISTRY, getContractAddress } = await import('../lib/contracts/registry');
+            const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+            const contractAddress = getContractAddress(contractConfig);
+
+            if (!contractAddress) {
+                throw new Error("TavernKeeper contract not found");
             }
+
+            const hash = await writeContractAsync({
+                address: contractAddress as `0x${string}`,
+                abi: contractConfig.abi,
+                functionName: 'claimOfficeRewards',
+                args: [],
+                account: address as Address,
+                chainId: monad.id,
+            });
+
+            console.log('Claim transaction sent:', hash);
+        } catch (error) {
+            console.error('Failed to claim rewards:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            alert(`Failed to claim rewards: ${errorMessage}`);
+            setIsLoading(false);
         }
     };
 
+    const isKing = address && state.currentKing && address.toLowerCase() === state.currentKing.toLowerCase();
+    const isLoadingState = isLoading || isWriting || isConfirming;
     const walletReady = isConnected && !!address;
+
+    // Test compose cast function - simulates what happens when someone takes office
+    const handleTestComposeCast = async () => {
+        try {
+            const isMiniapp = checkIsInFarcasterMiniapp();
+            if (!isMiniapp) {
+                alert('This test only works in the Farcaster miniapp!');
+                return;
+            }
+
+            // Get current user's username (from userContext or try to fetch)
+            let currentUsername = userContext?.username;
+            if (!currentUsername && address) {
+                // Try to get username from database
+                const currentManagerData = await getOfficeManagerData(address);
+                currentUsername = currentManagerData?.username;
+            }
+
+            // Get previous manager username if available
+            const previousManagerAddress = state.currentKing;
+            const previousManagerData = previousManagerAddress && previousManagerAddress !== '0x0000000000000000000000000000000000000000'
+                ? await getOfficeManagerData(previousManagerAddress)
+                : null;
+
+            let shareText: string;
+
+            if (previousManagerData?.username && currentUsername) {
+                shareText = `@${currentUsername} just took the Office from @${previousManagerData.username}! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
+            } else if (currentUsername) {
+                shareText = `@${currentUsername} just took the Office! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
+            } else if (previousManagerData?.username) {
+                shareText = `I just took the Office from @${previousManagerData.username}! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+            } else {
+                shareText = `I just took the Office! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+            }
+
+            console.log('🧪 Test compose cast:', {
+                isMiniapp,
+                hasUserContext: !!userContext,
+                username: currentUsername,
+                previousManager: previousManagerData?.username,
+                shareText
+            });
+
+            await sdk.actions.composeCast({
+                text: shareText,
+                embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
+            });
+
+            console.log('✅ Test compose cast completed');
+        } catch (error: any) {
+            console.error('❌ Test compose cast failed:', {
+                error: error?.message || error,
+                errorType: error?.constructor?.name,
+            });
+            alert(`Test compose cast failed: ${error?.message || error}`);
+        }
+    };
 
     return (
         <TheOfficeView
@@ -500,11 +654,12 @@ export const TheOffice: React.FC<{
             keepBalance={keepBalance}
             isLoading={isLoadingState}
             walletReady={walletReady}
-            isWalletConnected={isConnected && !!address}
-            isWrongNetwork={isConnected && chainId !== monad.id}
+            isWalletConnected={walletReady}
+            isWrongNetwork={walletReady && chainId !== monad.id}
             onTakeOffice={handleTakeOffice}
-            onDisconnect={isMiniapp ? undefined : () => privy.logout()}
+            onDisconnect={undefined} // Disconnect handled by main UI/RainbowKit/Context
             pnl={pnl}
+            enhancedPnl={enhancedPnl}
             isKing={!!isKing}
             viewMode={viewMode}
             onViewSwitch={setViewMode}
@@ -512,6 +667,9 @@ export const TheOffice: React.FC<{
             cellarState={cellarState}
             onClaim={handleClaim}
             refreshKey={refreshKey}
+            poolMon={poolMon}
+            poolKeep={poolKeep}
+            mcapData={mcapData}
         >
             {children}
         </TheOfficeView>

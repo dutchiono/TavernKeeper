@@ -7,6 +7,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 // USD prices per tier (same for both TavernKeeper and Adventurer)
 const TIER_USD_PRICES = {
+    0: 0.00,   // $0 - Whitelist tier (free)
     1: 1.00,   // $1
     2: 5.00,   // $5
     3: 10.00,  // $10
@@ -14,7 +15,7 @@ const TIER_USD_PRICES = {
 
 interface SignPriceRequest {
     contractType: 'tavernkeeper' | 'adventurer';
-    tier: 1 | 2 | 3;
+    tier: 0 | 1 | 2 | 3;
     userAddress: string;
 }
 
@@ -31,9 +32,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (!tier || ![1, 2, 3].includes(tier)) {
+        if (tier === undefined || ![0, 1, 2, 3].includes(tier)) {
             return NextResponse.json(
-                { error: 'Invalid tier. Must be 1, 2, or 3' },
+                { error: 'Invalid tier. Must be 0 (whitelist), 1, 2, or 3' },
                 { status: 400 }
             );
         }
@@ -46,11 +47,26 @@ export async function POST(request: NextRequest) {
         }
 
         // Get signer private key from environment
-        const signerPrivateKey = process.env.PRICING_SIGNER_PRIVATE_KEY;
-        if (!signerPrivateKey) {
+        const signerPrivateKeyRaw = process.env.PRICING_SIGNER_PRIVATE_KEY;
+        if (!signerPrivateKeyRaw) {
             console.error('PRICING_SIGNER_PRIVATE_KEY not set in environment');
             return NextResponse.json(
                 { error: 'Pricing signer not configured' },
+                { status: 500 }
+            );
+        }
+
+        // Normalize private key: ensure it starts with 0x and is valid hex
+        let signerPrivateKey = signerPrivateKeyRaw.trim();
+        if (!signerPrivateKey.startsWith('0x')) {
+            signerPrivateKey = `0x${signerPrivateKey}`;
+        }
+
+        // Validate private key format (should be 0x + 64 hex characters = 66 total)
+        if (!/^0x[a-fA-F0-9]{64}$/.test(signerPrivateKey)) {
+            console.error('PRICING_SIGNER_PRIVATE_KEY has invalid format. Expected 64 hex characters (with or without 0x prefix)');
+            return NextResponse.json(
+                { error: 'Invalid pricing signer private key format' },
                 { status: 500 }
             );
         }
@@ -77,9 +93,10 @@ export async function POST(request: NextRequest) {
         const monAmountWei = parseEther(monAmount.toFixed(18));
 
         // Get user's current nonce from contract
+        const rpcUrl = monad.rpcUrls.default.http[0];
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(rpcUrl),
         });
 
         let userNonce = 0n;

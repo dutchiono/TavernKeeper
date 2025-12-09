@@ -1,9 +1,8 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
-import { createPublicClient, createWalletClient, custom, formatEther, http } from 'viem';
-import { monad } from '../lib/chains';
+import { formatEther } from 'viem';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { uploadMetadata } from '../lib/services/heroMinting';
 import { metadataStorage } from '../lib/services/metadataStorage';
 import { getMonPrice } from '../lib/services/monPriceService';
@@ -11,27 +10,23 @@ import { rpgService } from '../lib/services/rpgService';
 import { DEFAULT_COLORS, Gender, GENDERS, generateSpriteURI, HeroColors } from '../lib/services/spriteService';
 import { ForgeButton, ForgePanel } from './heroes/ForgeComponents';
 import { SpritePreview } from './heroes/SpritePreview';
+import { UnfinishedFeatureWarning } from './UnfinishedFeatureWarning';
 
 export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => void }) {
-    const { user } = usePrivy();
-    const { wallets } = useWallets();
-    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
-    const address = user?.wallet?.address;
+    const { address } = useAccount();
+    const { data: walletClient } = useWalletClient();
+    const publicClient = usePublicClient();
     const [balance, setBalance] = useState<{ value: bigint; decimals: number; symbol: string } | null>(null);
 
     // Fetch Balance
     useEffect(() => {
-        if (!address) {
+        if (!address || !publicClient) {
             setBalance(null);
             return;
         }
 
         const fetchBalance = async () => {
             try {
-                const publicClient = createPublicClient({
-                    chain: monad,
-                    transport: http(),
-                });
                 const balanceValue = await publicClient.getBalance({
                     address: address as `0x${string}`,
                 });
@@ -62,6 +57,12 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
     const [monAmount, setMonAmount] = useState<number>(0);
     const [monPriceUsd, setMonPriceUsd] = useState<number>(0.03);
     const [usdPrice] = useState<number>(1.00); // Tier 1 = $1
+    const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false);
+    const [hasWhitelistMinted, setHasWhitelistMinted] = useState<boolean>(false);
+
+    // Warning Modals
+    const [showMintWarning, setShowMintWarning] = useState(false);
+    const [showWhitelistMintWarning, setShowWhitelistMintWarning] = useState(false);
 
     // Calculate price display from MON/USD rate (no signature needed for display)
     useEffect(() => {
@@ -81,12 +82,41 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
         return () => clearInterval(interval);
     }, [usdPrice]);
 
+    // Check whitelist status
+    useEffect(() => {
+        if (!address) {
+            setIsWhitelisted(false);
+            setHasWhitelistMinted(false);
+            return;
+        }
+
+        const checkWhitelist = async () => {
+            try {
+                const whitelisted = await rpgService.isWhitelisted('tavernkeeper', address);
+                const minted = await rpgService.hasWhitelistMinted('tavernkeeper', address);
+                setIsWhitelisted(whitelisted);
+                setHasWhitelistMinted(minted);
+            } catch (error) {
+                console.error('Failed to check whitelist status:', error);
+            }
+        };
+
+        checkWhitelist();
+        const interval = setInterval(checkWhitelist, 30000); // Check every 30s
+        return () => clearInterval(interval);
+    }, [address]);
+
     const handleColorChange = (part: keyof HeroColors, color: string) => {
         setColors(prev => ({ ...prev, [part]: color }));
     };
 
+    const handleMintClick = () => {
+        setShowMintWarning(true);
+    };
+
     const handleMint = async () => {
-        if (!address || !wallet || !name) return;
+        setShowMintWarning(false);
+        if (!address || !walletClient || !name) return;
 
         // Clear any previous errors when retrying
         setError(null);
@@ -94,12 +124,7 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
         setStatusMessage('Preparing Tavern Keeper Metadata...');
 
         try {
-            const provider = await wallet.getEthereumProvider();
-            const walletClient = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
-            });
+            // using walletClient from wagmi
 
             // 1. Generate sprite and upload image separately to IPFS (with retries)
             setStatusMessage('Uploading Tavern Keeper image...');
@@ -153,17 +178,25 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
             // Wait for token to appear
             let tokenId = '';
             let retries = 0;
-            while (!tokenId && retries < 15) {
+            const maxRetries = 15;
+            while (!tokenId && retries < maxRetries) {
                 await new Promise(r => setTimeout(r, 2000));
-                const keepers = await rpgService.getUserTavernKeepers(address);
-                if (keepers.length > 0) {
-                    // Take the last one as the new one
-                    tokenId = keepers[keepers.length - 1].tokenId;
+                try {
+                    const keepers = await rpgService.getUserTavernKeepers(address);
+                    if (keepers.length > 0) {
+                        // Take the last one as the new one
+                        tokenId = keepers[keepers.length - 1].tokenId;
+                    }
+                } catch (error) {
+                    // If fetching fails, continue retrying (might be temporary network issue)
+                    console.warn(`Failed to fetch keepers (attempt ${retries + 1}/${maxRetries}):`, error);
                 }
                 retries++;
             }
 
-            if (!tokenId) throw new Error("Failed to detect new Tavern Keeper. Please check your wallet.");
+            if (!tokenId) {
+                throw new Error("Failed to detect new Tavern Keeper. The transaction may still be processing. Please check your wallet and try refreshing.");
+            }
 
             // 3. Claim Free Hero
             setStatus('claiming_hero');
@@ -171,15 +204,141 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
 
             const hash2 = await rpgService.claimFreeHero(walletClient, address, tokenId, metadataUri);
 
+            // Wait for transaction confirmation
+            if (!publicClient) {
+                throw new Error("Public client not available");
+            }
+
+            setStatusMessage('Waiting for hero recruitment confirmation...');
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash2 });
+
+            if (receipt.status === 'reverted') {
+                throw new Error("Hero recruitment transaction failed. The free hero may have already been claimed, or there was an error.");
+            }
+
             setStatus('success');
             setStatusMessage('Tavern Established! Hero Recruited.');
 
             if (onSuccess) onSuccess();
 
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            console.error('Mint error:', e);
             setStatus('error');
-            setError((e as Error).message);
+
+            // Check if user rejected the transaction
+            const errorMessage = e?.message || e?.toString() || 'Unknown error';
+            const isUserRejection = errorMessage.includes('User rejected') ||
+                                   errorMessage.includes('User denied') ||
+                                   errorMessage.includes('user rejected') ||
+                                   e?.name === 'UserRejectedRequestError';
+
+            if (isUserRejection) {
+                setError('Transaction cancelled. You can try again when ready.');
+            } else {
+                setError(errorMessage);
+            }
+        }
+    };
+
+    const handleWhitelistMintClick = () => {
+        setShowWhitelistMintWarning(true);
+    };
+
+    const handleWhitelistMint = async () => {
+        setShowWhitelistMintWarning(false);
+        if (!address || !walletClient || !name) return;
+
+        // Clear any previous errors when retrying
+        setError(null);
+        setStatus('uploading');
+        setStatusMessage('Preparing Tavern Keeper Metadata...');
+
+        try {
+            // using walletClient from wagmi
+
+            // 1. Upload Metadata
+            const metadata = {
+                name: name,
+                description: `Tavern Keeper License #${Date.now()}`,
+                image: generateSpriteURI(gender, colors, true),
+                attributes: [
+                    { trait_type: "Gender", value: gender },
+                    { trait_type: "Clothing Color", value: colors.clothing },
+                ],
+            };
+            const metadataUri = await uploadMetadata(metadata);
+
+            // 2. Mint Tavern Keeper (whitelist - free)
+            setStatus('minting_keeper');
+            setStatusMessage('Minting Tavern Keeper License (FREE - Whitelist)... Check Wallet');
+
+            const hash1 = await rpgService.mintTavernKeeperWhitelist(walletClient, address, metadataUri);
+            setStatusMessage(`Tavern Keeper Minted! Tx: ${hash1}`);
+
+            setStatusMessage('Waiting for confirmation...');
+
+            // Wait for token to appear
+            let tokenId = '';
+            let retries = 0;
+            const maxRetries = 15;
+            while (!tokenId && retries < maxRetries) {
+                await new Promise(r => setTimeout(r, 2000));
+                try {
+                    const keepers = await rpgService.getUserTavernKeepers(address);
+                    if (keepers.length > 0) {
+                        // Take the last one as the new one
+                        tokenId = keepers[keepers.length - 1].tokenId;
+                    }
+                } catch (error) {
+                    // If fetching fails, continue retrying (might be temporary network issue)
+                    console.warn(`Failed to fetch keepers (attempt ${retries + 1}/${maxRetries}):`, error);
+                }
+                retries++;
+            }
+
+            if (!tokenId) {
+                throw new Error("Failed to detect new Tavern Keeper. The transaction may still be processing. Please check your wallet and try refreshing.");
+            }
+
+            // 3. Claim Free Hero
+            setStatus('claiming_hero');
+            setStatusMessage('Recruiting First Hero... Check Wallet');
+
+            const hash2 = await rpgService.claimFreeHero(walletClient, address, tokenId, metadataUri);
+
+            // Wait for transaction confirmation
+            if (!publicClient) {
+                throw new Error("Public client not available");
+            }
+
+            setStatusMessage('Waiting for hero recruitment confirmation...');
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash2 });
+
+            if (receipt.status === 'reverted') {
+                throw new Error("Hero recruitment transaction failed. The free hero may have already been claimed, or there was an error.");
+            }
+
+            setStatus('success');
+            setStatusMessage('Tavern Established! Hero Recruited.');
+
+            if (onSuccess) onSuccess();
+
+        } catch (e: any) {
+            console.error('Whitelist mint error:', e);
+            setStatus('error');
+
+            // Check if user rejected the transaction
+            const errorMessage = e?.message || e?.toString() || 'Unknown error';
+            const isUserRejection = errorMessage.includes('User rejected') ||
+                                   errorMessage.includes('User denied') ||
+                                   errorMessage.includes('user rejected') ||
+                                   e?.name === 'UserRejectedRequestError';
+
+            if (isUserRejection) {
+                setError('Transaction cancelled. You can try again when ready.');
+            } else {
+                setError(errorMessage);
+            }
         }
     };
 
@@ -248,8 +407,8 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
                                                     key={g}
                                                     onClick={() => setGender(g)}
                                                     className={`flex-1 py-2 text-[10px] font-bold uppercase border-2 transition-all ${gender === g
-                                                            ? 'bg-amber-600 border-amber-800 text-white'
-                                                            : 'bg-[#3e2613] border-[#1e1209] text-[#8b7355] hover:bg-[#4e3019]'
+                                                        ? 'bg-amber-600 border-amber-800 text-white'
+                                                        : 'bg-[#3e2613] border-[#1e1209] text-[#8b7355] hover:bg-[#4e3019]'
                                                         }`}
                                                 >
                                                     {g}
@@ -380,8 +539,26 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
                             </div>
 
                             <div className="mt-8 space-y-4">
+                                {isWhitelisted && !hasWhitelistMinted ? (
+                                    <>
+                                        <ForgeButton
+                                            onClick={handleWhitelistMintClick}
+                                            disabled={(status !== 'idle' && status !== 'error') || !name}
+                                            className="w-full py-4 text-lg bg-green-600 hover:bg-green-700"
+                                        >
+                                            {status === 'idle' || status === 'error' ? 'Mint FREE (Whitelist)' : 'Processing...'}
+                                        </ForgeButton>
+                                        <div className="text-center text-xs text-green-400 mb-2">
+                                            You're whitelisted! Free mint available.
+                                        </div>
+                                        <div className="border-t border-[#5c3a1e] my-2" />
+                                        <div className="text-center text-xs text-[#8b7355] mb-2">
+                                            Or pay to mint:
+                                        </div>
+                                    </>
+                                ) : null}
                                 <ForgeButton
-                                    onClick={handleMint}
+                                    onClick={handleMintClick}
                                     disabled={(status !== 'idle' && status !== 'error') || !name}
                                     className="w-full py-4 text-lg"
                                 >
@@ -411,6 +588,20 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
                     </div>
                 )}
             </div>
+
+            {/* Warning Modals */}
+            <UnfinishedFeatureWarning
+                isOpen={showMintWarning}
+                onClose={() => setShowMintWarning(false)}
+                onConfirm={handleMint}
+                featureName="Tavern Keeper Mint"
+            />
+            <UnfinishedFeatureWarning
+                isOpen={showWhitelistMintWarning}
+                onClose={() => setShowWhitelistMintWarning(false)}
+                onConfirm={handleWhitelistMint}
+                featureName="Tavern Keeper Whitelist Mint"
+            />
         </div>
     );
 }

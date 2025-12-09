@@ -1,5 +1,7 @@
-import { createPublicClient, formatEther, http, parseEther } from 'viem';
+
+import { createPublicClient, formatEther, http, parseAbi } from 'viem';
 import { monad } from '../chains';
+import { CONTRACT_ADDRESSES } from '../contracts/addresses';
 import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 
 export interface CellarState {
@@ -24,9 +26,9 @@ export const theCellarService = {
         this._cache.timestamp = 0;
     },
 
-    async getCellarState(): Promise<CellarState> {
+    async getCellarState(forceRefresh = false): Promise<CellarState> {
         const now = Date.now();
-        if (this._cache.data && (now - this._cache.timestamp < this._cache.ttl)) {
+        if (!forceRefresh && this._cache.data && (now - this._cache.timestamp < this._cache.ttl)) {
             return this._cache.data;
         }
 
@@ -39,15 +41,19 @@ export const theCellarService = {
                 throw new Error("TheCellar contract not found");
             }
 
-            // Use RPC from env or default based on chain ID
-            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-                (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+            // Use chain's RPC URL (includes Alchemy if configured)
+            const rpcUrl = monad.rpcUrls.default.http[0];
 
             const publicClient = createPublicClient({
                 chain: monad,
-                transport: http(rpcUrl),
+                transport: http(rpcUrl, {
+                    retryCount: 3,
+                    retryDelay: 1000,
+                    timeout: 30000,
+                }),
             });
 
+            // V3 Cellar calls: potBalanceMON, potBalanceKEEP, getAuctionPrice, slot0
             const results = await Promise.allSettled([
                 publicClient.readContract({
                     address: contractAddress,
@@ -61,34 +67,64 @@ export const theCellarService = {
                     functionName: 'potBalanceKEEP',
                     args: [],
                 }),
+                publicClient.readContract({
+                    address: contractAddress,
+                    abi: contractConfig.abi,
+                    functionName: 'getAuctionPrice',
+                    args: [],
+                }),
+                publicClient.readContract({
+                    address: contractAddress,
+                    abi: contractConfig.abi,
+                    functionName: 'slot0',
+                    args: [],
+                }),
             ]);
 
             let potMON = 0n;
             let potKEEP = 0n;
+            let currentPrice = 0n;
+            let slot0Data: any = null;
 
-            if (results[0].status === 'fulfilled') {
-                potMON = results[0].value as bigint;
-            }
-            if (results[1].status === 'fulfilled') {
-                potKEEP = results[1].value as bigint;
-            }
+            if (results[0].status === 'fulfilled') potMON = results[0].value as bigint;
+            if (results[1].status === 'fulfilled') potKEEP = results[1].value as bigint;
+            if (results[2].status === 'fulfilled') currentPrice = results[2].value as bigint;
+            if (results[3].status === 'fulfilled') slot0Data = results[3].value;
+
+            // Extract slot0 data
+            const epochId = slot0Data ? Number(slot0Data.epochId) : 0;
+            const initPrice = slot0Data ? formatEther(slot0Data.initPrice) : '0';
+            const startTime = slot0Data ? Number(slot0Data.startTime) * 1000 : now; // Convert to milliseconds
 
             const newState = {
                 potSize: formatEther(potMON), // MON share of pot
                 potSizeKeep: formatEther(potKEEP), // KEEP share of pot
-                currentPrice: '1.0', // V3 Mint is 1:1, simplify display
-                epochId: 0,
-                startTime: now,
-                initPrice: '1.0',
-                paymentToken: contractAddress, // The Cellar contract logic handles payment
+                currentPrice: formatEther(currentPrice), // Current auction price from contract
+                epochId: epochId,
+                startTime: startTime,
+                initPrice: initPrice,
+                paymentToken: contractAddress,
             };
 
             this._cache.data = newState;
             this._cache.timestamp = now;
 
             return newState;
-        } catch (error) {
-            console.error("Error fetching V3 cellar state:", error);
+        } catch (error: any) {
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            const isRateLimit = errorMessage.includes('429') || errorMessage.includes('Too Many Requests') || errorMessage.includes('rate limit');
+            const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('Timeout');
+
+            if (isRateLimit) {
+                console.error('❌ RPC Rate Limit Error:', errorMessage);
+                console.error('💡 Solution: Set NEXT_PUBLIC_ALCHEMY_API_KEY in your .env file to use Alchemy instead of the public RPC');
+            } else if (isTimeout) {
+                console.error('❌ RPC Timeout Error:', errorMessage);
+                console.error('💡 Solution: Set NEXT_PUBLIC_ALCHEMY_API_KEY in your .env file for more reliable RPC');
+            } else {
+                console.error("❌ Error fetching V3 cellar state:", error);
+            }
+
             if (this._cache.data) return this._cache.data;
             return {
                 potSize: '0',
@@ -103,15 +139,62 @@ export const theCellarService = {
     },
 
     async getAllowance(owner: string, tokenAddress: string): Promise<bigint> {
-        // CellarHook (CLP) is the token and the spender (burner).
-        // Since raid() calls _burn(msg.sender), no approval is needed.
-        // We return max uint256 to simulate infinite approval.
-        return 115792089237316195423570985008687907853269984665640564039457584007913129639935n;
+        const rpcUrl = monad.rpcUrls.default.http[0];
+
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(rpcUrl, {
+                retryCount: 3,
+                retryDelay: 1000,
+                timeout: 30000,
+            }),
+        });
+
+        const contractConfig = CONTRACT_REGISTRY.THECELLAR;
+        const contractAddress = getContractAddress(contractConfig);
+
+        try {
+            const allowance = await publicClient.readContract({
+                address: tokenAddress as `0x${string}`,
+                abi: parseAbi(['function allowance(address,address) view returns (uint256)']),
+                functionName: 'allowance',
+                args: [owner as `0x${string}`, contractAddress as `0x${string}`],
+            });
+            return allowance as bigint;
+        } catch (error: any) {
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            const isRateLimit = errorMessage.includes('429') || errorMessage.includes('Too Many Requests');
+            if (isRateLimit) {
+                console.error('❌ RPC Rate Limit Error fetching allowance:', errorMessage);
+            } else {
+                console.error("❌ Error fetching allowance:", error);
+            }
+            return 0n;
+        }
+    },
+
+    // KEEP Token Allowance
+    async getKeepAllowance(userAddress: string, spenderAddress: string): Promise<bigint> {
+        return this.getAllowance(userAddress, CONTRACT_ADDRESSES.KEEP_TOKEN);
+    },
+
+    async approveKeep(client: any, spenderAddress: string, amount: bigint) {
+        return this.approve(client, CONTRACT_ADDRESSES.KEEP_TOKEN, amount);
     },
 
     async approve(client: any, tokenAddress: string, amount: bigint) {
-        // No-op for CellarHook raid
-        return "0x";
+        const contractConfig = CONTRACT_REGISTRY.THECELLAR;
+        const contractAddress = getContractAddress(contractConfig);
+
+        const hash = await client.writeContract({
+            address: tokenAddress as `0x${string}`,
+            abi: parseAbi(['function approve(address,uint256) returns (bool)']),
+            functionName: 'approve',
+            chain: monad,
+            account: client.account,
+            args: [contractAddress, amount],
+        });
+        return hash;
     },
 
     async claim(client: any, lpBid: bigint) {
@@ -154,7 +237,6 @@ export const theCellarService = {
         const contractAddress = getContractAddress(contractConfig);
         if (!contractAddress) throw new Error("TheCellar contract not found");
 
-        // V3: Call 'withdraw'
         const hash = await client.writeContract({
             address: contractAddress,
             abi: contractConfig.abi,
@@ -168,81 +250,144 @@ export const theCellarService = {
     },
 
     async getUserLpBalance(userAddress: string): Promise<bigint> {
-        const contractConfig = CONTRACT_REGISTRY.CELLAR_TOKEN;
-        const contractAddress = getContractAddress(contractConfig);
+        // 1. Get TheCellar contract address
+        const cellarConfig = CONTRACT_REGISTRY.THECELLAR;
+        const cellarAddress = getContractAddress(cellarConfig);
 
-        if (!contractAddress) {
-            console.error("CellarToken contract not found");
+        if (!cellarAddress) {
+            console.error("TheCellar contract not found");
             return 0n;
         }
 
-        // Use RPC from env or default based on chain ID
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+        const rpcUrl = monad.rpcUrls.default.http[0];
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(rpcUrl),
+            transport: http(rpcUrl, {
+                retryCount: 3,
+                retryDelay: 1000,
+                timeout: 30000,
+            }),
         });
 
         try {
+            // 2. Fetch the correct LP token address from TheCellar contract
+            const lpTokenAddress = await publicClient.readContract({
+                address: cellarAddress as `0x${string}`,
+                abi: parseAbi(['function cellarToken() view returns (address)']),
+                functionName: 'cellarToken',
+            }) as string;
+
+            // 3. Get User Balance
             const balance = await publicClient.readContract({
-                address: contractAddress,
-                abi: contractConfig.abi,
+                address: lpTokenAddress as `0x${string}`,
+                abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
                 functionName: 'balanceOf',
                 args: [userAddress as `0x${string}`],
             });
             return balance as bigint;
-        } catch (error) {
-            console.error("Error fetching LP balance:", error);
+        } catch (error: any) {
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            const isRateLimit = errorMessage.includes('429') || errorMessage.includes('Too Many Requests');
+            if (isRateLimit) {
+                console.error('❌ RPC Rate Limit Error fetching LP balance:', errorMessage);
+            } else {
+                console.error("❌ Error fetching LP balance:", error);
+            }
             return 0n;
         }
     },
 
-    async getKeepAllowance(userAddress: string, spenderAddress: string): Promise<bigint> {
-        const contractConfig = CONTRACT_REGISTRY.KEEP_TOKEN;
-        const contractAddress = getContractAddress(contractConfig);
-
-        if (!contractAddress) throw new Error("KEEP Token contract not found");
-
-        // Use RPC from env or default based on chain ID
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
-
-        const publicClient = createPublicClient({
-            chain: monad,
-            transport: http(rpcUrl),
-        });
-
+    async getPoolStats(): Promise<{
+        totalCLPSupply: bigint;
+        positionLiquidity: bigint;
+        totalLiquidity: bigint;
+    } | null> {
         try {
-            const allowance = await publicClient.readContract({
-                address: contractAddress,
-                abi: contractConfig.abi,
-                functionName: 'allowance',
-                args: [userAddress as `0x${string}`, spenderAddress as `0x${string}`],
+            const cellarConfig = CONTRACT_REGISTRY.THECELLAR;
+            const cellarAddress = getContractAddress(cellarConfig);
+
+            if (!cellarAddress) {
+                console.error("TheCellar contract not found");
+                return null;
+            }
+
+            // Use chain's RPC URL (includes Alchemy if configured)
+            const rpcUrl = monad.rpcUrls.default.http[0];
+
+            const publicClient = createPublicClient({
+                chain: monad,
+                transport: http(rpcUrl, {
+                    retryCount: 3,
+                    retryDelay: 1000,
+                    timeout: 30000,
+                }),
             });
-            return allowance as bigint;
-        } catch (error) {
-            console.error("Error fetching KEEP allowance:", error);
-            return 0n;
+
+            // Get CLP token address
+            const lpTokenAddress = await publicClient.readContract({
+                address: cellarAddress as `0x${string}`,
+                abi: parseAbi(['function cellarToken() view returns (address)']),
+                functionName: 'cellarToken',
+            }) as string;
+
+            // Get tokenId and totalLiquidity from TheCellar
+            const [tokenId, totalLiquidity] = await Promise.all([
+                publicClient.readContract({
+                    address: cellarAddress as `0x${string}`,
+                    abi: parseAbi(['function tokenId() view returns (uint256)']),
+                    functionName: 'tokenId',
+                }),
+                publicClient.readContract({
+                    address: cellarAddress as `0x${string}`,
+                    abi: parseAbi(['function totalLiquidity() view returns (uint256)']),
+                    functionName: 'totalLiquidity',
+                }),
+            ]);
+
+            if (tokenId === 0n) {
+                return null;
+            }
+
+            // Get total CLP supply
+            const totalCLPSupply = await publicClient.readContract({
+                address: lpTokenAddress as `0x${string}`,
+                abi: parseAbi(['function totalSupply() view returns (uint256)']),
+                functionName: 'totalSupply',
+            }) as bigint;
+
+            // Get position liquidity from Position Manager
+            const positionManagerAddress = CONTRACT_ADDRESSES.V3_POSITION_MANAGER;
+            const position = await publicClient.readContract({
+                address: positionManagerAddress as `0x${string}`,
+                abi: parseAbi([
+                    'function positions(uint256 tokenId) external view returns (uint96 nonce, address operator, address token0, address token1, uint24 fee, int24 tickLower, int24 tickUpper, uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128, uint128 tokensOwed0, uint128 tokensOwed1)'
+                ]),
+                functionName: 'positions',
+                args: [tokenId],
+            });
+
+            const positionLiquidity = BigInt(position[7].toString()); // liquidity is at index 7
+
+            return {
+                totalCLPSupply,
+                positionLiquidity,
+                totalLiquidity: totalLiquidity as bigint,
+            };
+        } catch (error: any) {
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            const isRateLimit = errorMessage.includes('429') || errorMessage.includes('Too Many Requests');
+            const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('Timeout');
+
+            if (isRateLimit) {
+                console.error('❌ RPC Rate Limit Error fetching pool stats:', errorMessage);
+                console.error('💡 Solution: Set NEXT_PUBLIC_ALCHEMY_API_KEY in your .env file');
+            } else if (isTimeout) {
+                console.error('❌ RPC Timeout Error fetching pool stats:', errorMessage);
+            } else {
+                console.error("❌ Error fetching pool stats:", error);
+            }
+            return null;
         }
     },
-
-    async approveKeep(client: any, spenderAddress: string, amount: bigint) {
-        const contractConfig = CONTRACT_REGISTRY.KEEP_TOKEN;
-        const contractAddress = getContractAddress(contractConfig);
-
-        if (!contractAddress) throw new Error("KEEP Token contract not found");
-
-        const hash = await client.writeContract({
-            address: contractAddress,
-            abi: contractConfig.abi,
-            functionName: 'approve',
-            chain: monad,
-            account: client.account,
-            args: [spenderAddress, amount],
-        });
-
-        return hash;
-    }
 };

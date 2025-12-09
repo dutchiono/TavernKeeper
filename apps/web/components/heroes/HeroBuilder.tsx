@@ -1,8 +1,7 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
-import { createWalletClient, custom } from 'viem';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { monad } from '../../lib/chains';
 import { mintHero, uploadMetadata } from '../../lib/services/heroMinting';
 import { metadataStorage } from '../../lib/services/metadataStorage';
@@ -12,10 +11,10 @@ import HeroEditor, { HeroData } from './HeroEditor';
 import { SpritePreview } from './SpritePreview';
 
 export default function HeroBuilder() {
-    const { authenticated, user } = usePrivy();
-    const { wallets } = useWallets();
-    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
-    const address = user?.wallet?.address;
+    const { address, isConnected } = useAccount();
+    const { data: walletClient } = useWalletClient();
+    const publicClient = usePublicClient();
+    const authenticated = isConnected;
 
     const [heroData, setHeroData] = useState<HeroData>({
         name: '',
@@ -47,19 +46,14 @@ export default function HeroBuilder() {
     };
 
     const handleMint = async () => {
-        if (!address || !wallet || !heroData.name) return;
+        if (!address || !walletClient || !heroData.name) return;
 
         // Clear any previous errors when retrying
         setIsMinting(true);
         setMintStatus('Generating Arcane Metadata...');
 
         try {
-            const provider = await wallet.getEthereumProvider();
-            const walletClient = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
-            });
+            // Using walletClient from Wagmi
 
             // 1. Generate sprite and upload image separately to IPFS (with retries)
             setMintStatus('Uploading hero image...');
@@ -107,12 +101,36 @@ export default function HeroBuilder() {
             setMintStatus('Minting hero... (Please confirm in wallet)');
             const hash = await mintHero(walletClient, address, metadataUri);
 
+            // Wait for transaction confirmation
+            if (!publicClient) {
+                throw new Error("Public client not available");
+            }
+
+            setMintStatus('Waiting for confirmation...');
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+            if (receipt.status === 'reverted') {
+                throw new Error("Hero mint transaction failed. Please check your wallet and try again.");
+            }
+
             setMintStatus(`Minted! Tx: ${hash}`);
             setLastMint({ name: heroData.name, hash });
 
-        } catch (error) {
-            console.error(error);
-            setMintStatus('Error minting hero');
+        } catch (error: any) {
+            console.error('Hero mint error:', error);
+
+            // Check if user rejected the transaction
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            const isUserRejection = errorMessage.includes('User rejected') ||
+                                   errorMessage.includes('User denied') ||
+                                   errorMessage.includes('user rejected') ||
+                                   error?.name === 'UserRejectedRequestError';
+
+            if (isUserRejection) {
+                setMintStatus('Transaction cancelled. You can try again when ready.');
+            } else {
+                setMintStatus(`Error: ${errorMessage}`);
+            }
         } finally {
             setIsMinting(false);
         }

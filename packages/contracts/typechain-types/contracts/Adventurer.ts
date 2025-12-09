@@ -29,6 +29,8 @@ export interface AdventurerInterface extends Interface {
       | "TIER1_MAX_ID"
       | "TIER2_MAX_ID"
       | "UPGRADE_INTERFACE_VERSION"
+      | "addToWhitelist"
+      | "addToWhitelistBatch"
       | "approve"
       | "balanceOf"
       | "claimFreeHero"
@@ -42,13 +44,16 @@ export interface AdventurerInterface extends Interface {
       | "initializeRPG"
       | "isApprovedForAll"
       | "mintHero"
+      | "mintHeroWhitelist"
       | "name"
       | "nonces"
       | "owner"
       | "ownerOf"
       | "proxiableUUID"
       | "publicMintingEnabled"
+      | "removeFromWhitelist"
       | "renounceOwnership"
+      | "resetWhitelistMinted"
       | "safeMint"
       | "safeTransferFrom(address,address,uint256)"
       | "safeTransferFrom(address,address,uint256,bytes)"
@@ -57,6 +62,7 @@ export interface AdventurerInterface extends Interface {
       | "setPublicMintingEnabled"
       | "setSigner"
       | "setTierPrices"
+      | "setTreasury"
       | "signer"
       | "supportsInterface"
       | "symbol"
@@ -67,8 +73,12 @@ export interface AdventurerInterface extends Interface {
       | "tokenURI"
       | "transferFrom"
       | "transferOwnership"
+      | "treasury"
       | "updateTokenURI"
       | "upgradeToAndCall"
+      | "whitelist"
+      | "whitelistMinted"
+      | "withdrawFunds"
   ): FunctionFragment;
 
   getEvent(
@@ -77,8 +87,10 @@ export interface AdventurerInterface extends Interface {
       | "ApprovalForAll"
       | "BatchMetadataUpdate"
       | "ContractsUpdated"
+      | "FundsWithdrawn"
       | "HeroClaimed"
       | "HeroMinted"
+      | "HeroMintedWhitelist"
       | "HeroMintedWithSignature"
       | "Initialized"
       | "MetadataUpdate"
@@ -88,7 +100,9 @@ export interface AdventurerInterface extends Interface {
       | "SignerUpdated"
       | "TierPricesUpdated"
       | "Transfer"
+      | "TreasuryUpdated"
       | "Upgraded"
+      | "WhitelistUpdated"
   ): EventFragment;
 
   encodeFunctionData(
@@ -102,6 +116,14 @@ export interface AdventurerInterface extends Interface {
   encodeFunctionData(
     functionFragment: "UPGRADE_INTERFACE_VERSION",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addToWhitelist",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addToWhitelistBatch",
+    values: [AddressLike[]]
   ): string;
   encodeFunctionData(
     functionFragment: "approve",
@@ -155,6 +177,10 @@ export interface AdventurerInterface extends Interface {
     functionFragment: "mintHero",
     values: [AddressLike, string, BigNumberish, BigNumberish, BytesLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "mintHeroWhitelist",
+    values: [AddressLike, string]
+  ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(functionFragment: "nonces", values: [AddressLike]): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
@@ -171,8 +197,16 @@ export interface AdventurerInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "removeFromWhitelist",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "resetWhitelistMinted",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "safeMint",
@@ -205,6 +239,10 @@ export interface AdventurerInterface extends Interface {
   encodeFunctionData(
     functionFragment: "setTierPrices",
     values: [BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setTreasury",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "signer", values?: undefined): string;
   encodeFunctionData(
@@ -240,6 +278,7 @@ export interface AdventurerInterface extends Interface {
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(functionFragment: "treasury", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "updateTokenURI",
     values: [BigNumberish, string]
@@ -247,6 +286,18 @@ export interface AdventurerInterface extends Interface {
   encodeFunctionData(
     functionFragment: "upgradeToAndCall",
     values: [AddressLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "whitelist",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "whitelistMinted",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawFunds",
+    values?: undefined
   ): string;
 
   decodeFunctionResult(
@@ -259,6 +310,14 @@ export interface AdventurerInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "UPGRADE_INTERFACE_VERSION",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "addToWhitelist",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "addToWhitelistBatch",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
@@ -301,6 +360,10 @@ export interface AdventurerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "mintHero", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "mintHeroWhitelist",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "nonces", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
@@ -314,7 +377,15 @@ export interface AdventurerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "removeFromWhitelist",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "renounceOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "resetWhitelistMinted",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "safeMint", data: BytesLike): Result;
@@ -343,6 +414,10 @@ export interface AdventurerInterface extends Interface {
     functionFragment: "setTierPrices",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "setTreasury",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "signer", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "supportsInterface",
@@ -365,12 +440,22 @@ export interface AdventurerInterface extends Interface {
     functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "treasury", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "updateTokenURI",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "upgradeToAndCall",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "whitelist", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "whitelistMinted",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawFunds",
     data: BytesLike
   ): Result;
 }
@@ -453,6 +538,19 @@ export namespace ContractsUpdatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace FundsWithdrawnEvent {
+  export type InputTuple = [to: AddressLike, amount: BigNumberish];
+  export type OutputTuple = [to: string, amount: bigint];
+  export interface OutputObject {
+    to: string;
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace HeroClaimedEvent {
   export type InputTuple = [
     tavernKeeperId: BigNumberish,
@@ -486,6 +584,19 @@ export namespace HeroMintedEvent {
     to: string;
     tokenId: bigint;
     metadataUri: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace HeroMintedWhitelistEvent {
+  export type InputTuple = [to: AddressLike, tokenId: BigNumberish];
+  export type OutputTuple = [to: string, tokenId: bigint];
+  export interface OutputObject {
+    to: string;
+    tokenId: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -628,11 +739,37 @@ export namespace TransferEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace TreasuryUpdatedEvent {
+  export type InputTuple = [oldTreasury: AddressLike, newTreasury: AddressLike];
+  export type OutputTuple = [oldTreasury: string, newTreasury: string];
+  export interface OutputObject {
+    oldTreasury: string;
+    newTreasury: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace UpgradedEvent {
   export type InputTuple = [implementation: AddressLike];
   export type OutputTuple = [implementation: string];
   export interface OutputObject {
     implementation: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace WhitelistUpdatedEvent {
+  export type InputTuple = [account: AddressLike, isWhitelisted: boolean];
+  export type OutputTuple = [account: string, isWhitelisted: boolean];
+  export interface OutputObject {
+    account: string;
+    isWhitelisted: boolean;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -689,6 +826,18 @@ export interface Adventurer extends BaseContract {
 
   UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], "view">;
 
+  addToWhitelist: TypedContractMethod<
+    [account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  addToWhitelistBatch: TypedContractMethod<
+    [accounts: AddressLike[]],
+    [void],
+    "nonpayable"
+  >;
+
   approve: TypedContractMethod<
     [to: AddressLike, tokenId: BigNumberish],
     [void],
@@ -741,6 +890,12 @@ export interface Adventurer extends BaseContract {
     "payable"
   >;
 
+  mintHeroWhitelist: TypedContractMethod<
+    [to: AddressLike, metadataUri: string],
+    [bigint],
+    "nonpayable"
+  >;
+
   name: TypedContractMethod<[], [string], "view">;
 
   nonces: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
@@ -753,7 +908,19 @@ export interface Adventurer extends BaseContract {
 
   publicMintingEnabled: TypedContractMethod<[], [boolean], "view">;
 
+  removeFromWhitelist: TypedContractMethod<
+    [account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
+
+  resetWhitelistMinted: TypedContractMethod<
+    [account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
   safeMint: TypedContractMethod<
     [to: AddressLike, uri: string],
@@ -808,6 +975,12 @@ export interface Adventurer extends BaseContract {
     "nonpayable"
   >;
 
+  setTreasury: TypedContractMethod<
+    [_treasury: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   supportsInterface: TypedContractMethod<
     [interfaceId: BytesLike],
     [boolean],
@@ -838,6 +1011,8 @@ export interface Adventurer extends BaseContract {
     "nonpayable"
   >;
 
+  treasury: TypedContractMethod<[], [string], "view">;
+
   updateTokenURI: TypedContractMethod<
     [tokenId: BigNumberish, newUri: string],
     [void],
@@ -849,6 +1024,12 @@ export interface Adventurer extends BaseContract {
     [void],
     "payable"
   >;
+
+  whitelist: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+
+  whitelistMinted: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+
+  withdrawFunds: TypedContractMethod<[], [void], "nonpayable">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -863,6 +1044,12 @@ export interface Adventurer extends BaseContract {
   getFunction(
     nameOrSignature: "UPGRADE_INTERFACE_VERSION"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "addToWhitelist"
+  ): TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "addToWhitelistBatch"
+  ): TypedContractMethod<[accounts: AddressLike[]], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "approve"
   ): TypedContractMethod<
@@ -925,6 +1112,13 @@ export interface Adventurer extends BaseContract {
     "payable"
   >;
   getFunction(
+    nameOrSignature: "mintHeroWhitelist"
+  ): TypedContractMethod<
+    [to: AddressLike, metadataUri: string],
+    [bigint],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "name"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
@@ -943,8 +1137,14 @@ export interface Adventurer extends BaseContract {
     nameOrSignature: "publicMintingEnabled"
   ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
+    nameOrSignature: "removeFromWhitelist"
+  ): TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "resetWhitelistMinted"
+  ): TypedContractMethod<[account: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "safeMint"
   ): TypedContractMethod<
@@ -1003,6 +1203,9 @@ export interface Adventurer extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "setTreasury"
+  ): TypedContractMethod<[_treasury: AddressLike], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "signer"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
@@ -1037,6 +1240,9 @@ export interface Adventurer extends BaseContract {
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "treasury"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "updateTokenURI"
   ): TypedContractMethod<
     [tokenId: BigNumberish, newUri: string],
@@ -1050,6 +1256,15 @@ export interface Adventurer extends BaseContract {
     [void],
     "payable"
   >;
+  getFunction(
+    nameOrSignature: "whitelist"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "whitelistMinted"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "withdrawFunds"
+  ): TypedContractMethod<[], [void], "nonpayable">;
 
   getEvent(
     key: "Approval"
@@ -1080,6 +1295,13 @@ export interface Adventurer extends BaseContract {
     ContractsUpdatedEvent.OutputObject
   >;
   getEvent(
+    key: "FundsWithdrawn"
+  ): TypedContractEvent<
+    FundsWithdrawnEvent.InputTuple,
+    FundsWithdrawnEvent.OutputTuple,
+    FundsWithdrawnEvent.OutputObject
+  >;
+  getEvent(
     key: "HeroClaimed"
   ): TypedContractEvent<
     HeroClaimedEvent.InputTuple,
@@ -1092,6 +1314,13 @@ export interface Adventurer extends BaseContract {
     HeroMintedEvent.InputTuple,
     HeroMintedEvent.OutputTuple,
     HeroMintedEvent.OutputObject
+  >;
+  getEvent(
+    key: "HeroMintedWhitelist"
+  ): TypedContractEvent<
+    HeroMintedWhitelistEvent.InputTuple,
+    HeroMintedWhitelistEvent.OutputTuple,
+    HeroMintedWhitelistEvent.OutputObject
   >;
   getEvent(
     key: "HeroMintedWithSignature"
@@ -1157,11 +1386,25 @@ export interface Adventurer extends BaseContract {
     TransferEvent.OutputObject
   >;
   getEvent(
+    key: "TreasuryUpdated"
+  ): TypedContractEvent<
+    TreasuryUpdatedEvent.InputTuple,
+    TreasuryUpdatedEvent.OutputTuple,
+    TreasuryUpdatedEvent.OutputObject
+  >;
+  getEvent(
     key: "Upgraded"
   ): TypedContractEvent<
     UpgradedEvent.InputTuple,
     UpgradedEvent.OutputTuple,
     UpgradedEvent.OutputObject
+  >;
+  getEvent(
+    key: "WhitelistUpdated"
+  ): TypedContractEvent<
+    WhitelistUpdatedEvent.InputTuple,
+    WhitelistUpdatedEvent.OutputTuple,
+    WhitelistUpdatedEvent.OutputObject
   >;
 
   filters: {
@@ -1209,6 +1452,17 @@ export interface Adventurer extends BaseContract {
       ContractsUpdatedEvent.OutputObject
     >;
 
+    "FundsWithdrawn(address,uint256)": TypedContractEvent<
+      FundsWithdrawnEvent.InputTuple,
+      FundsWithdrawnEvent.OutputTuple,
+      FundsWithdrawnEvent.OutputObject
+    >;
+    FundsWithdrawn: TypedContractEvent<
+      FundsWithdrawnEvent.InputTuple,
+      FundsWithdrawnEvent.OutputTuple,
+      FundsWithdrawnEvent.OutputObject
+    >;
+
     "HeroClaimed(uint256,uint256,address)": TypedContractEvent<
       HeroClaimedEvent.InputTuple,
       HeroClaimedEvent.OutputTuple,
@@ -1229,6 +1483,17 @@ export interface Adventurer extends BaseContract {
       HeroMintedEvent.InputTuple,
       HeroMintedEvent.OutputTuple,
       HeroMintedEvent.OutputObject
+    >;
+
+    "HeroMintedWhitelist(address,uint256)": TypedContractEvent<
+      HeroMintedWhitelistEvent.InputTuple,
+      HeroMintedWhitelistEvent.OutputTuple,
+      HeroMintedWhitelistEvent.OutputObject
+    >;
+    HeroMintedWhitelist: TypedContractEvent<
+      HeroMintedWhitelistEvent.InputTuple,
+      HeroMintedWhitelistEvent.OutputTuple,
+      HeroMintedWhitelistEvent.OutputObject
     >;
 
     "HeroMintedWithSignature(address,uint256,uint256,uint256)": TypedContractEvent<
@@ -1330,6 +1595,17 @@ export interface Adventurer extends BaseContract {
       TransferEvent.OutputObject
     >;
 
+    "TreasuryUpdated(address,address)": TypedContractEvent<
+      TreasuryUpdatedEvent.InputTuple,
+      TreasuryUpdatedEvent.OutputTuple,
+      TreasuryUpdatedEvent.OutputObject
+    >;
+    TreasuryUpdated: TypedContractEvent<
+      TreasuryUpdatedEvent.InputTuple,
+      TreasuryUpdatedEvent.OutputTuple,
+      TreasuryUpdatedEvent.OutputObject
+    >;
+
     "Upgraded(address)": TypedContractEvent<
       UpgradedEvent.InputTuple,
       UpgradedEvent.OutputTuple,
@@ -1339,6 +1615,17 @@ export interface Adventurer extends BaseContract {
       UpgradedEvent.InputTuple,
       UpgradedEvent.OutputTuple,
       UpgradedEvent.OutputObject
+    >;
+
+    "WhitelistUpdated(address,bool)": TypedContractEvent<
+      WhitelistUpdatedEvent.InputTuple,
+      WhitelistUpdatedEvent.OutputTuple,
+      WhitelistUpdatedEvent.OutputObject
+    >;
+    WhitelistUpdated: TypedContractEvent<
+      WhitelistUpdatedEvent.InputTuple,
+      WhitelistUpdatedEvent.OutputTuple,
+      WhitelistUpdatedEvent.OutputObject
     >;
   };
 }

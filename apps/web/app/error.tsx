@@ -1,6 +1,7 @@
 'use client';
 
 import { PixelBox, PixelButton } from '../components/PixelComponents';
+import { useSmartNavigate } from '../lib/utils/smartNavigation';
 
 export default function Error({
     error,
@@ -9,6 +10,8 @@ export default function Error({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    const { navigate } = useSmartNavigate();
+
     return (
         <main className="min-h-screen bg-[#1a120b] flex items-center justify-center font-pixel p-4">
             <PixelBox variant="wood" className="max-w-md w-full text-center">
@@ -30,7 +33,7 @@ export default function Error({
                         Try Again
                     </PixelButton>
                     <PixelButton
-                        onClick={() => window.location.href = '/'}
+                        onClick={() => navigate('/')}
                         variant="neutral"
                         className="!px-4 !py-2"
                     >

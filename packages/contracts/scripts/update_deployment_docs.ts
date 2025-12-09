@@ -15,9 +15,9 @@ import { join } from 'path';
  */
 
 // Resolve path relative to scripts directory
-// When running via hardhat, __dirname points to the compiled JS location
-// So we need to resolve from the project root
-const projectRoot = join(__dirname, '../..');
+// When running via hardhat, __dirname points to the compiled JS location (artifacts/scripts)
+// So we need to resolve from the workspace root (go up 3 levels from artifacts/scripts)
+const projectRoot = join(__dirname, '../../..');
 const FIRSTDEPLOYMENT_PATH = join(projectRoot, 'FIRSTDEPLOYMENT.md');
 
 interface UpgradeInfo {
@@ -35,6 +35,7 @@ const CONTRACT_PROXIES: Record<string, string> = {
     "The Cellar": "0x6c7612F44B71E5E6E2bA0FEa799A23786A537755",
     CellarZapV4: "0xf7248a01051bf297Aa56F12a05e7209C60Fc5863",
     "CellarZap": "0xf7248a01051bf297Aa56F12a05e7209C60Fc5863",
+    DungeonGatekeeper: "0xf454A4A4f2F960a5d5b7583A289dCAE765d57355",
 };
 
 function updateFirstDeployment(upgrade: UpgradeInfo) {

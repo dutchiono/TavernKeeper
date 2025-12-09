@@ -2,6 +2,8 @@ export interface CreateRunParams {
     dungeonId: string;
     party: string[]; // NFT token IDs
     seed?: string;
+    paymentHash?: string;
+    walletAddress: string;
 }
 
 export interface RunStatus {

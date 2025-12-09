@@ -1,4 +1,4 @@
-# Dungeon Builders and Provenance System - Summary
+﻿# Dungeon Builders and Provenance System - Summary
 
 ## Overview
 
@@ -253,4 +253,3 @@ The builder flavor is randomly selected from the builder's flavor list, ensuring
 - **Room Flavor Options**: 70 unique flavors (5 per builder)
 
 All generation is deterministic based on the dungeon seed, ensuring reproducibility.
-

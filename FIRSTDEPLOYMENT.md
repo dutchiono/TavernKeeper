@@ -105,6 +105,45 @@ Town Posse Manager: 0xE46592D8185975888b4A301DBD9b24A49933CC7D
 
 ## Upgrade History (Mainnet)
 
+### 2025-01-XX: Fixed TavernKeeper NFT Mint Payments
+- **Reason**: Fixed NFT mint payments to go to owner (deployer) instead of treasury. Treasury remains for Office payments only.
+- **Contract Upgraded**:
+  - **TavernKeeper**:
+    - Proxy: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29`
+    - Old Impl: `0x390Dc36AcFA002b1dF61f659B2660e9cAD82B341`
+    - New Impl: `0xfBA8a742551A56885c845b5ba4729cBb099667f8`
+- **Status**: ✅ Success
+- **Changes**:
+  - ✅ `mintTavernKeeper()` now sends payments to `owner()` (deployer) instead of treasury
+  - ✅ Treasury (`0x32A920be00dfCE1105De0415ba1d4f06942E9ed0`) remains for Office payments (15%) only
+- **Notes**:
+  - NFT mint payments now go to deployer wallet
+  - Office payments still correctly send 15% to TheCellarV3 (treasury)
+
+### 2025-01-XX: Fixed NFT Mint Payment + Added Whitelist
+- **Reason**: Fixed mint payment transfer to treasury, added treasury support, added withdrawFunds(), added whitelist functionality
+- **Contracts Upgraded**:
+  - **TavernKeeper**:
+    - Proxy: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29`
+    - Old Impl: `0xF65f10Eb3c01ee75024E048dfF8c3E618dA9E0d7`
+    - New Impl: `0x390Dc36AcFA002b1dF61f659B2660e9cAD82B341`
+  - **Adventurer**:
+    - Proxy: `0xb138Bf579058169e0657c12Fd9cc1267CAFcb935`
+    - Old Impl: `0x71fb2B063569dD5B91c6241A9d6A41536894835A`
+    - New Impl: `0x961F7b389ebe40C61aE1b64425F23CFEA79a4458`
+- **Status**: ✅ Success
+- **Changes**:
+  - ✅ `mintTavernKeeper()` now transfers Mon to treasury (or owner if treasury not set)
+  - ✅ `mintHero()` now transfers Mon to treasury (or owner if treasury not set)
+  - ✅ Added `withdrawFunds()` to both contracts for recovering stuck funds
+  - ✅ Added whitelist functionality (mappings + free mint functions)
+  - ✅ Added whitelist management functions (add/remove/batch)
+  - ✅ Added `treasury` storage and `setTreasury()` to Adventurer
+- **Notes**:
+  - Frontend addresses unchanged (proxy addresses stay the same)
+  - Adventurer treasury needs to be set manually after upgrade
+  - All future mints will send payments to treasury automatically
+
 ### 2025-01-XX: Fixed Uniswap V4 Liquidity Implementation
 - **Reason**: Fixed critical bug where LP tokens were minted but no liquidity was added to Uniswap V4 pools. The `modifyLiquidity()` call was commented out, making the system non-functional.
 - **Contracts Upgraded**:
@@ -152,6 +191,16 @@ Town Posse Manager: 0xE46592D8185975888b4A301DBD9b24A49933CC7D
 - **Notes**: Frontend addresses unchanged (proxy address stays the same)
 
 ### 2025-12-03: Pricing Logic Fix (Hotfix)
+### 2025-12-08: Fixed office timer: added officeLastClaimTime storage variable, startTime no longer resets on claim
+- **Reason**: Fixed office timer: added officeLastClaimTime storage variable, startTime no longer resets on claim
+- **Contracts Upgraded**:
+  - **TavernKeeper**:
+    - Proxy: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29`
+    - Old Impl: `0x26c9a9cFb2bEcABFe490050c907c466B36c74835`
+    - New Impl: `0x81146F855f5B0C567e9F0d3a2A082Aed81F34762`
+- **Status**: ✅ Success
+- **Notes**: Frontend addresses unchanged (proxy address stays the same)
+
 - **Reason**: Fixed Dutch Auction logic to enforce minimum price floor (1 MON) instead of decaying to 0.
 - **Contracts Upgraded**:
   - **TavernKeeper**:

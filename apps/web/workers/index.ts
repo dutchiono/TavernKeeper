@@ -20,6 +20,14 @@ if (result.error) {
 console.log('Worker Environment Loaded. REDIS_URL present:', !!process.env.REDIS_URL);
 
 async function start() {
+  // Initialize world on startup if not already initialized
+  try {
+    const { initializeWorldOnStartup } = await import('../lib/services/worldInitializationService');
+    await initializeWorldOnStartup();
+  } catch (error) {
+    console.error('World initialization error (non-fatal):', error);
+  }
+
   // Use dynamic imports to ensure env vars are loaded BEFORE modules initialize
   await import('./runWorker');
   await import('./replayWorker');

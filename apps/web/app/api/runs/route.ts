@@ -47,19 +47,39 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // 3. Resolve Dungeon ID (Handle slug vs UUID)
+    // 3. Resolve Dungeon ID (Handle slug vs UUID, or randomly select)
     let finalDungeonId = dungeonId;
 
-    // Check if it's a UUID or a Seed
-    // First try to look up by seed (slug)
-    const { data: dData } = await supabase
-      .from('dungeons')
-      .select('id')
-      .eq('seed', dungeonId)
-      .single();
+    // If no dungeonId provided or it's a placeholder, randomly select from available dungeons
+    if (!dungeonId || dungeonId === 'abandoned-cellar' || dungeonId === 'placeholder') {
+      const { data: availableDungeons, error: dungeonError } = await supabase
+        .from('dungeons')
+        .select('id, seed')
+        .limit(100);
 
-    if (dData) {
-      finalDungeonId = dData.id;
+      if (dungeonError || !availableDungeons || availableDungeons.length === 0) {
+        return NextResponse.json(
+          { error: 'No dungeons available. World may not be initialized.' },
+          { status: 503 }
+        );
+      }
+
+      // Randomly select a dungeon
+      const randomIndex = Math.floor(Math.random() * availableDungeons.length);
+      finalDungeonId = availableDungeons[randomIndex].id;
+    } else {
+      // Check if it's a UUID or a Seed
+      // First try to look up by seed (slug)
+      const { data: dData } = await supabase
+        .from('dungeons')
+        .select('id')
+        .eq('seed', dungeonId)
+        .single();
+
+      if (dData) {
+        finalDungeonId = dData.id;
+      }
+      // If not found by seed, assume it's already a UUID
     }
 
     // 4. Create run record

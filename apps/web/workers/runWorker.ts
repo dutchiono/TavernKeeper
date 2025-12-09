@@ -1,9 +1,8 @@
-import { simulateRun } from '@innkeeper/engine';
-import type { Entity } from '@innkeeper/lib';
 import { Job, Worker } from 'bullmq';
 import Redis from 'ioredis';
-import { getHeroByTokenId } from '../lib/services/heroOwnership';
 import { supabase } from '../lib/supabase';
+import { executeDungeonRun } from '../lib/services/dungeonRunService';
+import { dungeonStateService } from '../lib/services/dungeonStateService';
 
 const connection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null, // Required by BullMQ
@@ -23,60 +22,48 @@ export const runWorker = new Worker<RunJobData>(
     const { runId, dungeonId, party, seed, startTime } = job.data;
 
     try {
-      // Load dungeon
-      const { data: dungeon, error: dungeonError } = await supabase
-        .from('dungeons')
+      // Get wallet address from run or party
+      // For now, we'll need to get it from the run record or pass it in job data
+      const { data: runData } = await supabase
+        .from('runs')
         .select('*')
-        .eq('id', dungeonId)
+        .eq('id', runId)
         .single();
 
-      if (dungeonError || !dungeon) {
-        throw new Error(`Dungeon ${dungeonId} not found`);
+      // Extract wallet from party - in production, this should be stored in run record
+      // For now, we'll need to get it from hero ownership
+      const HERO_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
+      const { getAdventurer } = await import('../contributions/adventurer-tracking/code/services/adventurerService');
+      const firstHero = await getAdventurer({
+        tokenId: party[0],
+        contractAddress: HERO_CONTRACT_ADDRESS,
+        chainId: parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '143', 10),
+      });
+
+      if (!firstHero) {
+        throw new Error(`Could not find adventurer for hero ${party[0]}`);
       }
 
-      // Load heroes from Adventurer NFTs (party is array of token IDs)
-      const heroPromises = party.map(tokenId => getHeroByTokenId(tokenId));
-      const heroData = await Promise.all(heroPromises);
+      const walletAddress = firstHero.walletAddress;
 
-      // Convert heroes to entities for engine
-      const entities: Entity[] = heroData.map((hero) => ({
-        id: hero.id,
-        name: hero.name,
-        stats: hero.stats,
-        position: undefined,
-        isPlayer: true,
-        inventory: [],
-      }));
-
-      // Run simulation
-      // Extract mapId from dungeon data (assuming it's stored in map field or as a separate field)
-      const mapId = (dungeon.map as any)?.id || dungeon.id;
-
-      // Load agent IDs for party members (would need to query agents table)
-      // For now, use character IDs as agent IDs (simplified)
-      // DISABLE REMOTE AGENTS for stability if Agent Server is missing.
-      // The Engine will fallback to default AI (nearest enemy).
-      const agentIds: string[] = []; // party; 
-
-      const result = await simulateRun({
-        dungeonSeed: dungeon.seed as string,
+      // Execute dungeon run using new service
+      const result = await executeDungeonRun(
         runId,
-        startTime,
-        entities,
-        maxTurns: 100,
-        mapId: mapId,
-        agentIds: agentIds,
-      } as any);
+        dungeonId,
+        party,
+        seed,
+        walletAddress
+      );
 
       // Persist run logs in batch
-      const runLogs = result.events.map((event: any) => ({
+      const runLogs = result.events.map((event) => ({
         run_id: runId,
         text: JSON.stringify(event),
         json: event,
         timestamp: new Date(event.timestamp).toISOString(),
       }));
 
-      const worldEvents = result.events.map((event: any) => ({
+      const worldEvents = result.events.map((event) => ({
         run_id: runId,
         type: event.type,
         payload: event,
@@ -88,12 +75,19 @@ export const runWorker = new Worker<RunJobData>(
         supabase.from('world_events').insert(worldEvents),
       ]);
 
+      // Unlock heroes
+      const checkingHeroes = party.map((id: string) => ({ 
+        contractAddress: HERO_CONTRACT_ADDRESS, 
+        tokenId: id 
+      }));
+      await dungeonStateService.unlockHeroes(checkingHeroes);
+
       // Update run status
       await supabase
         .from('runs')
         .update({
           end_time: new Date().toISOString(),
-          result: result.result,
+          result: result.status,
         })
         .eq('id', runId);
 
@@ -101,10 +95,24 @@ export const runWorker = new Worker<RunJobData>(
         success: true,
         runId,
         eventsCount: result.events.length,
-        result: result.result,
+        result: result.status,
+        levelsCompleted: result.levelsCompleted,
+        totalXP: result.totalXP,
       };
     } catch (error) {
       console.error(`Error processing run ${runId}:`, error);
+
+      // Unlock heroes on error
+      try {
+        const HERO_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
+        const checkingHeroes = party.map((id: string) => ({ 
+          contractAddress: HERO_CONTRACT_ADDRESS, 
+          tokenId: id 
+        }));
+        await dungeonStateService.unlockHeroes(checkingHeroes);
+      } catch (unlockError) {
+        console.error('Error unlocking heroes:', unlockError);
+      }
 
       // Log error to database for debugging
       await supabase.from('run_logs').insert({

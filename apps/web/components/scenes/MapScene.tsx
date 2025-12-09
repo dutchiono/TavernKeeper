@@ -339,8 +339,9 @@ export const MapScene: React.FC = () => {
                 paymentHash = "0xmock_payment_hash_" + Date.now();
             }
 
+            // If no specific dungeon selected, let the API randomly select one
             const result = await runService.createRun({
-                dungeonId: map?.id || 'abandoned-cellar',
+                dungeonId: map?.id || undefined, // Let API randomly select if not provided
                 party: tokenIds,
                 walletAddress: address as string,
                 paymentHash

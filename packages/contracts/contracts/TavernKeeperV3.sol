@@ -9,7 +9,41 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
+/**
+ * @title TavernKeeperV3
+ * @notice Base contract for TavernKeeper upgrade chain (v4.2.0)
+ * @dev Storage layout must match TavernKeeper exactly - only modifying claimTokens()
+ *
+ * ════════════════════════════════════════════════════════════════════════════════
+ * VERSION TRACKING - READ THIS BEFORE MAKING CHANGES
+ * ════════════════════════════════════════════════════════════════════════════════
+ *
+ * VERSION: v4.2.0
+ * DEPLOYED: 2025-12-08
+ * IMPLEMENTATION: 0x81146F855f5B0C567e9F0d3a2A082Aed81F34762
+ * PROXY: 0x56B81A60Ae343342685911bd97D1331fF4fa2d29
+ *
+ * UPGRADE CHAIN:
+ *   TavernKeeperV3 (v4.2.0) → TavernKeeperSetMinPrice (v4.3.0) [CURRENT]
+ *
+ * ⚠️  CRITICAL RULES FOR UPGRADES:
+ *   1. ALWAYS check DEPLOYMENT_TRACKER.md to see what's actually deployed
+ *   2. NEVER delete contracts in the active upgrade chain
+ *   3. When creating a new upgrade:
+ *      a. Create a NEW contract file (e.g., TavernKeeperV4.sol)
+ *      b. Extend the CURRENT deployed version (check DEPLOYMENT_TRACKER.md)
+ *      c. Update this header with new version info
+ *      d. Update DEPLOYMENT_TRACKER.md immediately after deployment
+ *      e. DELETE old unused contracts (not in the active chain)
+ *   4. Storage layout MUST be preserved - use `npx hardhat storage-layout-diff`
+ *   5. Mark functions as `virtual` if they need to be overridden
+ *
+ * ════════════════════════════════════════════════════════════════════════════════
+ *
+ * CRITICAL: This upgrade disables the claimTokens() function that allowed NFTs to mint KEEP.
+ * Only the Office (King of the Hill) should mint KEEP tokens, matching the donut-miner model.
+ */
+contract TavernKeeperV3 is Initializable, ERC721Upgradeable, ERC721URIStorageUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
     using ECDSA for bytes32;
 
     uint256 private _nextTokenId;
@@ -42,15 +76,9 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         keepToken = _keepToken;
     }
 
-    // Pricing Tiers (in wei/MON)
-
-
-    // DEPRECATED: No longer initializes tier prices
-    // Signature-based pricing is used instead
-    // This function is kept for storage compatibility but does nothing
+    // Pricing Tiers (in wei/MON) - DEPRECATED
     function initializeRPG() public reinitializer(3) {
         // Tier prices deprecated - using signature-based pricing
-        // Keeping function for storage layout compatibility
     }
 
     // Tier Thresholds
@@ -107,19 +135,11 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         }
     }
 
-    /**
-     * @dev Reset whitelist minted status for testing (owner only)
-     * @param account Address to reset minted status for
-     */
     function resetWhitelistMinted(address account) external onlyOwner {
         whitelistMinted[account] = false;
-        emit WhitelistUpdated(account, false); // Reuse event for consistency
+        emit WhitelistUpdated(account, false);
     }
 
-    /**
-     * @dev Mint TavernKeeper for whitelisted addresses (free)
-     * @param uri Metadata URI
-     */
     function mintTavernKeeperWhitelist(string memory uri) public returns (uint256) {
         require(whitelist[msg.sender], "Not whitelisted");
         require(!whitelistMinted[msg.sender], "Already minted");
@@ -128,11 +148,10 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
         uint256 tokenId = _nextTokenId;
 
-        // Mint
         _safeMint(msg.sender, tokenId);
         _setTokenURI(tokenId, uri);
 
-        // Initialize KEEP token data
+        // Initialize KEEP token data (kept for storage compatibility, but won't be used)
         lastClaimTime[tokenId] = block.timestamp;
         mintingRate[tokenId] = DEFAULT_RATE;
 
@@ -143,18 +162,10 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
     }
 
     // DEPRECATED: Returns 0 - pricing is now signature-based
-    // Kept for backward compatibility
     function getMintPrice(uint256 tokenId) public view returns (uint256) {
-        return 0; // Signature-based pricing - use getPriceSignature API instead
+        return 0;
     }
 
-    /**
-     * @dev Mint TavernKeeper with signature-based pricing
-     * @param uri Metadata URI
-     * @param amount MON amount in wei (from signed price)
-     * @param deadline Signature expiration timestamp
-     * @param signature Server signature authorizing this price
-     */
     function mintTavernKeeper(
         string memory uri,
         uint256 amount,
@@ -181,14 +192,10 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
         require(recoveredSigner == signer, "Invalid signature");
 
-        // Increment nonce to prevent replay
         nonces[msg.sender]++;
 
-        // Verify payment amount matches signed amount
         require(msg.value == amount, "Incorrect payment amount");
 
-        // Transfer NFT mint payment to owner (deployer) - NOT treasury
-        // Treasury is only for Office payments (15%)
         if (amount > 0) {
             (bool success, ) = payable(owner()).call{value: amount}("");
             require(success, "Owner transfer failed");
@@ -196,11 +203,10 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
         uint256 tokenId = _nextTokenId;
 
-        // Mint
         _safeMint(msg.sender, tokenId);
         _setTokenURI(tokenId, uri);
 
-        // Initialize KEEP token data
+        // Initialize KEEP token data (kept for storage compatibility, but won't be used)
         lastClaimTime[tokenId] = block.timestamp;
         mintingRate[tokenId] = DEFAULT_RATE;
 
@@ -215,34 +221,83 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
 
-        // Initialize KEEP token data
+        // Initialize KEEP token data (kept for storage compatibility, but won't be used)
         lastClaimTime[tokenId] = block.timestamp;
         mintingRate[tokenId] = DEFAULT_RATE;
 
         return tokenId;
     }
 
+    /**
+     * @notice DISABLED: NFTs should not mint KEEP tokens
+     * @dev This function now always reverts. Only the Office (King of the Hill) should mint KEEP.
+     * @param tokenId Token ID (unused, kept for interface compatibility)
+     */
     function claimTokens(uint256 tokenId) public {
-        require(ownerOf(tokenId) == msg.sender, "Not token owner");
-        require(keepToken != address(0), "KeepToken not set");
-
-        uint256 pending = calculatePendingTokens(tokenId);
-        require(pending > 0, "No tokens pending");
-
-        lastClaimTime[tokenId] = block.timestamp;
-
-        // Call mint on KeepToken contract
-        // We use a low-level call or interface here. Let's use interface.
-        IKeepToken(keepToken).mint(msg.sender, pending);
-
-        emit TokensClaimed(tokenId, pending);
+        revert("TavernKeeper: NFT claimTokens() is disabled. Only the Office mints KEEP tokens.");
     }
 
     /**
-     * @dev Update token metadata URI (for appearance changes, etc.)
-     * @param tokenId Token ID to update
-     * @param newUri New metadata URI
+     * @notice One-time migration function to claim pending KEEP for all existing NFTs
+     * @dev Can only be called once by owner. Claims for all NFTs up to _nextTokenId.
+     * This gives existing NFT owners the KEEP they accumulated before we disabled claiming.
      */
+    function migrateClaimAllNFTs() external onlyOwner {
+        require(!migrationClaimed, "Migration already completed");
+        require(keepToken != address(0), "KeepToken not set");
+
+        uint256 totalClaimed = 0;
+        uint256 claimedCount = 0;
+
+        // Claim for all existing NFTs
+        for (uint256 i = 0; i < _nextTokenId; i++) {
+            if (lastClaimTime[i] == 0) continue; // Skip if never initialized
+
+            try this._migrateClaimSingle(i) returns (uint256 claimed) {
+                if (claimed > 0) {
+                    totalClaimed += claimed;
+                    claimedCount++;
+                }
+            } catch {
+                // Skip errors (e.g., token doesn't exist or already claimed)
+                continue;
+            }
+        }
+
+        migrationClaimed = true;
+        emit TokensClaimed(type(uint256).max, totalClaimed); // Use max uint256 as special tokenId for migration
+    }
+
+    /**
+     * @notice Internal function to claim for a single NFT (called via try/catch in migration)
+     * @dev This is external so it can be called via try/catch from migrateClaimAllNFTs
+     */
+    function _migrateClaimSingle(uint256 tokenId) external returns (uint256) {
+        require(msg.sender == address(this), "Only callable internally");
+        require(keepToken != address(0), "KeepToken not set");
+
+        // Check if token exists
+        address owner = _ownerOf(tokenId);
+        if (owner == address(0)) return 0;
+
+        // Check if has pending (using old calculation logic)
+        if (lastClaimTime[tokenId] == 0) return 0;
+
+        uint256 timeElapsed = block.timestamp - lastClaimTime[tokenId];
+        uint256 pending = timeElapsed * mintingRate[tokenId];
+
+        if (pending == 0) return 0;
+
+        // Reset lastClaimTime to prevent double claiming
+        lastClaimTime[tokenId] = block.timestamp;
+
+        // Mint to NFT owner
+        IKeepToken(keepToken).mint(owner, pending);
+
+        emit TokensClaimed(tokenId, pending);
+        return pending;
+    }
+
     function updateTokenURI(uint256 tokenId, string memory newUri) public {
         require(_ownerOf(tokenId) == msg.sender, "TavernKeeper: Only token owner can update metadata");
         require(bytes(newUri).length > 0, "TavernKeeper: Metadata URI cannot be empty");
@@ -251,16 +306,13 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         emit MetadataUpdated(tokenId, newUri);
     }
 
+    /**
+     * @notice View function kept for compatibility, but returns 0 since claiming is disabled
+     */
     function calculatePendingTokens(uint256 tokenId) public view returns (uint256) {
-        if (lastClaimTime[tokenId] == 0) return 0;
-
-        uint256 timeElapsed = block.timestamp - lastClaimTime[tokenId];
-        return timeElapsed * mintingRate[tokenId];
+        // Always return 0 - NFTs cannot claim tokens
+        return 0;
     }
-
-    // The following functions are overrides required by Solidity.
-
-    // The following functions are overrides required by Solidity.
 
     function tokenURI(uint256 tokenId)
         public
@@ -284,7 +336,6 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
     // --- The Office (King of the Hill) Mechanics ---
     // Deprecated legacy storage (kept for slot alignment)
-    // DO NOT REMOVE OR RENAME
     address private currentKing;
     uint256 private currentPrice;
     uint256 private kingSince;
@@ -304,21 +355,21 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
     Slot0 public slot0;
     address public treasury;
 
-    // Office reward claim tracking (added in upgrade - must be after existing storage)
-    uint40 public officeLastClaimTime;  // Track when office rewards were last claimed (0 = use startTime)
+    // Office reward claim tracking
+    uint40 public officeLastClaimTime;
 
     // Constants
     uint256 public constant FEE = 2_000; // 20%
     uint256 public constant DIVISOR = 10_000;
     uint256 public constant PRECISION = 1e18;
     uint256 public constant EPOCH_PERIOD = 1 hours;
-    uint256 public constant PRICE_MULTIPLIER = 2e18; // 2x (Matched reference)
-    uint256 public constant NEW_PRICE_MULTIPLIER = 2e18; // Deprecated/Alias for clarity if needed, but using PRICE_MULTIPLIER in logic
+    uint256 public constant PRICE_MULTIPLIER = 2e18;
+    uint256 public constant NEW_PRICE_MULTIPLIER = 2e18;
 
     uint256 public constant MIN_INIT_PRICE = 1 ether; // 1 MON
     uint256 public constant ABS_MAX_INIT_PRICE = type(uint192).max;
 
-    uint256 public constant INITIAL_DPS = 4 ether; // 4 KEEP per second (Matched reference)
+    uint256 public constant INITIAL_DPS = 4 ether; // 4 KEEP per second
     uint256 public constant HALVING_PERIOD = 30 days;
     uint256 public constant TAIL_DPS = 0.01 ether;
 
@@ -348,9 +399,12 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
     uint256 public v2StartTime;
 
-    // Whitelist functionality (placed at end for storage compatibility)
-    mapping(address => bool) public whitelist; // Whitelisted addresses
-    mapping(address => bool) public whitelistMinted; // Track if whitelisted address has minted
+    // Whitelist functionality
+    mapping(address => bool) public whitelist;
+    mapping(address => bool) public whitelistMinted;
+
+    // Migration: Track if auto-claim has been run (placed at end for storage compatibility)
+    bool public migrationClaimed;
 
     function initializeOfficeV2(address _treasury) public onlyOwner {
         require(treasury == address(0), "Already initialized V2");
@@ -359,8 +413,8 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
 
         slot0.initPrice = uint192(MIN_INIT_PRICE);
         slot0.startTime = uint40(block.timestamp);
-        officeLastClaimTime = 0;  // Initialize to 0
-        slot0.miner = msg.sender; // Initial king is owner
+        officeLastClaimTime = 0;
+        slot0.miner = msg.sender;
         slot0.dps = INITIAL_DPS;
         slot0.epochId = 1;
     }
@@ -368,10 +422,8 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
     function setTreasury(address _treasury) external onlyOwner {
         require(_treasury != address(0), "Invalid treasury");
         treasury = _treasury;
-        emit TreasuryFee(_treasury, 0); // Emit event to log change (using 0 amount)
+        emit TreasuryFee(_treasury, 0);
     }
-
-    // ... (takeOffice remains same) ...
 
     function _getDpsFromTime(uint256 time) internal view returns (uint256 dps) {
         if (v2StartTime == 0) return INITIAL_DPS;
@@ -386,19 +438,17 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         uint256 deadline,
         uint256 maxPrice,
         string memory uri
-    ) public payable nonReentrant returns (uint256 price) {
+    ) public payable virtual nonReentrant returns (uint256 price) {
         if (block.timestamp > deadline) revert Expired();
 
         Slot0 memory slot0Cache = slot0;
 
-        // Allow epochId 0 to match current if passed 0, otherwise check
         if (epochId != 0 && uint16(epochId) != slot0Cache.epochId) revert EpochIdMismatch();
 
         price = _getPriceFromCache(slot0Cache);
         if (price > maxPrice) revert MaxPriceExceeded();
         if (msg.value < price) revert("Insufficient payment");
 
-        // Refund excess
         uint256 excess = msg.value - price;
         if (excess > 0) {
             (bool successRefund, ) = payable(msg.sender).call{value: excess}("");
@@ -406,18 +456,15 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         }
 
         if (price > 0) {
-            uint256 totalFee = price * FEE / DIVISOR; // 20%
-            uint256 minerFee = price - totalFee;      // 80%
+            uint256 totalFee = price * FEE / DIVISOR;
+            uint256 minerFee = price - totalFee;
 
-            // Split totalFee (20%) into Dev (5%) and Cellar (15%)
             uint256 devFee = totalFee / 4;
             uint256 cellarFee = totalFee - devFee;
 
-            // Pay Dev (Owner)
             (bool successDev, ) = payable(owner()).call{value: devFee}("");
             require(successDev, "Dev transfer failed");
 
-            // Pay Cellar (Treasury)
             if (treasury != address(0)) {
                 (bool successTreasury, ) = payable(treasury).call{value: cellarFee}("");
                 require(successTreasury, "Treasury transfer failed");
@@ -427,7 +474,6 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
                 require(successOwner, "Owner transfer failed");
             }
 
-            // Pay Previous King
             if (slot0Cache.miner != address(0)) {
                 (bool successMiner, ) = payable(slot0Cache.miner).call{value: minerFee}("");
                 require(successMiner, "Miner transfer failed");
@@ -435,7 +481,6 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
             }
         }
 
-        // Calculate new init price
         uint256 newInitPrice = price * NEW_PRICE_MULTIPLIER / PRECISION;
 
         if (newInitPrice > ABS_MAX_INIT_PRICE) {
@@ -444,7 +489,6 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
             newInitPrice = MIN_INIT_PRICE;
         }
 
-        // Mint KEEP rewards for previous king
         uint256 mineTime = block.timestamp - slot0Cache.startTime;
         uint256 minedAmount = mineTime * slot0Cache.dps;
 
@@ -453,13 +497,12 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
             emit OfficeEarningsClaimed(slot0Cache.miner, minedAmount);
         }
 
-        // Update State
         unchecked {
             slot0Cache.epochId++;
         }
         slot0Cache.initPrice = uint192(newInitPrice);
         slot0Cache.startTime = uint40(block.timestamp);
-        officeLastClaimTime = 0;  // Reset for new miner
+        officeLastClaimTime = 0;
         slot0Cache.miner = msg.sender;
         slot0Cache.dps = _getDpsFromTime(block.timestamp);
         slot0Cache.uri = uri;
@@ -471,7 +514,7 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         return price;
     }
 
-    function _getPriceFromCache(Slot0 memory slot0Cache) internal view returns (uint256) {
+    function _getPriceFromCache(Slot0 memory slot0Cache) internal view virtual returns (uint256) {
         uint256 timePassed = block.timestamp - slot0Cache.startTime;
 
         if (timePassed > EPOCH_PERIOD) {
@@ -481,8 +524,6 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         uint256 calculatedPrice = slot0Cache.initPrice - slot0Cache.initPrice * timePassed / EPOCH_PERIOD;
         return calculatedPrice < MIN_INIT_PRICE ? MIN_INIT_PRICE : calculatedPrice;
     }
-
-
 
     function getPrice() external view nonReentrantView returns (uint256) {
         return _getPriceFromCache(slot0);
@@ -501,7 +542,6 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         require(msg.sender == slot0Cache.miner, "Not current king");
         require(keepToken != address(0), "KeepToken not set");
 
-        // Use officeLastClaimTime if set (>0), otherwise use startTime (first claim or pre-upgrade)
         uint40 claimStartTime = officeLastClaimTime > 0
             ? officeLastClaimTime
             : slot0Cache.startTime;
@@ -512,7 +552,6 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         uint256 minedAmount = mineTime * slot0Cache.dps;
         require(minedAmount > 0, "No rewards");
 
-        // Update officeLastClaimTime, but keep startTime unchanged (for auction price)
         officeLastClaimTime = uint40(block.timestamp);
 
         IKeepToken(keepToken).mint(msg.sender, minedAmount);
@@ -522,7 +561,6 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
     function getPendingOfficeRewards() external view returns (uint256) {
         Slot0 memory slot0Cache = slot0;
 
-        // Use officeLastClaimTime if set (>0), otherwise use startTime
         uint40 claimStartTime = officeLastClaimTime > 0
             ? officeLastClaimTime
             : slot0Cache.startTime;
@@ -550,10 +588,6 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         return tokenIds;
     }
 
-    /**
-     * @dev Withdraw accumulated funds from contract
-     * @notice Transfers entire contract balance to treasury (or owner if treasury not set)
-     */
     function withdrawFunds() external onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No funds to withdraw");

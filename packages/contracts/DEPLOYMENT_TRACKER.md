@@ -233,7 +233,8 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 | Contract | Type | Address | Deployed | TX Hash | Notes |
 |----------|------|---------|----------|---------|-------|
 | TheCellarV3 | Proxy | `0x32A920be00dfCE1105De0415ba1d4f06942E9ed0` | ✅ 2025-12-07 | ... | V3 Migration - UUPS Proxy |
-| TheCellarV3 | Impl | `TBD` | ⏳ Pending | See upgrade tx | v1.6.0 - Pot-Based Pricing (stable value model) |
+| TheCellarV3 | Impl | `0x44dd37503Ac350Ac488E6874478fd3703bF68DC7` | ✅ 2025-01-10 | 0xcd3d4c08abf47f6b723e088497a28c983165e4ec23cbfb39dd1e7cff7ad07def | v1.7.0 - Set Min Price (100 CLP minimum) |
+| TheCellarV3 | Impl | `0x659C6Fca7eB4B91009dd513cB7f45C51886b241A` | ✅ 2025-01-XX | See upgrade tx | v1.6.0 - Pot-Based Pricing (stable value model) |
 | TheCellarV3 | Impl | `0x85d081275254f39d31ebC7b5b5DCBD7276C4E9dF` | ✅ 2025-01-XX | See upgrade tx | v1.5.0 - Price Calculation Fix (use currentPrice not initPrice) |
 | TheCellarV3 | Impl | `0x3Ae6fe0eD190Bd31bBE3fe7f91b310f9C8f45D5C` | ✅ 2025-01-XX | See upgrade tx | v1.4.0 - Withdrawal Fix (position liquidity checks) |
 | TheCellarV3 | Impl | `0x296d8B63c95013a6c972b3f08b0D52c859D37066` | ✅ 2025-12-07 | ... | v1.3.0 - Logic Fix (harvest/withdraw) |
@@ -242,6 +243,7 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 | The Cellar (OLD - Broken Pool) | Impl | `0xA349006F388DA608052395755d08E765b1960ecC` | ✅ 2025-01-XX | See upgrade tx | v3.0.0 - Broken pool, do not use |
 | KeepToken | Proxy | `0x2D1094F5CED6ba279962f9676d32BE092AFbf82E` | ✅ 2025-01-XX | See FIRSTDEPLOYMENT.md | **USE THIS** - Mainnet KeepToken |
 | TavernKeeper | Proxy | `0x56B81A60Ae343342685911bd97D1331fF4fa2d29` | ✅ 2025-01-XX | See upgrade tx | **USE THIS** - Mainnet TavernKeeper |
+| TavernKeeper | Impl | `0xb1F8A6bFfcEd97ee41d71a17A0aA5106253dBb6D` | ✅ 2025-01-10 | See upgrade tx | v4.3.0 - Set minimum office price to 100 MON |
 | TavernKeeper | Impl | `0x81146F855f5B0C567e9F0d3a2A082Aed81F34762` | ✅ 2025-12-08 | See upgrade tx | v4.2.0 - Office timer fix: startTime no longer resets on claim |
 | Adventurer | Proxy | `0xb138Bf579058169e0657c12Fd9cc1267CAFcb935` | ✅ 2025-01-XX | See upgrade tx | **USE THIS** - Mainnet Adventurer |
 | Adventurer | Impl | `0x961F7b389ebe40C61aE1b64425F23CFEA79a4458` | ✅ 2025-01-XX | See upgrade tx | v4.1.0 - Payment Fix + Whitelist |
@@ -307,11 +309,29 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 
 
+### KeepToken (Max Supply Cap)
+- **v2.0.0** - `TBD` (Impl) - Add 4 Billion MAX_SUPPLY Cap
+  - **Reason**: KEEP token needs a maximum supply cap of 4 billion tokens to match design specifications.
+  - **Action**: Added `MAX_SUPPLY = 4_000_000_000 * 1e18` constant. Added check in `mint()` to prevent exceeding cap. Added `getMaxSupply()` and `getRemainingSupply()` view functions.
+  - **Result**: All future mints will be checked against the 4 billion cap. Minting will revert if cap would be exceeded.
+  - **Network**: Monad Mainnet (Chain 143)
+  - **Date**: 2025-01-XX
+  - **Proxy**: `0x2D1094F5CED6ba279962f9676d32BE092AFbf82E` (unchanged)
+
+### TavernKeeper (Disable NFT Claims)
+- **v4.3.0** - `TBD` (Impl) - Disable NFT claimTokens() Function
+  - **Reason**: NFTs should NOT mint KEEP tokens. Only the Office (King of the Hill) should mint KEEP, matching the donut-miner model. The `claimTokens()` function was incorrectly allowing NFTs to mint KEEP.
+  - **Action**: Modified `claimTokens()` to always revert with error message. Modified `calculatePendingTokens()` to always return 0. Preserved storage layout (lastClaimTime, mintingRate mappings kept for compatibility). Office minting functions (takeOffice, claimOfficeRewards) unchanged.
+  - **Result**: NFTs can no longer claim/mint KEEP tokens. Only the Office can mint KEEP tokens.
+  - **Network**: Monad Mainnet (Chain 143)
+  - **Date**: 2025-01-XX
+  - **Proxy**: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29` (unchanged)
+
 ---
 
 ## Last Updated
 
-- **Date**: 2025-12-06
-- **Updated By**: V3 Migration Deployment
-- **Reason**: Migrated core mechanics to use Uniswap V3 instead of custom V4 Hook. Deployed `CellarToken` and `TheCellarV3` wrapper.
+- **Date**: 2025-01-XX
+- **Updated By**: Critical Fix - Disable NFT Minting + Add Supply Cap
+- **Reason**: Fixed critical design flaw where NFTs could mint KEEP tokens. Added 4 billion maximum supply cap to KeepToken. Only the Office (King of the Hill) should mint KEEP, matching donut-miner model.
 

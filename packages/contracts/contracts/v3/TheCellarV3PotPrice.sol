@@ -5,15 +5,32 @@ import "./TheCellarV3PriceFix.sol";
 
 /**
  * @title TheCellarV3PotPrice
- * @notice Upgrade to implement pot-based pricing (stable, value-aligned model)
+ * @notice Upgrade to implement pot-based pricing (stable, value-aligned model) (v1.6.0)
  * @dev This upgrade changes:
  *      - raid() now uses potBalanceMON * (100 + potPriceCoefficient) / 100 for new init price
  *      - Price starts above pot, decays down over epoch (Dutch auction)
  *      - Price exceeds pot for majority of hour, then becomes profitable
  *      - Self-correcting: price tied to actual value in pot
  *
- * @dev Storage compatibility: Inherits from TheCellarV3PriceFix (currently deployed)
- *      to maintain storage layout compatibility. Adds potPriceCoefficient at the end.
+ * ════════════════════════════════════════════════════════════════════════════════
+ * VERSION TRACKING - READ THIS BEFORE MAKING CHANGES
+ * ════════════════════════════════════════════════════════════════════════════════
+ *
+ * VERSION: v1.6.0
+ * DEPLOYED: 2025-01-XX
+ * IMPLEMENTATION: 0x659C6Fca7eB4B91009dd513cB7f45C51886b241A
+ * PROXY: 0x32A920be00dfCE1105De0415ba1d4f06942E9ed0
+ *
+ * UPGRADE CHAIN (ALL REQUIRED - DO NOT DELETE):
+ *   TheCellarV3 (v1.0.0)
+ *   → TheCellarV3Upgrade (v1.3.0)
+ *   → TheCellarV3PriceFix (v1.5.0)
+ *   → TheCellarV3PotPrice (v1.6.0) [THIS]
+ *   → TheCellarV3SetMinPrice (v1.7.0) [CURRENT]
+ *
+ * ⚠️  CRITICAL: This contract is in the active upgrade chain. DO NOT DELETE.
+ *
+ * ════════════════════════════════════════════════════════════════════════════════
  */
 contract TheCellarV3PotPrice is TheCellarV3PriceFix {
     // Pot-based pricing coefficient (added at end for storage compatibility)

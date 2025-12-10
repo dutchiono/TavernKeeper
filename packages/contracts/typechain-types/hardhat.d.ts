@@ -374,6 +374,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.KeepToken__factory>;
     getContractFactory(
+      name: "KeepTokenV2",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.KeepTokenV2__factory>;
+    getContractFactory(
       name: "CellarZap",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.CellarZap__factory>;
@@ -413,6 +417,18 @@ declare module "hardhat/types/runtime" {
       name: "TavernKeeper",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TavernKeeper__factory>;
+    getContractFactory(
+      name: "TavernKeeperSetMinPrice",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TavernKeeperSetMinPrice__factory>;
+    getContractFactory(
+      name: "IKeepToken",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IKeepToken__factory>;
+    getContractFactory(
+      name: "TavernKeeperV3",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TavernKeeperV3__factory>;
     getContractFactory(
       name: "ICellarHook",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -474,10 +490,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TheCellarV3__factory>;
     getContractFactory(
-      name: "TheCellarV3Emergency",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.TheCellarV3Emergency__factory>;
-    getContractFactory(
       name: "TheCellarV3PotPrice",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TheCellarV3PotPrice__factory>;
@@ -486,9 +498,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TheCellarV3PriceFix__factory>;
     getContractFactory(
-      name: "TheCellarV3SetDeployer",
+      name: "TheCellarV3SetMinPrice",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.TheCellarV3SetDeployer__factory>;
+    ): Promise<Contracts.TheCellarV3SetMinPrice__factory>;
     getContractFactory(
       name: "TheCellarV3Upgrade",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -953,6 +965,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.KeepToken>;
     getContractAt(
+      name: "KeepTokenV2",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.KeepTokenV2>;
+    getContractAt(
       name: "CellarZap",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -1002,6 +1019,21 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.TavernKeeper>;
+    getContractAt(
+      name: "TavernKeeperSetMinPrice",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TavernKeeperSetMinPrice>;
+    getContractAt(
+      name: "IKeepToken",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IKeepToken>;
+    getContractAt(
+      name: "TavernKeeperV3",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TavernKeeperV3>;
     getContractAt(
       name: "ICellarHook",
       address: string | ethers.Addressable,
@@ -1078,11 +1110,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.TheCellarV3>;
     getContractAt(
-      name: "TheCellarV3Emergency",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.TheCellarV3Emergency>;
-    getContractAt(
       name: "TheCellarV3PotPrice",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -1093,10 +1120,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.TheCellarV3PriceFix>;
     getContractAt(
-      name: "TheCellarV3SetDeployer",
+      name: "TheCellarV3SetMinPrice",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.TheCellarV3SetDeployer>;
+    ): Promise<Contracts.TheCellarV3SetMinPrice>;
     getContractAt(
       name: "TheCellarV3Upgrade",
       address: string | ethers.Addressable,
@@ -1474,6 +1501,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.KeepToken>;
     deployContract(
+      name: "KeepTokenV2",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.KeepTokenV2>;
+    deployContract(
       name: "CellarZap",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.CellarZap>;
@@ -1513,6 +1544,18 @@ declare module "hardhat/types/runtime" {
       name: "TavernKeeper",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TavernKeeper>;
+    deployContract(
+      name: "TavernKeeperSetMinPrice",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TavernKeeperSetMinPrice>;
+    deployContract(
+      name: "IKeepToken",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IKeepToken>;
+    deployContract(
+      name: "TavernKeeperV3",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TavernKeeperV3>;
     deployContract(
       name: "ICellarHook",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -1574,10 +1617,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3>;
     deployContract(
-      name: "TheCellarV3Emergency",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TheCellarV3Emergency>;
-    deployContract(
       name: "TheCellarV3PotPrice",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3PotPrice>;
@@ -1586,9 +1625,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3PriceFix>;
     deployContract(
-      name: "TheCellarV3SetDeployer",
+      name: "TheCellarV3SetMinPrice",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TheCellarV3SetDeployer>;
+    ): Promise<Contracts.TheCellarV3SetMinPrice>;
     deployContract(
       name: "TheCellarV3Upgrade",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -2053,6 +2092,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.KeepToken>;
     deployContract(
+      name: "KeepTokenV2",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.KeepTokenV2>;
+    deployContract(
       name: "CellarZap",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -2102,6 +2146,21 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TavernKeeper>;
+    deployContract(
+      name: "TavernKeeperSetMinPrice",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TavernKeeperSetMinPrice>;
+    deployContract(
+      name: "IKeepToken",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IKeepToken>;
+    deployContract(
+      name: "TavernKeeperV3",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TavernKeeperV3>;
     deployContract(
       name: "ICellarHook",
       args: any[],
@@ -2178,11 +2237,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3>;
     deployContract(
-      name: "TheCellarV3Emergency",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TheCellarV3Emergency>;
-    deployContract(
       name: "TheCellarV3PotPrice",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -2193,10 +2247,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3PriceFix>;
     deployContract(
-      name: "TheCellarV3SetDeployer",
+      name: "TheCellarV3SetMinPrice",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TheCellarV3SetDeployer>;
+    ): Promise<Contracts.TheCellarV3SetMinPrice>;
     deployContract(
       name: "TheCellarV3Upgrade",
       args: any[],

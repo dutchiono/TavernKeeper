@@ -5,11 +5,31 @@ import "./TheCellarV3.sol";
 
 /**
  * @title TheCellarV3Upgrade
- * @notice Upgrade to add Dutch auction functionality for raid pricing
+ * @notice Upgrade to add Dutch auction functionality for raid pricing (v1.3.0)
  * @dev This upgrade adds:
  *      - Dutch auction state variables (already in base contract)
  *      - Initialization function for auction parameters
  *      - Price calculation and enforcement in raid()
+ *
+ * ════════════════════════════════════════════════════════════════════════════════
+ * VERSION TRACKING - READ THIS BEFORE MAKING CHANGES
+ * ════════════════════════════════════════════════════════════════════════════════
+ *
+ * VERSION: v1.3.0
+ * DEPLOYED: 2025-12-07
+ * IMPLEMENTATION: 0x296d8B63c95013a6c972b3f08b0D52c859D37066
+ * PROXY: 0x32A920be00dfCE1105De0415ba1d4f06942E9ed0
+ *
+ * UPGRADE CHAIN (ALL REQUIRED - DO NOT DELETE):
+ *   TheCellarV3 (v1.0.0)
+ *   → TheCellarV3Upgrade (v1.3.0) [THIS]
+ *   → TheCellarV3PriceFix (v1.5.0)
+ *   → TheCellarV3PotPrice (v1.6.0)
+ *   → TheCellarV3SetMinPrice (v1.7.0) [CURRENT]
+ *
+ * ⚠️  CRITICAL: This contract is in the active upgrade chain. DO NOT DELETE.
+ *
+ * ════════════════════════════════════════════════════════════════════════════════
  */
 contract TheCellarV3Upgrade is TheCellarV3 {
 

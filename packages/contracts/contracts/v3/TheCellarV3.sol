@@ -56,6 +56,40 @@ interface INonfungiblePositionManager {
     function positions(uint256 tokenId) external view returns (uint96 nonce, address operator, address token0, address token1, uint24 fee, int24 tickLower, int24 tickUpper, uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128, uint128 tokensOwed0, uint128 tokensOwed1);
 }
 
+/**
+ * ════════════════════════════════════════════════════════════════════════════════
+ * VERSION TRACKING - READ THIS BEFORE MAKING CHANGES
+ * ════════════════════════════════════════════════════════════════════════════════
+ *
+ * VERSION: v1.0.0 (Base)
+ * DEPLOYED: 2025-12-07
+ * PROXY: 0x32A920be00dfCE1105De0415ba1d4f06942E9ed0
+ *
+ * UPGRADE CHAIN (ALL REQUIRED - DO NOT DELETE):
+ *   TheCellarV3 (v1.0.0)
+ *   → TheCellarV3Upgrade (v1.3.0)
+ *   → TheCellarV3PriceFix (v1.5.0)
+ *   → TheCellarV3PotPrice (v1.6.0)
+ *   → TheCellarV3SetMinPrice (v1.7.0) [CURRENT]
+ *
+ * CURRENT DEPLOYED: v1.7.0
+ * IMPLEMENTATION: 0x44dd37503Ac350Ac488E6874478fd3703bF68DC7
+ *
+ * ⚠️  CRITICAL RULES FOR UPGRADES:
+ *   1. ALWAYS check DEPLOYMENT_TRACKER.md to see what's actually deployed
+ *   2. NEVER delete contracts in the active upgrade chain (all 5 contracts above)
+ *   3. When creating a new upgrade:
+ *      a. Create a NEW contract file (e.g., TheCellarV3NewFeature.sol)
+ *      b. Extend the CURRENT deployed version (TheCellarV3SetMinPrice)
+ *      c. Update this header with new version info
+ *      d. Update DEPLOYMENT_TRACKER.md immediately after deployment
+ *      e. DELETE old unused contracts (not in the active chain)
+ *   4. Storage layout MUST be preserved - use `npx hardhat storage-layout-diff`
+ *   5. NEVER add storage variables in the middle - always add at the end
+ *   6. Comment out unused variables instead of deleting them
+ *
+ * ════════════════════════════════════════════════════════════════════════════════
+ */
 contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC721Receiver {
 
     INonfungiblePositionManager public positionManager;
@@ -91,8 +125,9 @@ contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC
     address public deployerAddress;
 
     // Staking contract addresses (for reference, not used in harvest)
-    address public lpStakingContract;
-    address public keepStakingContract;
+    // NOTE: These were added AFTER initial deployment, so they're commented out to maintain storage layout compatibility
+    // address public lpStakingContract;
+    // address public keepStakingContract;
 
     // Dutch Auction State
     uint256 public epochPeriod;
@@ -156,8 +191,10 @@ contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC
      * @param _keepStaking KEEP staking contract address
      */
     function setStakingContracts(address _lpStaking, address _keepStaking) external onlyOwner {
-        lpStakingContract = _lpStaking;
-        keepStakingContract = _keepStaking;
+        // NOTE: Staking contract variables commented out to maintain storage layout compatibility
+        // These can be added in a future upgrade if needed
+        // lpStakingContract = _lpStaking;
+        // keepStakingContract = _keepStaking;
     }
 
     /**

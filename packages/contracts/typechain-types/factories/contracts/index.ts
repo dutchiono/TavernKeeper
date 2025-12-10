@@ -3,6 +3,7 @@
 /* eslint-disable */
 export * as cellarZapV4Sol from "./CellarZapV4.sol";
 export * as tavernKeeperSol from "./TavernKeeper.sol";
+export * as tavernKeeperV3Sol from "./TavernKeeperV3.sol";
 export * as tavernRegularsManagerSol from "./TavernRegularsManager.sol";
 export * as townPosseManagerSol from "./TownPosseManager.sol";
 export * as interfaces from "./interfaces";
@@ -17,8 +18,10 @@ export { ERC6551Account__factory } from "./ERC6551Account__factory";
 export { ERC6551Registry__factory } from "./ERC6551Registry__factory";
 export { Inventory__factory } from "./Inventory__factory";
 export { KeepToken__factory } from "./KeepToken__factory";
+export { KeepTokenV2__factory } from "./KeepTokenV2__factory";
 export { LPRecoveryHelper__factory } from "./LPRecoveryHelper__factory";
 export { MockERC20__factory } from "./MockERC20__factory";
 export { SwapRouterV4__factory } from "./SwapRouterV4__factory";
+export { TavernKeeperSetMinPrice__factory } from "./TavernKeeperSetMinPrice__factory";
 export { UniswapIntegration__factory } from "./UniswapIntegration__factory";
 export { V4DependencyHelper__factory } from "./V4DependencyHelper__factory";

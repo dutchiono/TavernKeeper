@@ -4260,53 +4260,6 @@
         "V4DependencyHelper"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TavernKeeper.sol": {
-      "lastModificationDate": 1765194580399,
-      "contentHash": "e9bb1d68171c330ca279371d169f697b",
-      "sourceName": "contracts/TavernKeeper.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
-        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
-        "@openzeppelin/contracts/utils/cryptography/ECDSA.sol",
-        "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "IKeepToken",
-        "TavernKeeper"
-      ]
-    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\DungeonGatekeeper.sol": {
       "lastModificationDate": 1764703294304,
       "contentHash": "58ec5bb1c66e9f3ab5520e61198114de",
@@ -5209,8 +5162,8 @@
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3.sol": {
-      "lastModificationDate": 1765234888104,
-      "contentHash": "89cc9a8cc694df622f357eb0f7cba5cd",
+      "lastModificationDate": 1765334531023,
+      "contentHash": "6ba54bdeabe6d2fe4fab544e9202e999",
       "sourceName": "contracts/v3/TheCellarV3.sol",
       "solcConfig": {
         "version": "0.8.26",
@@ -5540,8 +5493,8 @@
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3Upgrade.sol": {
-      "lastModificationDate": 1765234110539,
-      "contentHash": "78ae4ad425aaeef8dbcc4ab03b573fa4",
+      "lastModificationDate": 1765334536915,
+      "contentHash": "c973077c9721568470c7621748174967",
       "sourceName": "contracts/v3/TheCellarV3Upgrade.sol",
       "solcConfig": {
         "version": "0.8.26",
@@ -5579,89 +5532,9 @@
         "TheCellarV3Upgrade"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3Emergency.sol": {
-      "lastModificationDate": 1765224078263,
-      "contentHash": "1de860e739aa527e33e63f69834f0b6e",
-      "sourceName": "contracts/v3/TheCellarV3Emergency.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./TheCellarV3Upgrade.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "TheCellarV3Emergency"
-      ]
-    },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3SetDeployer.sol": {
-      "lastModificationDate": 1765224078263,
-      "contentHash": "ecd849672204a8fbb85cd00c789f7af7",
-      "sourceName": "contracts/v3/TheCellarV3SetDeployer.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "viaIR": true,
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./TheCellarV3Upgrade.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.24"
-      ],
-      "artifacts": [
-        "TheCellarV3SetDeployer"
-      ]
-    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3PriceFix.sol": {
-      "lastModificationDate": 1765226683855,
-      "contentHash": "2c1374dac14295edb348df7e5ab53b0a",
+      "lastModificationDate": 1765334545220,
+      "contentHash": "3e2b0841216ada8afa3b78a07d2c18b1",
       "sourceName": "contracts/v3/TheCellarV3PriceFix.sol",
       "solcConfig": {
         "version": "0.8.26",
@@ -5700,8 +5573,8 @@
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3PotPrice.sol": {
-      "lastModificationDate": 1765234107563,
-      "contentHash": "ea14364b07a4cfbc9185f98dfc3f7807",
+      "lastModificationDate": 1765334554582,
+      "contentHash": "8461597e28a0d0ed55d344c09048bdb8",
       "sourceName": "contracts/v3/TheCellarV3PotPrice.sol",
       "solcConfig": {
         "version": "0.8.26",
@@ -5864,6 +5737,176 @@
       ],
       "artifacts": [
         "KEEPStaking"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TavernKeeperV3.sol": {
+      "lastModificationDate": 1765334507854,
+      "contentHash": "5ec72a231f1c725c4eddca57381ded05",
+      "sourceName": "contracts/TavernKeeperV3.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
+        "@openzeppelin/contracts/utils/cryptography/ECDSA.sol",
+        "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IKeepToken",
+        "TavernKeeperV3"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\KeepTokenV2.sol": {
+      "lastModificationDate": 1765332568091,
+      "contentHash": "d77dc92acc77f2fe97381de193ba1e40",
+      "sourceName": "contracts/KeepTokenV2.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "KeepTokenV2"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3SetMinPrice.sol": {
+      "lastModificationDate": 1765334565555,
+      "contentHash": "fc46d6c7d091f823f91270f4e3435467",
+      "sourceName": "contracts/v3/TheCellarV3SetMinPrice.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./TheCellarV3PotPrice.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "TheCellarV3SetMinPrice"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TavernKeeperSetMinPrice.sol": {
+      "lastModificationDate": 1765334515119,
+      "contentHash": "3e29d145916feb1bf54ddbac33746d41",
+      "sourceName": "contracts/TavernKeeperSetMinPrice.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./TavernKeeperV3.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "TavernKeeperSetMinPrice"
       ]
     }
   }

@@ -12,23 +12,28 @@ import * as path from 'path';
 function loadEnvFile(): void {
   console.log('Current working directory:', process.cwd());
 
-  // Check if we're in Render (environment variables should already be in process.env)
+  // Check if we're in Render
   const isRender = process.env.RENDER === 'true' || process.env.RENDER_SERVICE_NAME;
 
+  // Try to load from .env file - on Render, secret files from env groups are mounted as files
+  // Priority: Render secret files locations first, then local dev paths
+  const envPaths: string[] = [];
+
   if (isRender) {
-    console.log('🌐 Running on Render - environment variables should be available from environment variable groups');
-    console.log('   Make sure your environment variable group is attached to this service');
-    // Don't try to load from file on Render when using env groups
-    return;
+    // Render secret files from environment variable groups
+    envPaths.push('/etc/secrets/.env');
+    envPaths.push('/opt/render/.secrets/.env');
+    envPaths.push(path.join(process.env.RENDER_PROJECT_ROOT || '', '.secrets', '.env'));
   }
 
-  // For local development, try to load from .env file
-  const envPaths = [
-    '/etc/secrets/.env', // Render secret files location (legacy)
-    path.join(process.cwd(), '.env'), // App root
-    path.join(__dirname, '../.env'), // Script relative
-    path.join(process.cwd(), '..', '.env'), // Parent directory
-  ];
+  // Local development paths
+  envPaths.push(path.join(process.cwd(), '.env')); // App root
+  envPaths.push(path.join(__dirname, '../.env')); // Script relative
+  envPaths.push(path.join(process.cwd(), '..', '.env')); // Parent directory
+
+  if (isRender) {
+    console.log('🌐 Running on Render - checking for .env file from environment variable group secret files');
+  }
 
   for (const envPath of envPaths) {
     try {
@@ -51,13 +56,43 @@ function loadEnvFile(): void {
         }
         console.log(`✅ Loaded ${loadedCount} environment variables from .env file`);
         return;
+      } else if (isRender && envPath === '/etc/secrets/.env') {
+        // Debug: Check what's in /etc/secrets if .env not found
+        try {
+          if (fs.existsSync('/etc/secrets')) {
+            const secrets = fs.readdirSync('/etc/secrets');
+            console.log(`   Checking /etc/secrets directory... found: ${secrets.join(', ')}`);
+            // Try to find .env with different casing or location
+            for (const file of secrets) {
+              if (file.toLowerCase() === '.env' || file === 'env') {
+                const altPath = `/etc/secrets/${file}`;
+                console.log(`   Trying alternative path: ${altPath}`);
+                if (fs.existsSync(altPath)) {
+                  envPaths.unshift(altPath); // Add to front of list to try next
+                }
+              }
+            }
+          }
+        } catch (e) {
+          // Ignore errors checking /etc/secrets
+        }
       }
     } catch (error) {
       // Continue to next path if this one fails
+      if (isRender && envPath === '/etc/secrets/.env') {
+        console.log(`   Error checking ${envPath}: ${error instanceof Error ? error.message : String(error)}`);
+      }
       continue;
     }
   }
-  console.log(`⚠️  No .env file found in expected locations (this is OK if using Render environment variable groups)`);
+
+  if (isRender) {
+    console.log(`⚠️  No .env file found in expected locations`);
+    console.log(`   If using an environment variable group with a .env secret file, it should be at /etc/secrets/.env`);
+    console.log(`   Make sure the environment variable group is linked to this service`);
+  } else {
+    console.log(`⚠️  No .env file found in expected locations`);
+  }
 }
 
 // Load .env file before validation

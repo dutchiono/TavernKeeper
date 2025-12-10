@@ -583,6 +583,14 @@ export const CONTRACT_REGISTRY: Record<string, ContractConfig> = {
         stateMutability: 'view',
         type: 'function',
       },
+      // Pause functions (v4.4.0+)
+      {
+        inputs: [],
+        name: 'paused',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
       // Whitelist functions (from compiled artifact)
       {
         inputs: [

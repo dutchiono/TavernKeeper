@@ -16,6 +16,7 @@ export interface OfficeState {
     startTime: number;
     nextDps: string; // formatted string
     initPrice: string; // formatted string
+    isPaused?: boolean; // Whether the office is paused
     error?: string; // Error message if fetch failed
 }
 
@@ -85,6 +86,13 @@ export const tavernKeeperService = {
                     functionName: 'getPendingOfficeRewards',
                     args: [],
                 })),
+                // Check if paused (may not exist on older contracts, so we catch errors)
+                retry(() => publicClient.readContract({
+                    address: contractAddress,
+                    abi: contractConfig.abi,
+                    functionName: 'paused',
+                    args: [],
+                }).catch(() => false)), // Default to false if function doesn't exist
             ]);
 
             // Default values
@@ -98,6 +106,7 @@ export const tavernKeeperService = {
             let currentPrice = 0n;
             let nextDps = 0n;
             let pendingRewards = 0n;
+            let isPaused = false;
 
             if (results[0].status === 'fulfilled') {
                 slot0 = results[0].value;
@@ -110,6 +119,9 @@ export const tavernKeeperService = {
             }
             if (results[3].status === 'fulfilled') {
                 pendingRewards = results[3].value as bigint;
+            }
+            if (results[4].status === 'fulfilled') {
+                isPaused = results[4].value as boolean;
             }
 
             const currentKing = slot0.miner;
@@ -134,6 +146,7 @@ export const tavernKeeperService = {
                 startTime: kingSince,
                 nextDps: formatEther(nextDps),
                 initPrice: formatEther(slot0.initPrice),
+                isPaused,
                 error: undefined
             };
 

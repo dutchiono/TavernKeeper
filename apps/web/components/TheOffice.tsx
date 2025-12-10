@@ -485,6 +485,12 @@ export const TheOffice: React.FC<{
             return;
         }
 
+        // Check if office is paused
+        if (state.isPaused) {
+            alert('🛑 GOBLINS HAVE TAKEN OVER!\n\nThe Office is currently under goblin control and cannot be taken. The goblins are causing chaos and have locked down the office.\n\nCheck back later when the goblins have been dealt with!');
+            return;
+        }
+
         // Check if user is trying to take office from themselves
         const currentKing = state.currentKing?.toLowerCase();
         const userAddress = address?.toLowerCase();

@@ -61,7 +61,7 @@ contract TavernKeeperSetMinPrice is TavernKeeperV3 {
         uint256 deadline,
         uint256 maxPrice,
         string memory uri
-    ) public payable override nonReentrant returns (uint256 price) {
+    ) public payable virtual override nonReentrant returns (uint256 price) {
         if (block.timestamp > deadline) revert Expired();
 
         Slot0 memory slot0Cache = slot0;

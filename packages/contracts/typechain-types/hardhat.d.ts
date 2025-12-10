@@ -274,10 +274,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SqrtPriceMath__factory>;
     getContractFactory(
-      name: "StateLibrary",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.StateLibrary__factory>;
-    getContractFactory(
       name: "TickBitmap",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TickBitmap__factory>;
@@ -410,13 +406,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SwapRouterV4__factory>;
     getContractFactory(
-      name: "IKeepToken",
+      name: "TavernKeeperPausable",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IKeepToken__factory>;
-    getContractFactory(
-      name: "TavernKeeper",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.TavernKeeper__factory>;
+    ): Promise<Contracts.TavernKeeperPausable__factory>;
     getContractFactory(
       name: "TavernKeeperSetMinPrice",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -840,11 +832,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.SqrtPriceMath>;
     getContractAt(
-      name: "StateLibrary",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.StateLibrary>;
-    getContractAt(
       name: "TickBitmap",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -1010,15 +997,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.SwapRouterV4>;
     getContractAt(
-      name: "IKeepToken",
+      name: "TavernKeeperPausable",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.IKeepToken>;
-    getContractAt(
-      name: "TavernKeeper",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.TavernKeeper>;
+    ): Promise<Contracts.TavernKeeperPausable>;
     getContractAt(
       name: "TavernKeeperSetMinPrice",
       address: string | ethers.Addressable,
@@ -1401,10 +1383,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SqrtPriceMath>;
     deployContract(
-      name: "StateLibrary",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.StateLibrary>;
-    deployContract(
       name: "TickBitmap",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TickBitmap>;
@@ -1537,13 +1515,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SwapRouterV4>;
     deployContract(
-      name: "IKeepToken",
+      name: "TavernKeeperPausable",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IKeepToken>;
-    deployContract(
-      name: "TavernKeeper",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TavernKeeper>;
+    ): Promise<Contracts.TavernKeeperPausable>;
     deployContract(
       name: "TavernKeeperSetMinPrice",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -1967,11 +1941,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SqrtPriceMath>;
     deployContract(
-      name: "StateLibrary",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.StateLibrary>;
-    deployContract(
       name: "TickBitmap",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -2137,15 +2106,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SwapRouterV4>;
     deployContract(
-      name: "IKeepToken",
+      name: "TavernKeeperPausable",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IKeepToken>;
-    deployContract(
-      name: "TavernKeeper",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TavernKeeper>;
+    ): Promise<Contracts.TavernKeeperPausable>;
     deployContract(
       name: "TavernKeeperSetMinPrice",
       args: any[],

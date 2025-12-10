@@ -3,8 +3,6 @@
 /* eslint-disable */
 import type * as cellarZapV4Sol from "./CellarZapV4.sol";
 export type { cellarZapV4Sol };
-import type * as tavernKeeperSol from "./TavernKeeper.sol";
-export type { tavernKeeperSol };
 import type * as tavernKeeperV3Sol from "./TavernKeeperV3.sol";
 export type { tavernKeeperV3Sol };
 import type * as tavernRegularsManagerSol from "./TavernRegularsManager.sol";
@@ -32,6 +30,7 @@ export type { KeepTokenV2 } from "./KeepTokenV2";
 export type { LPRecoveryHelper } from "./LPRecoveryHelper";
 export type { MockERC20 } from "./MockERC20";
 export type { SwapRouterV4 } from "./SwapRouterV4";
+export type { TavernKeeperPausable } from "./TavernKeeperPausable";
 export type { TavernKeeperSetMinPrice } from "./TavernKeeperSetMinPrice";
 export type { UniswapIntegration } from "./UniswapIntegration";
 export type { V4DependencyHelper } from "./V4DependencyHelper";

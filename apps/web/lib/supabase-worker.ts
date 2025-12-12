@@ -1,6 +1,6 @@
-// Supabase REST API client - direct API calls, no dependencies needed
-// This replaces Prisma and the Supabase client library
-// Lazy load config to prevent build-time errors during module evaluation
+// Supabase client for workers - uses service role key to bypass RLS
+// Workers run server-side and need full database access
+
 const getSupabaseConfig = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
@@ -8,29 +8,18 @@ const getSupabaseConfig = () => {
     process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL ||
     '';
 
-  // In server-side contexts (workers, API routes), prefer service role key to bypass RLS
-  // Service role key bypasses RLS policies, which is needed for workers
-  const isServerSide = typeof window === 'undefined';
-  const hasServiceRoleKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (isServerSide && hasServiceRoleKey) {
-    // Use service role key in server context (workers, API routes)
-    // This bypasses RLS policies
-  }
-  
-  const key = (isServerSide && hasServiceRoleKey)
-    ? process.env.SUPABASE_SERVICE_ROLE_KEY!
-    : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      process.env.SUPABASE_API_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_API_KEY ||
-      '';
+  // Use service role key for workers (bypasses RLS)
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || // Fallback to anon key if service role not available
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_API_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_API_KEY ||
+    '';
 
   return { url, key };
 };
-
-
 
 export interface SupabaseResponse<T> {
   data: T | null;
@@ -39,7 +28,7 @@ export interface SupabaseResponse<T> {
 
 interface QueryOptions {
   select?: string;
-  eq?: { column: string; value: string | number | boolean }[]; // Support multiple
+  eq?: { column: string; value: string | number | boolean }[];
   in?: { column: string; values: (string | number | boolean)[] };
   contains?: { column: string; value: unknown }[];
   gt?: { column: string; value: string | number | boolean }[];
@@ -62,7 +51,7 @@ async function supabaseRequest<T>(
   const { url: baseUrl, key } = getSupabaseConfig();
 
   if (!baseUrl || !key) {
-    console.error('Supabase Env Vars Missing');
+    console.error('[Supabase Worker] Missing Supabase Configuration');
     return { data: null, error: { message: 'Missing Supabase Configuration. Please check your environment variables.' } };
   }
 
@@ -71,7 +60,6 @@ async function supabaseRequest<T>(
   if (options.select) {
     url.searchParams.set('select', options.select);
   }
-  // ... (rest of the params logic is fine, we just need to update the headers usage below)
 
   if (options.eq) {
     options.eq.forEach(filter => {
@@ -139,10 +127,6 @@ async function supabaseRequest<T>(
     }
 
     const data = await response.json();
-    // If single is requested, ensure we return one item (Supabase might return array of 1)
-    // But with return=representation and single=true (header?), Supabase returns object.
-    // Actually header for single is `Prefer: return=representation,count=none` + `Accept: application/vnd.pgrst.object+json` usually.
-    // For now we handle array/object mismatch manually if needed.
     return { data: options.single && Array.isArray(data) ? data[0] : data, error: null };
   } catch (error) {
     return {
@@ -160,8 +144,6 @@ class SupabaseQueryBuilder<T> {
 
   select(columns = '*') {
     this.options.select = columns;
-    // If method was not set (default GET), keep GET.
-    // If it was POST/PATCH (insert/update), select modifies the return.
     return this;
   }
 
@@ -246,7 +228,6 @@ class SupabaseQueryBuilder<T> {
     return this;
   }
 
-  // Make it thenable to await directly
   then<TResult1 = SupabaseResponse<T | T[]>, TResult2 = never>(
     onfulfilled?: ((value: SupabaseResponse<T | T[]>) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
@@ -258,3 +239,4 @@ class SupabaseQueryBuilder<T> {
 export const supabase = {
   from: <T = any>(table: string) => new SupabaseQueryBuilder<T>(table),
 };
+

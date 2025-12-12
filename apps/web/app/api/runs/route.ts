@@ -116,6 +116,12 @@ export async function POST(request: NextRequest) {
       party,
       seed: run.seed as string,
       startTime: new Date(run.start_time as string).getTime(),
+    }, {
+      // Set job timeout to 10 minutes (longer than our 5-minute executeDungeonRun timeout)
+      // This ensures BullMQ doesn't mark the job as timed out before our code finishes
+      attempts: 1, // Don't retry on failure
+      removeOnComplete: false, // Keep completed jobs for debugging
+      removeOnFail: false, // Keep failed jobs for debugging
     });
     console.log(`[API] Job enqueued with ID: ${job.id}`);
 

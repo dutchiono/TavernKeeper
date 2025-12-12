@@ -18,6 +18,8 @@ import type { TrapResolutionResult } from '../../contributions/combat-system/cod
 import { createMonsterInstanceByName, getMonsterStatBlock } from '../../contributions/monster-stat-blocks/code/services/monsterService';
 import type { MonsterInstance } from '../../contributions/monster-stat-blocks/code/types/monster-stats';
 import { ItemGenerator } from '../../contributions/procedural-item-generation/code/generators/item-generator';
+import { scheduleEventsSequentially } from '../../contributions/timer-system/code/services/timerService';
+import { logGameEvent, persistKeyEvent } from './gameLoggingService';
 
 const HERO_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '143', 10);
@@ -66,6 +68,9 @@ export async function executeDungeonRun(
 ): Promise<DungeonRunResult> {
   const events: DungeonRunResult['events'] = [];
   const runStartTime = Date.now();
+  
+  // Store runId for logging context
+  const loggingContext = { runId };
   
   console.log(`[DungeonRun] Starting dungeon run ${runId} for dungeon ${dungeonId} with ${party.length} party members`);
   
@@ -117,6 +122,47 @@ export async function executeDungeonRun(
       const adventurer = await getAdventurer(heroId);
       if (!adventurer) {
         throw new Error(`Adventurer not found for hero ${tokenId}`);
+      }
+
+      // Load equipped items and apply equipment bonuses
+      try {
+        const equippedItems = await getEquippedItems(heroId);
+        
+        // Apply equipment bonuses to adventurer stats
+        let attackBonus = adventurer.stats.attackBonus || 0;
+        let spellAttackBonus = adventurer.stats.spellAttackBonus || 0;
+        let armorClass = adventurer.stats.armorClass || 10;
+
+        // Apply weapon bonuses (mainHand)
+        if (equippedItems.mainHand?.item_data) {
+          const weapon = equippedItems.mainHand.item_data as any;
+          if (weapon.attackModifier) {
+            attackBonus += weapon.attackModifier;
+          }
+          // Note: damage modifiers are applied during combat resolution, not here
+        }
+
+        // Apply armor bonuses
+        if (equippedItems.armor?.item_data) {
+          const armor = equippedItems.armor.item_data as any;
+          if (armor.armorClass) {
+            armorClass += armor.armorClass;
+          }
+          if (armor.attackModifier) {
+            attackBonus += armor.attackModifier;
+          }
+          if (armor.spellAttackModifier) {
+            spellAttackBonus += armor.spellAttackModifier;
+          }
+        }
+
+        // Update adventurer stats with equipment bonuses
+        adventurer.stats.attackBonus = attackBonus;
+        adventurer.stats.spellAttackBonus = spellAttackBonus;
+        adventurer.stats.armorClass = armorClass;
+      } catch (error) {
+        console.warn(`[DungeonRun] Failed to load equipment for hero ${tokenId}:`, error);
+        // Continue without equipment bonuses if loading fails
       }
 
       partyMembers.push(adventurer);
@@ -201,7 +247,9 @@ export async function executeDungeonRun(
           currentLevel,
           partyMembers,
           walletAddress,
-          dungeonSeed
+          dungeonSeed,
+          runId,
+          loggingContext
         );
         const roomExecDuration = Date.now() - roomExecStartTime;
         console.log(`[DungeonRun] Room executed in ${roomExecDuration}ms: ${roomResult.events.length} events, ${roomResult.xpAwarded || 0} XP awarded`);
@@ -259,6 +307,14 @@ export async function executeDungeonRun(
           }
         }
         console.log(`[DungeonRun] Party stats updated in ${Date.now() - updateStartTime}ms`);
+        
+        // Check if all party members are dead after updating stats
+        const aliveAfterUpdate = partyMembers.filter(m => m.stats.health > 0);
+        if (aliveAfterUpdate.length === 0) {
+          console.log(`[DungeonRun] All party members defeated after level ${currentLevel}. Ending run.`);
+          // Break out of the level loop - run will be marked as defeat
+          break;
+        }
       }
 
       // Award XP
@@ -297,7 +353,51 @@ export async function executeDungeonRun(
       currentLevel++;
     }
 
-    // 5. Determine final status
+    // 5. Persist key events to database
+    console.log(`[DungeonRun] Persisting key events to database...`);
+    try {
+      const { persistAllKeyEventsForRun } = await import('./gameLoggingService');
+      await persistAllKeyEventsForRun(runId);
+      console.log(`[DungeonRun] Key events persisted`);
+    } catch (persistError) {
+      console.error(`[DungeonRun] Error persisting key events:`, persistError);
+      // Don't fail the run if persistence fails
+    }
+
+    // 6. Schedule all events with sequential timestamps (6-second intervals)
+    // All deterministic calculations are done, now schedule events for time-based delivery
+    const scheduleStartTime = Date.now();
+    const startDeliveryTime = new Date(); // Start delivering events immediately
+    
+    if (events.length > 0) {
+      try {
+        const eventPayloads = events.map(event => ({
+          runId,
+          type: event.type,
+          payload: {
+            level: event.level,
+            roomType: event.roomType,
+            description: event.description,
+            combatTurns: event.combatTurns,
+            timestamp: event.timestamp,
+          },
+        }));
+        
+        const scheduledEvents = await scheduleEventsSequentially(
+          eventPayloads,
+          startDeliveryTime,
+          { eventIntervalSeconds: 6 }
+        );
+        console.log(`[DungeonRun] ✅ Scheduled ${scheduledEvents.length} events in ${Date.now() - scheduleStartTime}ms`);
+      } catch (scheduleError) {
+        console.error(`[DungeonRun] ❌ Error scheduling events:`, scheduleError);
+        // Don't fail the run if scheduling fails - events are still calculated
+      }
+    } else {
+      console.warn(`[DungeonRun] ⚠️ No events to schedule!`);
+    }
+
+    // 7. Determine final status
     const aliveMembers = partyMembers.filter(m => m.stats.health > 0);
     const status: 'victory' | 'defeat' = aliveMembers.length > 0 ? 'victory' : 'defeat';
     const totalDuration = Date.now() - runStartTime;
@@ -365,7 +465,9 @@ async function executeRoom(
   level: number,
   partyMembers: AdventurerRecord[],
   walletAddress: string,
-  dungeonSeed: string
+  dungeonSeed: string,
+  runId: string,
+  loggingContext: { runId: string }
 ): Promise<RoomExecutionResult> {
   const events: RoomExecutionResult['events'] = [];
   const partyUpdates: RoomExecutionResult['partyUpdates'] = [];
@@ -377,13 +479,28 @@ async function executeRoom(
 
   console.log(`[RoomExecution] Level ${level}: Executing ${roomType} room "${room.room.name}"`);
 
-  events.push({
+  const roomEnterEvent = {
     type: 'room_enter',
     level,
     roomType,
     description: `Entered ${room.room.name}: ${room.room.description}`,
     timestamp: Date.now(),
-  });
+  };
+  events.push(roomEnterEvent);
+
+  // Log room entry event
+  logGameEvent(
+    {
+      id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'exploration',
+      timestamp: Date.now(),
+      action: 'enter_room',
+      actorId: 'party',
+      roomId: room.room.id,
+    } as any,
+    { level, roomId: room.room.id, partyMembers: partyMembers.map(p => p.heroId.tokenId) },
+    loggingContext
+  );
 
   switch (roomType) {
     case 'combat':
@@ -429,9 +546,10 @@ async function executeRoom(
         break;
       }
 
-      // Initialize combat
+      // Initialize combat with seeded RNG for deterministic execution
       console.log(`[RoomExecution] Initializing combat with ${monsters.length} monster(s)...`);
       const combatInitStartTime = Date.now();
+      const combatSeed = `${dungeonSeed}-combat-${level}`;
       const combatState = initializeCombat(
         partyMembers,
         monsters,
@@ -440,7 +558,9 @@ async function executeRoom(
         {
           clericHealRatio: 0.3,
           mageMagicRatio: 0.7,
-        }
+        },
+        false, // Not surprise
+        combatSeed // Pass seed for deterministic combat
       );
       console.log(`[RoomExecution] Combat initialized in ${Date.now() - combatInitStartTime}ms`);
 
@@ -460,17 +580,8 @@ async function executeRoom(
       const combatDuration = Date.now() - combatStartTime;
       console.log(`[RoomExecution] Combat completed in ${combatDuration}ms: ${combatResult.status}, ${combatResult.totalTurns} turns, ${combatResult.xpAwarded || 0} XP`);
 
-      // Add room entry event
-      events.push({
-        type: 'room_enter',
-        level,
-        roomType,
-        description: `Entered ${room.room.name}: ${room.room.description}`,
-        timestamp: Date.now(),
-      });
-
       // Add combat result event with turn details
-      events.push({
+      const combatResultEvent = {
         type: combatResult.status === 'victory' ? 'combat_victory' : 'combat_defeat',
         level,
         roomType,
@@ -479,18 +590,61 @@ async function executeRoom(
           : 'Party was defeated',
         timestamp: Date.now(),
         combatTurns: combatResult.turns, // Include full turn details
-      });
+      };
+      events.push(combatResultEvent);
 
-      // Update party HP
-      for (const partyMember of combatResult.updatedPartyMembers) {
-        partyUpdates.push({
-          heroId: partyMember.heroId,
-          updates: {
-            health: partyMember.currentHp,
-            mana: partyMember.currentMana,
-          },
-          reason: 'combat',
-        });
+      // Log combat result event
+      logGameEvent(
+        {
+          id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: 'combat',
+          timestamp: Date.now(),
+          action: combatResult.status === 'victory' ? 'victory' : 'defeat',
+          actorId: 'party',
+          targetId: monsters.map(m => m.id).join(','),
+        } as any,
+        { level, roomId: room.room.id, turn: combatResult.totalTurns },
+        loggingContext
+      );
+
+      // Log each combat turn
+      if (combatResult.turns) {
+        for (const turn of combatResult.turns) {
+          logGameEvent(
+            {
+              id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: 'combat',
+              timestamp: Date.now(),
+              action: turn.action || 'attack',
+              actorId: turn.actorId || 'unknown',
+              targetId: turn.targetId,
+              hit: turn.hit,
+              damage: turn.damage,
+              critical: turn.critical,
+            } as any,
+            { level, roomId: room.room.id, turn: turn.turnNumber },
+            loggingContext
+          );
+        }
+      }
+
+      // Update party HP from finalState
+      if (combatResult.finalState && combatResult.finalState.entities) {
+        const updatedPartyEntities = combatResult.finalState.entities.filter(e => e.type === 'party');
+        for (const partyEntity of updatedPartyEntities) {
+          // Find the corresponding party member by ID
+          const partyMember = partyMembers.find(p => p.heroId.tokenId === partyEntity.id);
+          if (partyMember) {
+            partyUpdates.push({
+              heroId: partyMember.heroId,
+              updates: {
+                health: partyEntity.currentHp || partyEntity.hp || 0,
+                mana: partyEntity.currentMana || partyEntity.mana || 0,
+              },
+              reason: 'combat',
+            });
+          }
+        }
       }
 
       // Award XP on victory
@@ -505,6 +659,35 @@ async function executeRoom(
         }
       }
 
+      // If party was defeated, stop the run
+      if (combatResult.status === 'defeat') {
+        console.log(`[DungeonRun] Party defeated in combat at level ${level}. Ending run.`);
+        // Update party members with final HP from combat
+        if (combatResult.finalState && combatResult.finalState.entities) {
+          const defeatedPartyEntities = combatResult.finalState.entities.filter(e => e.type === 'party');
+          for (const partyEntity of defeatedPartyEntities) {
+            const partyMember = partyMembers.find(p => p.heroId.tokenId === partyEntity.id);
+            if (partyMember) {
+              partyUpdates.push({
+                heroId: partyMember.heroId,
+                updates: {
+                  health: partyEntity.currentHp || partyEntity.hp || 0,
+                  mana: partyEntity.currentMana || partyEntity.mana || 0,
+                },
+                reason: 'combat_defeat',
+              });
+            }
+          }
+        }
+        // Return early - the run will be marked as defeat
+        return {
+          events,
+          xpAwarded,
+          partyUpdates,
+          xpUpdates,
+        };
+      }
+
       break;
     }
 
@@ -516,15 +699,18 @@ async function executeRoom(
 
       console.log(`[RoomExecution] Resolving trap encounter...`);
       const trapStartTime = Date.now();
+      const trapSeed = `${dungeonSeed}-trap-${level}`;
       const trapResult: TrapResolutionResult = resolveTrap(
         encounter,
         `room-${level}`,
         level,
-        partyMembers
+        partyMembers,
+        undefined, // config
+        trapSeed // seed for deterministic trap resolution
       );
       console.log(`[RoomExecution] Trap resolved in ${Date.now() - trapStartTime}ms: ${trapResult.status}, ${trapResult.damageDealt || 0} damage, ${trapResult.xpAwarded || 0} XP`);
 
-      events.push({
+      const trapEvent = {
         type: trapResult.status === 'success' ? 'trap_disarmed' : 'trap_triggered',
         level,
         roomType,
@@ -532,7 +718,23 @@ async function executeRoom(
           ? 'Trap was successfully disarmed'
           : `Trap triggered! ${trapResult.damageDealt} damage dealt`,
         timestamp: Date.now(),
-      });
+      };
+      events.push(trapEvent);
+
+      // Log trap resolution event
+      logGameEvent(
+        {
+          id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: 'interaction',
+          timestamp: Date.now(),
+          action: trapResult.status === 'success' ? 'disarm_trap' : 'trigger_trap',
+          actorId: 'party',
+          success: trapResult.status === 'success',
+          damage: trapResult.damageDealt || 0,
+        } as any,
+        { level, roomId: room.room.id },
+        loggingContext
+      );
 
       // Apply damage
       if (trapResult.damageDealt > 0) {

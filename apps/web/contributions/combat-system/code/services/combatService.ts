@@ -21,6 +21,16 @@ import type { InventoryItem } from '../../inventory-tracking/code/types/inventor
 // import { getEquippedItems } from '../../inventory-tracking/code/services/inventoryService';
 import { determineTurnOrder, filterAliveEntities, getCurrentEntity } from '../engine/turn-order';
 import { resolveAttack, applyDamage, applyHealing, rollDice } from '../engine/attack-resolution';
+import { SeededRNG } from '../../../../lib/utils/seededRNG';
+
+/**
+ * Get or create RNG from combat state seed
+ */
+function getCombatRNG(state: CombatState, turnNumber?: number): SeededRNG {
+  const seed = state.seed || `${state.combatId}-${state.roomId}`;
+  const turnSeed = turnNumber !== undefined ? `${seed}-turn-${turnNumber}` : seed;
+  return new SeededRNG(turnSeed);
+}
 
 /**
  * Wrap a promise with a timeout
@@ -201,15 +211,20 @@ export function initializeCombat(
   roomId: string,
   isAmbush: boolean = false,
   config?: CombatConfig,
-  isSurprise: boolean = false
+  isSurprise: boolean = false,
+  seed?: string
 ): CombatState {
   // Create combat entities
   const partyEntities = partyMembers.map(a => createCombatEntityFromAdventurer(a));
   const monsterEntities = monsters.map(m => createCombatEntityFromMonster(m));
   const allEntities = [...partyEntities, ...monsterEntities];
 
-  // Determine turn order
-  const turnOrder = determineTurnOrder(allEntities);
+  // Create seeded RNG for deterministic combat
+  const combatSeed = seed || `${roomId}-${Date.now()}`;
+  const rng = new SeededRNG(combatSeed);
+
+  // Determine turn order using seeded RNG
+  const turnOrder = determineTurnOrder(allEntities, rng);
 
   return {
     combatId: `combat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -224,6 +239,7 @@ export function initializeCombat(
     surpriseCompleted: !isSurprise, // If not surprise, consider it "completed"
     status: 'active',
     startedAt: new Date(),
+    seed: combatSeed,
   };
 }
 
@@ -460,7 +476,8 @@ export async function executeTurn(
     const hpBefore = target.currentHp;
 
     // Calculate healing (applyHealing already caps at maxHp)
-    const healDice = rollDice(action.weapon.damageDice);
+    const rng = getCombatRNG(state, state.turns.length + 1);
+    const healDice = rollDice(action.weapon.damageDice, rng);
     const healAmount = healDice.total;
     const healedTarget = applyHealing(target, healAmount);
 
@@ -512,7 +529,8 @@ export async function executeTurn(
     const hpBefore = target.currentHp;
 
     // Calculate damage
-    const damageResult = rollDice(action.weapon.damageDice);
+    const rng = getCombatRNG(state, state.turns.length + 1);
+    const damageResult = rollDice(action.weapon.damageDice, rng);
     const damage = damageResult.total;
     const damagedTarget = applyDamage(target, damage);
 
@@ -553,7 +571,8 @@ export async function executeTurn(
     }
 
     // resolveAttack already captures targetHpBefore, but we need to update targetHpAfter after applying damage
-    const attackResult = resolveAttack(entity, target, action.weapon);
+    const rng = getCombatRNG(state, state.turns.length + 1);
+    const attackResult = resolveAttack(entity, target, action.weapon, rng);
     
     if (attackResult.hit && attackResult.damage) {
       const damagedTarget = applyDamage(target, attackResult.damage);
@@ -644,11 +663,13 @@ export function executeAmbushRound(
   const monsters = updatedState.entities.filter(e => e.type === 'monster' && e.currentHp > 0);
   const party = updatedState.entities.filter(e => e.type === 'party' && e.currentHp > 0);
 
-  // Each monster attacks a random party member
-  for (const monster of monsters) {
+  // Each monster attacks a random party member (deterministic selection)
+  const rng = getCombatRNG(state, state.turns.length + 1);
+  for (let i = 0; i < monsters.length; i++) {
     if (party.length === 0) break;
 
-    const target = party[Math.floor(Math.random() * party.length)];
+    const targetIndex = rng.range(0, party.length - 1);
+    const target = party[targetIndex];
     const weapon = {
       name: 'Claw',
       type: 'melee-strength' as const,
@@ -657,7 +678,8 @@ export function executeAmbushRound(
       attackModifier: 0,
     };
 
-    const attackResult = resolveAttack(monster, target, weapon);
+    const attackRNG = new SeededRNG(`${state.seed || state.combatId}-ambush-${i}`);
+    const attackResult = resolveAttack(monster, target, weapon, attackRNG);
     
     // Apply damage and update targetHpAfter
     if (attackResult.hit && attackResult.damage) {
@@ -733,7 +755,8 @@ export async function executeSurpriseRound(
       
       if (currentMana >= manaCost) {
         const hpBefore = target.currentHp;
-        const damageResult = rollDice(action.weapon.damageDice);
+        const rng = getCombatRNG(state, state.turns.length + 1);
+        const damageResult = rollDice(action.weapon.damageDice, rng);
         const damage = damageResult.total;
         const damagedTarget = applyDamage(target, damage);
         
@@ -766,7 +789,8 @@ export async function executeSurpriseRound(
     } else {
       // Regular attack
       const weapon = await getEntityWeapon(partyMember);
-      const attackResult = resolveAttack(partyMember, target, weapon);
+      const rng = getCombatRNG(state, state.turns.length + 1);
+      const attackResult = resolveAttack(partyMember, target, weapon, rng);
       
       if (attackResult.hit && attackResult.damage) {
         const damagedTarget = applyDamage(target, attackResult.damage);

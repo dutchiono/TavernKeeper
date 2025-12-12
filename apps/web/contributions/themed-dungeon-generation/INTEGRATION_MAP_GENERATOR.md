@@ -1,8 +1,12 @@
 # Integration with Map Generator System
 
+**⚠️ DEPRECATED:** This file documents integration with the map-generator-system, which has been removed. This documentation is kept for historical reference only and should not be used for new development.
+
 ## Overview
 
-The themed dungeon generator is integrated with the map generator system. The map generator acts as the "atrium" that coordinates all systems, and it calls the themed dungeon generator for richer dungeon provenance and boss generation.
+The themed dungeon generator was previously integrated with the map generator system. The map generator acted as the "atrium" that coordinated all systems, and it called the themed dungeon generator for richer dungeon provenance and boss generation.
+
+**Note:** The map-generator-system has been deleted. Dungeon generation now happens directly through the themed-dungeon-generation system and world-generation-system.
 
 ## Integration Flow
 

@@ -47,7 +47,9 @@ The themed dungeon generator has been updated to support full integration with w
 
 ### 2. Map Generator System
 
-**Location:** `apps/web/contributions/map-generator-system/code/generators/map-generator.ts` and `rich-content-generator.ts`
+**⚠️ DEPRECATED:** The map-generator-system has been removed. This section is kept for historical reference only.
+
+**Location:** ~~`apps/web/contributions/map-generator-system/code/generators/map-generator.ts` and `rich-content-generator.ts`~~ (DELETED)
 
 **Required Changes:**
 

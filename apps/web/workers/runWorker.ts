@@ -1,6 +1,6 @@
 import { Job, Worker } from 'bullmq';
 import Redis from 'ioredis';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase'; // Uses service role key automatically in server context
 import { executeDungeonRun } from '../lib/services/dungeonRunService';
 import { dungeonStateService } from '../lib/services/dungeonStateService';
 
@@ -62,9 +62,14 @@ interface RunJobData {
   startTime: number;
 }
 
+console.log('[Worker] Creating runWorker instance...');
+console.log('[Worker] Queue name: run-simulation');
+console.log('[Worker] Redis URL:', redisUrl.replace(/:[^:@]+@/, ':****@'));
+
 export const runWorker = new Worker<RunJobData>(
   'run-simulation',
   async (job: Job<RunJobData>) => {
+    console.log(`[Worker] ===== JOB RECEIVED ===== Job ${job.id} for run ${job.data.runId}`);
     const { runId, dungeonId, party, seed, startTime } = job.data;
     const jobStartTime = Date.now();
 
@@ -108,7 +113,66 @@ export const runWorker = new Worker<RunJobData>(
       }
 
       if (!firstHero) {
-        throw new Error(`Could not find adventurer for hero ${party[0]}. Make sure the hero exists in the adventurers table.`);
+        // Auto-initialize hero if it doesn't exist
+        console.log(`[Worker] Hero ${party[0]} not found in adventurers table. Auto-initializing...`);
+        try {
+          const { initializeAdventurerStats } = await import('../lib/services/heroAdventurerInit');
+          
+          // Try to get wallet address from run data or hero ownership
+          let walletForInit = '';
+          try {
+            // Check if run data has wallet info
+            if (runData?.wallet_address) {
+              walletForInit = runData.wallet_address;
+            } else {
+              // Try to get from hero ownership table
+              const { data: ownership } = await supabase
+                .from('hero_ownership')
+                .select('owner_address')
+                .eq('token_id', party[0])
+                .single();
+              if (ownership?.owner_address) {
+                walletForInit = ownership.owner_address;
+              }
+            }
+          } catch (e) {
+            console.warn(`[Worker] Could not get wallet address:`, e instanceof Error ? e.message : String(e));
+          }
+          
+          // initializeAdventurerStats will handle fetching hero metadata internally if needed
+          console.log(`[Worker] Initializing hero ${party[0]} with wallet=${walletForInit || 'none'} (will fetch metadata if available)`);
+          firstHero = await initializeAdventurerStats(
+            party[0],
+            HERO_CONTRACT_ADDRESS,
+            parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '143', 10),
+            walletForInit
+            // Don't pass class/name - let initializeAdventurerStats fetch it or use defaults
+          );
+          console.log(`[Worker] Successfully auto-initialized hero ${party[0]}`);
+        } catch (initError) {
+          console.error(`[Worker] Failed to auto-initialize hero ${party[0]}:`, initError);
+          // Better error formatting
+          let errorDetails = '';
+          if (initError instanceof Error) {
+            errorDetails = initError.message;
+            if (initError.stack) {
+              errorDetails += `\nStack: ${initError.stack.split('\n').slice(0, 5).join('\n')}`; // First 5 lines of stack
+            }
+          } else if (typeof initError === 'object' && initError !== null) {
+            try {
+              errorDetails = JSON.stringify(initError, Object.getOwnPropertyNames(initError), 2);
+            } catch {
+              errorDetails = String(initError);
+            }
+          } else {
+            errorDetails = String(initError);
+          }
+          throw new Error(`Could not find or initialize adventurer for hero ${party[0]}. Error: ${errorDetails}`);
+        }
+      }
+
+      if (!firstHero) {
+        throw new Error(`Could not find or initialize adventurer for hero ${party[0]}.`);
       }
 
       const walletAddress = firstHero.walletAddress;
@@ -133,6 +197,8 @@ export const runWorker = new Worker<RunJobData>(
       console.log(`[Worker] Dungeon run completed in ${executionDuration}ms. Events generated: ${result.events.length}, Status: ${result.status}, Levels: ${result.levelsCompleted}, XP: ${result.totalXP}`);
 
       // Persist run logs in batch
+      // NOTE: Events are already inserted into world_events by scheduleEventsSequentially
+      // in executeDungeonRun, so we only need to insert run_logs here
       const runLogs = result.events.map((event) => ({
         run_id: runId,
         text: JSON.stringify(event),
@@ -140,19 +206,10 @@ export const runWorker = new Worker<RunJobData>(
         timestamp: new Date(event.timestamp).toISOString(),
       }));
 
-      const worldEvents = result.events.map((event) => ({
-        run_id: runId,
-        type: event.type,
-        payload: event,
-        timestamp: new Date(event.timestamp).toISOString(),
-      }));
-
-      console.log(`[Worker] Inserting ${runLogs.length} run logs and ${worldEvents.length} world events...`);
+      console.log(`[Worker] Inserting ${runLogs.length} run logs...`);
+      console.log(`[Worker] Note: Events are scheduled via scheduleEventsSequentially in executeDungeonRun`);
       const insertStartTime = Date.now();
-      const [logsResult, eventsResult] = await Promise.all([
-        supabase.from('run_logs').insert(runLogs),
-        supabase.from('world_events').insert(worldEvents),
-      ]);
+      const logsResult = await supabase.from('run_logs').insert(runLogs);
       const insertDuration = Date.now() - insertStartTime;
       console.log(`[Worker] Database insert completed in ${insertDuration}ms`);
       
@@ -160,16 +217,6 @@ export const runWorker = new Worker<RunJobData>(
         console.error(`[Worker] Error inserting run logs:`, logsResult.error);
       } else {
         console.log(`[Worker] Successfully inserted ${runLogs.length} run logs`);
-      }
-      if (eventsResult.error) {
-        console.error(`[Worker] Error inserting world events:`, eventsResult.error);
-        console.error(`[Worker] Error details:`, JSON.stringify(eventsResult.error, null, 2));
-        console.error(`[Worker] Sample event structure:`, worldEvents.length > 0 ? JSON.stringify(worldEvents[0], null, 2) : 'No events to insert');
-      } else {
-        console.log(`[Worker] Successfully inserted ${worldEvents.length} world events for run ${runId}`);
-        if (worldEvents.length > 0) {
-          console.log(`[Worker] Sample event:`, JSON.stringify(worldEvents[0], null, 2));
-        }
       }
 
       // Unlock heroes
@@ -266,12 +313,15 @@ export const runWorker = new Worker<RunJobData>(
         console.error(`[Worker] Exception inserting error event:`, eventError);
       }
 
-      // Update run with error status
+      // Check if error is a timeout
+      const isTimeout = error instanceof Error && error.message.includes('timed out');
+      
+      // Update run with error or timeout status
       await supabase
         .from('runs')
         .update({
           end_time: new Date().toISOString(),
-          result: 'error',
+          result: isTimeout ? 'timeout' : 'error',
         })
         .eq('id', runId);
 
@@ -281,12 +331,41 @@ export const runWorker = new Worker<RunJobData>(
   {
     connection,
     concurrency: 5, // Process up to 5 runs concurrently
+    lockDuration: 10 * 60 * 1000, // 10 minutes - how long a job can be locked before being considered stalled
+    maxStalledCount: 1, // Retry once if job stalls
   }
 );
 
 runWorker.on('active', (job) => {
-  console.log(`[Worker] Job ${job.id} is now active`);
+  console.log(`[Worker] ⚡ Job ${job.id} is now active (processing started)`);
 });
+
+runWorker.on('waiting', (jobId) => {
+  console.log(`[Worker] ⏳ Job ${jobId} is waiting to be processed`);
+});
+
+runWorker.on('stalled', (jobId) => {
+  console.log(`[Worker] ⚠️ Job ${jobId} has stalled`);
+});
+
+runWorker.on('error', (error) => {
+  console.error(`[Worker] ❌ Worker error:`, error);
+  if (error instanceof Error) {
+    console.error(`[Worker] Error message: ${error.message}`);
+    console.error(`[Worker] Error stack:`, error.stack);
+  }
+  // Don't let worker errors crash the process - BullMQ will handle recovery
+});
+
+// Monitor worker health every 30 seconds
+setInterval(() => {
+  const isRunning = runWorker.isRunning();
+  if (!isRunning) {
+    console.error(`[Worker] ⚠️ CRITICAL: Worker is not running! This means jobs won't be processed.`);
+  } else {
+    console.log(`[Worker] ✅ Worker health check: Running (${new Date().toISOString()})`);
+  }
+}, 30000); // Check every 30 seconds
 
 runWorker.on('completed', (job) => {
   console.log(`[Worker] Run simulation completed: ${job.id}`);
@@ -329,6 +408,36 @@ runWorker.on('failed', async (job, err) => {
   }
 });
 
-runWorker.on('error', (err) => {
-  console.error(`[Worker] Worker error:`, err);
+// Additional worker event handlers for diagnostics
+runWorker.on('ready', () => {
+  console.log(`[Worker] ✅ Worker is ready and listening for jobs on queue 'run-simulation'`);
+  console.log(`[Worker] Worker state: isRunning=${runWorker.isRunning()}, isPaused=${runWorker.isPaused()}`);
 });
+
+runWorker.on('closing', () => {
+  console.log(`[Worker] ⚠️ Worker is closing`);
+});
+
+runWorker.on('paused', () => {
+  console.log(`[Worker] ⏸️ Worker is paused - THIS IS A PROBLEM! Jobs won't be processed.`);
+  console.log(`[Worker] Attempting to resume worker...`);
+  runWorker.resume();
+});
+
+runWorker.on('resumed', () => {
+  console.log(`[Worker] ▶️ Worker resumed`);
+});
+
+// Verify worker is actually listening after a delay
+setTimeout(() => {
+  console.log(`[Worker] 🔍 Worker diagnostic check (5s after startup):`);
+  console.log(`[Worker]   - isRunning: ${runWorker.isRunning()}`);
+  console.log(`[Worker]   - isPaused: ${runWorker.isPaused()}`);
+  console.log(`[Worker]   - name: ${runWorker.name}`);
+  console.log(`[Worker]   - Redis connection: ${redisUrl.replace(/:[^:@]+@/, ':****@')}`);
+  
+  if (runWorker.isPaused()) {
+    console.log(`[Worker] ⚠️ Worker is paused! Resuming...`);
+    runWorker.resume();
+  }
+}, 5000); // Check 5 seconds after startup

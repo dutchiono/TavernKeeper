@@ -48,8 +48,34 @@ async function start() {
 
   // Use dynamic imports to ensure env vars are loaded BEFORE modules initialize
   console.log('📦 Loading workers...');
-  await import('./runWorker');
-  console.log('✅ Run worker loaded');
+  console.log('[Worker] Importing runWorker module...');
+  const runWorkerModule = await import('./runWorker');
+  console.log('✅ Run worker loaded and ready to process jobs');
+  console.log('[Worker] Worker instance:', runWorkerModule.runWorker ? '✅ Found' : '❌ Missing');
+  console.log('[Worker] Worker name:', runWorkerModule.runWorker?.name || 'unknown');
+  console.log('[Worker] Worker isRunning:', runWorkerModule.runWorker?.isRunning() || false);
+  console.log('[Worker] Worker isPaused:', runWorkerModule.runWorker?.isPaused() || false);
+  
+  // Ensure worker is not paused
+  if (runWorkerModule.runWorker?.isPaused()) {
+    console.log('[Worker] ⚠️ Worker was paused! Resuming...');
+    runWorkerModule.runWorker.resume();
+  }
+  
+  // Wait a moment then verify worker is ready
+  setTimeout(() => {
+    if (runWorkerModule.runWorker) {
+      console.log('[Worker] 🔍 Post-startup worker check:');
+      console.log('[Worker]   - isRunning:', runWorkerModule.runWorker.isRunning());
+      console.log('[Worker]   - isPaused:', runWorkerModule.runWorker.isPaused());
+      console.log('[Worker]   - name:', runWorkerModule.runWorker.name);
+      
+      if (runWorkerModule.runWorker.isPaused()) {
+        console.log('[Worker] ⚠️ Worker is paused! Attempting to resume...');
+        runWorkerModule.runWorker.resume();
+      }
+    }
+  }, 2000);
   await import('./replayWorker');
   console.log('✅ Replay worker loaded');
 
@@ -78,12 +104,25 @@ async function start() {
     }
   }
 
+  // Start timer worker for event delivery
+  console.log('Starting timer worker...');
+  try {
+    const { startTimerWorker } = await import('./timerWorker');
+    await startTimerWorker();
+    console.log('✅ Timer worker started');
+  } catch (error) {
+    console.error('Failed to start timer worker:', error);
+  }
+
   console.log('Workers started. Listening for jobs...');
 }
 
-start();
+start().catch((error) => {
+  console.error('❌ Fatal error starting workers:', error);
+  process.exit(1);
+});
 
-// Keep process alive
+// Keep process alive and handle crashes
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down workers...');
   process.exit(0);
@@ -92,5 +131,18 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down workers...');
   process.exit(0);
+});
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+  console.error('❌ [WORKER] Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  // Don't exit - let the worker try to recover
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ [WORKER] Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  // Don't exit - let the worker try to recover
 });
 

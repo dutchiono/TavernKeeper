@@ -17,6 +17,7 @@ import type {
 // Type-only import - using correct relative path (from combat-system/code/services to contributions root)
 import type { AdventurerRecord } from '../../../adventurer-tracking/code/types/adventurer-stats';
 import type { RoomEncounter } from '../../../themed-dungeon-generation/code/types/dungeon-generation';
+import { SeededRNG } from '../../../../lib/utils/seededRNG';
 
 // Inline utility functions to avoid module resolution issues in tsx worker
 function calculateAbilityModifier(score: number): number {
@@ -29,10 +30,10 @@ function calculateProficiencyBonus(level: number): number {
 }
 
 /**
- * Roll a d20
+ * Roll a d20 using seeded RNG
  */
-function rollD20(): number {
-  return Math.floor(Math.random() * 20) + 1;
+function rollD20(rng: SeededRNG): number {
+  return rng.range(1, 20);
 }
 
 /**
@@ -41,11 +42,12 @@ function rollD20(): number {
  */
 export function checkAmbushPerception(
   partyMembers: AdventurerRecord[],
-  roomLevel: number
+  roomLevel: number,
+  rng: SeededRNG
 ): { detected: boolean; checks: Array<{ adventurerId: string; adventurerName: string; roll: number; total: number; dc: number; success: boolean }> } {
   const dc = calculateTrapDC(roomLevel);
-  const checks = partyMembers.map(member => {
-    const roll = rollD20();
+  const checks = partyMembers.map((member, index) => {
+    const roll = rollD20(new SeededRNG(`${rng.getSeed()}-perception-${index}`));
     const wisdomModifier = calculateAbilityModifier(member.stats.wisdom);
     const proficiencyBonus = member.stats.skillProficiencies?.perception
       ? member.stats.proficiencyBonus
@@ -93,7 +95,7 @@ export function calculateTrapDC(level: number): number {
  * Level 99: ~50-100 damage
  * Scales with DC
  */
-export function calculateTrapDamage(level: number, dc: number, config?: TrapResolutionConfig): number {
+export function calculateTrapDamage(level: number, dc: number, rng: SeededRNG, config?: TrapResolutionConfig): number {
   const scalingFactor = config?.damageScalingFactor ?? 1.0;
   
   // Base damage scales with DC
@@ -101,8 +103,8 @@ export function calculateTrapDamage(level: number, dc: number, config?: TrapReso
   // DC 25 (level 99) = ~50-100 damage
   const baseDamage = dc * 2; // DC 10 = 20, DC 25 = 50
   
-  // Add some randomness (80% to 120% of base)
-  const randomFactor = 0.8 + (Math.random() * 0.4);
+  // Add some randomness (80% to 120% of base) using seeded RNG
+  const randomFactor = 0.8 + (rng.random() * 0.4);
   const damage = Math.round(baseDamage * randomFactor * scalingFactor);
   
   return Math.max(1, damage); // Minimum 1 damage
@@ -112,7 +114,7 @@ export function calculateTrapDamage(level: number, dc: number, config?: TrapReso
  * Map trap subtype to trap check type
  * Determines which stat is used for disarming
  */
-export function getTrapCheckType(trapSubtype: 'mechanical' | 'magical' | 'fake_treasure' | 'trapped_treasure'): {
+export function getTrapCheckType(trapSubtype: 'mechanical' | 'magical' | 'fake_treasure' | 'trapped_treasure', rng: SeededRNG): {
   checkType: TrapCheckType;
   requiresStrength?: boolean; // Some mechanical traps might use STR instead of DEX
 } {
@@ -124,7 +126,7 @@ export function getTrapCheckType(trapSubtype: 'mechanical' | 'magical' | 'fake_t
       // Mechanical traps: 70% DEX, 30% STR
       // This allows variety - some traps are dexterity-based (tripwires, pressure plates)
       // Others are strength-based (forcing doors, breaking mechanisms)
-      const useStrength = Math.random() < 0.3;
+      const useStrength = rng.random() < 0.3;
       return {
         checkType: useStrength ? 'strength' : 'dexterity',
         requiresStrength: useStrength,
@@ -133,11 +135,11 @@ export function getTrapCheckType(trapSubtype: 'mechanical' | 'magical' | 'fake_t
       return { checkType: 'wisdom' };
     case 'fake_treasure':
       // Fake treasure can be either mechanical or magical (50/50)
-      const isMagical = Math.random() < 0.5;
+      const isMagical = rng.random() < 0.5;
       if (isMagical) {
         return { checkType: 'wisdom' };
       } else {
-        const useStrength = Math.random() < 0.3;
+        const useStrength = rng.random() < 0.3;
         return {
           checkType: useStrength ? 'strength' : 'dexterity',
           requiresStrength: useStrength,
@@ -153,9 +155,10 @@ export function getTrapCheckType(trapSubtype: 'mechanical' | 'magical' | 'fake_t
  */
 function performPerceptionCheck(
   adventurer: AdventurerRecord,
-  dc: number
+  dc: number,
+  rng: SeededRNG
 ): PerceptionCheck {
-  const roll = rollD20();
+  const roll = rollD20(rng);
   const wisdomModifier = calculateAbilityModifier(adventurer.stats.wisdom);
   const proficiencyBonus = adventurer.stats.skillProficiencies?.perception
     ? adventurer.stats.proficiencyBonus
@@ -182,9 +185,10 @@ function performPerceptionCheck(
 function performDisarmCheck(
   adventurer: AdventurerRecord,
   checkType: TrapCheckType,
-  dc: number
+  dc: number,
+  rng: SeededRNG
 ): DisarmCheck {
-  const roll = rollD20();
+  const roll = rollD20(rng);
   
   let statValue: number;
   let statModifier: number;
@@ -261,7 +265,8 @@ export function resolveTrap(
   roomId: string,
   roomLevel: number,
   partyMembers: AdventurerRecord[],
-  config?: TrapResolutionConfig
+  config?: TrapResolutionConfig,
+  seed?: string
 ): TrapResolutionResult {
   if (encounter.type !== 'trap') {
     throw new Error('Encounter is not a trap');
@@ -282,12 +287,16 @@ export function resolveTrap(
     throw new Error('Ambush traps are handled by the combat system');
   }
 
+  // Create seeded RNG for deterministic trap resolution
+  const trapSeed = seed || `${roomId}-trap-${Date.now()}`;
+  const rng = new SeededRNG(trapSeed);
+
   const useBestRoll = config?.useBestRoll ?? true;
   const dc = calculateTrapDC(roomLevel);
   
   // Step 1: All party members make perception checks
-  const perceptionChecks = partyMembers.map(member =>
-    performPerceptionCheck(member, dc)
+  const perceptionChecks = partyMembers.map((member, index) =>
+    performPerceptionCheck(member, dc, new SeededRNG(`${trapSeed}-perception-${index}`))
   );
 
   // Check if any party member detected the trap
@@ -300,12 +309,12 @@ export function resolveTrap(
   let disarmed = false;
   
   if (detected) {
-    // Determine which stat to use for disarming
-    const { checkType } = getTrapCheckType(trapSubtype);
+    // Determine which stat to use for disarming (deterministic based on seed)
+    const { checkType } = getTrapCheckType(trapSubtype, new SeededRNG(`${trapSeed}-checktype`));
     
     // All party members attempt to disarm
-    disarmChecks = partyMembers.map(member =>
-      performDisarmCheck(member, checkType, dc)
+    disarmChecks = partyMembers.map((member, index) =>
+      performDisarmCheck(member, checkType, dc, new SeededRNG(`${trapSeed}-disarm-${index}`))
     );
 
     // Check if any party member disarmed the trap
@@ -327,7 +336,7 @@ export function resolveTrap(
     const takesDamage = !detected || !disarmed;
 
     if (takesDamage) {
-      const damage = calculateTrapDamage(roomLevel, dc, config);
+      const damage = calculateTrapDamage(roomLevel, dc, new SeededRNG(`${trapSeed}-damage`), config);
       
       // Apply damage to all party members
       updatedPartyMembers = partyMembers.map((member, index) => {

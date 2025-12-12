@@ -126,6 +126,7 @@ export interface CombatState {
   status: 'active' | 'victory' | 'defeat';
   startedAt: Date;
   endedAt?: Date;
+  seed?: string;           // Seed for deterministic RNG (optional, for compatibility)
 }
 
 /**

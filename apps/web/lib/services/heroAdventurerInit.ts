@@ -26,7 +26,45 @@ import {
   getEquippedItems,
 } from '../../contributions/inventory-tracking/code/services/inventoryService';
 
-const HERO_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
+// Safe fallback: Use environment variable first, then fallback to testnet address
+// Ensure we always have a valid address - never undefined
+function getHeroContractAddress(): string {
+  try {
+    const envAddress = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS;
+    const address = envAddress || '0x4Fff2Ce5144989246186462337F0eE2C086F913E'; // Testnet fallback
+    
+    // Final safety check
+    if (!address || address === '0x0000000000000000000000000000000000000000' || address === 'undefined' || typeof address !== 'string') {
+      return '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+    }
+    
+    return address;
+  } catch (error) {
+    console.error('[heroAdventurerInit] Error getting HERO_CONTRACT_ADDRESS:', error);
+    return '0x4Fff2Ce5144989246186462337F0eE2C086F913E'; // Fallback to testnet
+  }
+}
+
+// Initialize module-level constant - ensure it's always defined
+let HERO_CONTRACT_ADDRESS: string;
+try {
+  HERO_CONTRACT_ADDRESS = getHeroContractAddress();
+  // Final safety check
+  if (!HERO_CONTRACT_ADDRESS || typeof HERO_CONTRACT_ADDRESS !== 'string') {
+    console.error('[heroAdventurerInit] HERO_CONTRACT_ADDRESS was invalid after getHeroContractAddress(), using fallback');
+    HERO_CONTRACT_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+  }
+} catch (error) {
+  console.error('[heroAdventurerInit] Error initializing HERO_CONTRACT_ADDRESS:', error);
+  HERO_CONTRACT_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+}
+
+// Ensure it's never undefined
+if (typeof HERO_CONTRACT_ADDRESS === 'undefined') {
+  console.error('[heroAdventurerInit] CRITICAL: HERO_CONTRACT_ADDRESS was still undefined! Using hardcoded fallback.');
+  HERO_CONTRACT_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+}
+
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '143', 10);
 
 /**
@@ -262,14 +300,17 @@ async function initializeStarterWeapon(
 export async function initializeAdventurerOnSync(
   tokenId: string,
   walletAddress: string,
-  contractAddress: string = HERO_CONTRACT_ADDRESS,
-  chainId: number = CHAIN_ID
+  contractAddress?: string,
+  chainId?: number
 ): Promise<AdventurerRecord | null> {
+  // Use provided values or fallback to defaults
+  const finalContractAddress = contractAddress || getHeroContractAddress();
+  const finalChainId = chainId || CHAIN_ID;
   try {
     return await initializeAdventurerStats(
       tokenId,
-      contractAddress,
-      chainId,
+      finalContractAddress,
+      finalChainId,
       walletAddress
     );
   } catch (error) {

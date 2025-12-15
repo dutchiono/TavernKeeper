@@ -96,13 +96,18 @@ export const dungeonStateService = {
      * Unlock heroes after a run completes or fails
      */
     async unlockHeroes(heroes: { contractAddress: string; tokenId: string }[]) {
-        if (heroes.length === 0) return;
+        if (heroes.length === 0) {
+            console.log('[DungeonStateService] No heroes to unlock');
+            return;
+        }
 
         const now = new Date().toISOString();
         const tokenIds = heroes.map(h => h.tokenId);
+        
+        console.log(`[DungeonStateService] Unlocking ${tokenIds.length} heroes:`, tokenIds);
 
         // Update hero states to idle
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('hero_states')
             .update({
                 status: 'idle',
@@ -110,11 +115,18 @@ export const dungeonStateService = {
                 current_run_id: null,
                 updated_at: now
             })
-            .in('token_id', tokenIds);
+            .in('token_id', tokenIds)
+            .select();
 
         if (error) {
-            console.warn('Error unlocking heroes (ignoring):', error.message);
+            console.error('[DungeonStateService] Error unlocking heroes:', error.message);
+            console.error('[DungeonStateService] Error details:', error);
             // Don't throw, just log and continue
+        } else {
+            console.log(`[DungeonStateService] Successfully unlocked ${data?.length || 0} heroes`);
+            if (data && data.length !== tokenIds.length) {
+                console.warn(`[DungeonStateService] Warning: Expected to unlock ${tokenIds.length} heroes but only unlocked ${data.length}`);
+            }
         }
     },
 

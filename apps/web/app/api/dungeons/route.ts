@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
       theme: d.map?.theme?.id || 'unknown',
       finalBoss: d.map?.finalBoss?.name || 'Unknown',
       createdAt: d.created_at,
+      icon_x: d.map?.icon_x || null, // Icon position X (percentage 10-90)
+      icon_y: d.map?.icon_y || null, // Icon position Y (percentage 10-90)
     }));
 
     return NextResponse.json({ dungeons: dungeonList }, { status: 200 });

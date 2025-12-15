@@ -8,22 +8,31 @@ export interface RunEvent {
     timestamp: string;
 }
 
-export function useRunEvents(runId: string | null, pollInterval = 1500) {
+export function useRunEvents(runId: string | null, pollInterval = 3000) {
     const [events, setEvents] = useState<RunEvent[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const lastTimestampRef = useRef<string | null>(null);
+    const consecutiveEmptyFetchesRef = useRef<number>(0);
+    const isCompletedRef = useRef<boolean>(false);
 
     useEffect(() => {
         if (!runId) {
             setEvents([]);
             lastTimestampRef.current = null;
+            consecutiveEmptyFetchesRef.current = 0;
+            isCompletedRef.current = false;
             return;
         }
 
         let intervalId: NodeJS.Timeout | null = null;
 
         const fetchEvents = async () => {
+            // Skip if we've determined the run is complete
+            if (isCompletedRef.current) {
+                return;
+            }
+
             setLoading(true);
             setError(null);
 
@@ -42,6 +51,7 @@ export function useRunEvents(runId: string | null, pollInterval = 1500) {
                 const { events: newEvents } = data;
 
                 if (newEvents && newEvents.length > 0) {
+                    consecutiveEmptyFetchesRef.current = 0;
                     setEvents(prev => {
                         // Merge and deduplicate by id
                         const existingIds = new Set(prev.map(e => e.id));
@@ -54,6 +64,34 @@ export function useRunEvents(runId: string | null, pollInterval = 1500) {
                     // Update last timestamp
                     const latestEvent = newEvents[newEvents.length - 1];
                     lastTimestampRef.current = latestEvent.timestamp;
+                    
+                    // Check if run is complete (has defeat/victory event)
+                    const hasCompletionEvent = newEvents.some(e => 
+                        e.payload?.type === 'combat_defeat' || 
+                        e.payload?.type === 'party_wipe' ||
+                        e.payload?.type === 'victory' ||
+                        e.type === 'combat_defeat' ||
+                        e.type === 'party_wipe' ||
+                        e.type === 'victory'
+                    );
+                    if (hasCompletionEvent) {
+                        isCompletedRef.current = true;
+                        if (intervalId) {
+                            clearInterval(intervalId);
+                            intervalId = null;
+                        }
+                    }
+                } else {
+                    // No new events - increment counter
+                    consecutiveEmptyFetchesRef.current++;
+                    // Stop polling after 10 consecutive empty fetches (30 seconds)
+                    if (consecutiveEmptyFetchesRef.current >= 10) {
+                        isCompletedRef.current = true;
+                        if (intervalId) {
+                            clearInterval(intervalId);
+                            intervalId = null;
+                        }
+                    }
                 }
             } catch (err) {
                 console.error('Error fetching run events:', err);
@@ -66,7 +104,7 @@ export function useRunEvents(runId: string | null, pollInterval = 1500) {
         // Fetch immediately
         fetchEvents();
 
-        // Poll for updates
+        // Poll for updates (slower polling - 3 seconds instead of 1.5)
         intervalId = setInterval(fetchEvents, pollInterval);
 
         return () => {

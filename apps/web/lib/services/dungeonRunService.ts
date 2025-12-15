@@ -20,9 +20,90 @@ import type { MonsterInstance } from '../../contributions/monster-stat-blocks/co
 import { ItemGenerator } from '../../contributions/procedural-item-generation/code/generators/item-generator';
 import { scheduleEventsSequentially } from '../../contributions/timer-system/code/services/timerService';
 import { logGameEvent, persistKeyEvent } from './gameLoggingService';
+import { CONTRACT_ADDRESSES } from '../contracts/addresses';
 
-const HERO_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
+// Safe fallback: Use environment variable first, then try CONTRACT_ADDRESSES, then fallback to testnet address
+// Use a function to ensure we always get a valid address, even if module initialization hasn't completed
+function getHeroContractAddress(): string {
+  // Hardcoded fallback address (testnet)
+  const FALLBACK_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+  
+  try {
+    // Try to get from env first
+    let envAddress: string | undefined;
+    try {
+      envAddress = typeof process !== 'undefined' && process.env ? process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS : undefined;
+    } catch (e) {
+      // process.env might not be available in some contexts
+      envAddress = undefined;
+    }
+    
+    // Try to get from CONTRACT_ADDRESSES (may not be loaded yet)
+    let contractAddressesValue: string | undefined;
+    try {
+      if (typeof CONTRACT_ADDRESSES !== 'undefined' && CONTRACT_ADDRESSES && typeof CONTRACT_ADDRESSES.ADVENTURER !== 'undefined') {
+        contractAddressesValue = CONTRACT_ADDRESSES.ADVENTURER;
+      }
+    } catch (e) {
+      // CONTRACT_ADDRESSES might not be loaded yet, ignore
+      contractAddressesValue = undefined;
+    }
+    
+    // Use env, then CONTRACT_ADDRESSES, then testnet fallback
+    let address = envAddress || contractAddressesValue || FALLBACK_ADDRESS;
+    
+    // Final safety check - if somehow still undefined or zero address, use testnet address
+    if (!address || 
+        address === '0x0000000000000000000000000000000000000000' || 
+        address === 'undefined' || 
+        typeof address !== 'string' ||
+        address.length < 10) {
+      console.warn('[DungeonRunService] HERO_CONTRACT_ADDRESS was invalid, using testnet fallback');
+      address = FALLBACK_ADDRESS;
+    }
+    
+    return address;
+  } catch (error) {
+    console.error('[DungeonRunService] Error getting HERO_CONTRACT_ADDRESS:', error);
+    if (error instanceof Error) {
+      console.error('[DungeonRunService] Error name:', error.name);
+      console.error('[DungeonRunService] Error message:', error.message);
+      console.error('[DungeonRunService] Error stack:', error.stack);
+    }
+    return FALLBACK_ADDRESS; // Fallback to testnet
+  }
+}
+
+// Initialize module-level variable for backwards compatibility
+// Use let instead of const to allow reassignment if needed
+let HERO_CONTRACT_ADDRESS: string;
+try {
+  HERO_CONTRACT_ADDRESS = getHeroContractAddress();
+  // Final safety check
+  if (!HERO_CONTRACT_ADDRESS || typeof HERO_CONTRACT_ADDRESS !== 'string') {
+    console.error('[DungeonRunService] HERO_CONTRACT_ADDRESS was invalid after getHeroContractAddress(), using fallback');
+    HERO_CONTRACT_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+  }
+} catch (error) {
+  console.error('[DungeonRunService] Error initializing HERO_CONTRACT_ADDRESS:', error);
+  HERO_CONTRACT_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+}
+
+// Ensure it's never undefined
+if (typeof HERO_CONTRACT_ADDRESS === 'undefined') {
+  console.error('[DungeonRunService] CRITICAL: HERO_CONTRACT_ADDRESS was still undefined! Using hardcoded fallback.');
+  HERO_CONTRACT_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+}
+
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '143', 10);
+
+// Validate HERO_CONTRACT_ADDRESS is defined
+// Only log initialization once (module load)
+if (typeof window === 'undefined') {
+  console.log(`[DungeonRunService] Module initialized - HERO_CONTRACT_ADDRESS: ${HERO_CONTRACT_ADDRESS}`);
+  console.log(`[DungeonRunService] HERO_CONTRACT_ADDRESS type: ${typeof HERO_CONTRACT_ADDRESS}`);
+  console.log(`[DungeonRunService] HERO_CONTRACT_ADDRESS is undefined: ${typeof HERO_CONTRACT_ADDRESS === 'undefined'}`);
+}
 
 /**
  * Wrap a promise with a timeout
@@ -66,17 +147,51 @@ export async function executeDungeonRun(
   seed: string,
   walletAddress: string
 ): Promise<DungeonRunResult> {
+  // Log module-level constant for debugging
+  console.log(`[DungeonRun] Module-level HERO_CONTRACT_ADDRESS: ${HERO_CONTRACT_ADDRESS}`);
+  console.log(`[DungeonRun] Module-level HERO_CONTRACT_ADDRESS type: ${typeof HERO_CONTRACT_ADDRESS}`);
+  console.log(`[DungeonRun] Module-level HERO_CONTRACT_ADDRESS is undefined: ${typeof HERO_CONTRACT_ADDRESS === 'undefined'}`);
+  
+  // Validate contract address immediately at function start
+  let heroContractAddress: string;
+  try {
+    console.log(`[DungeonRun] Calling getHeroContractAddress()...`);
+    heroContractAddress = getHeroContractAddress();
+    console.log(`[DungeonRun] getHeroContractAddress() returned: ${heroContractAddress}`);
+    console.log(`[DungeonRun] Returned address type: ${typeof heroContractAddress}`);
+    
+    if (!heroContractAddress || heroContractAddress === '0x0000000000000000000000000000000000000000' || typeof heroContractAddress !== 'string') {
+      console.error(`[DungeonRun] HERO_CONTRACT_ADDRESS validation failed. Value: ${heroContractAddress}, Type: ${typeof heroContractAddress}`);
+      throw new Error(`HERO_CONTRACT_ADDRESS is not properly initialized. Got: ${heroContractAddress}`);
+    }
+    console.log(`[DungeonRun] HERO_CONTRACT_ADDRESS validation passed: ${heroContractAddress}`);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[DungeonRun] Failed to get HERO_CONTRACT_ADDRESS:`, errorMsg);
+    console.error(`[DungeonRun] Error details:`, error);
+    if (error instanceof Error) {
+      console.error(`[DungeonRun] Error name: ${error.name}`);
+      console.error(`[DungeonRun] Error stack: ${error.stack}`);
+    }
+    // Use hardcoded fallback as last resort
+    heroContractAddress = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+    console.warn(`[DungeonRun] Using hardcoded fallback address: ${heroContractAddress}`);
+  }
+  
   const events: DungeonRunResult['events'] = [];
   const runStartTime = Date.now();
+  console.log(`[DungeonRun] Starting dungeon run ${runId} for dungeon ${dungeonId} with ${party.length} heroes`);
+  console.log(`[DungeonRun] Using validated HERO_CONTRACT_ADDRESS: ${heroContractAddress}`);
 
   // Store runId for logging context
   const loggingContext = { runId };
 
-  console.log(`[DungeonRun] Starting dungeon run ${runId} for dungeon ${dungeonId} with ${party.length} party members`);
+  // Only log run start once
+  console.log(`[DungeonRun] Starting run ${runId.substring(0, 8)}... (${party.length} heroes)`);
 
   try {
     // 1. Load dungeon from database
-    console.log(`[DungeonRun] Loading dungeon data from database...`);
+    // Removed frequent log
     const { data: dungeonData, error: dungeonError } = await supabase
       .from('dungeons')
       .select('*')
@@ -92,7 +207,7 @@ export async function executeDungeonRun(
 
     const dungeonMap = dungeonData.map as any;
     const dungeonSeed = dungeonData.seed || seed;
-    console.log(`[DungeonRun] Dungeon loaded: ${dungeonMap.name || 'Unknown'}, depth: ${dungeonMap.depth || 100}, seed: ${dungeonSeed}`);
+    // Removed frequent log - only log if needed for debugging
 
     // 2. Initialize dungeon generator and get structure
     const dungeonGenerator = new ThemedDungeonGenerator();
@@ -109,20 +224,22 @@ export async function executeDungeonRun(
     };
 
     // 3. Load party members with stats and equipment
-    console.log(`[DungeonRun] Loading ${party.length} party members...`);
+    // Removed frequent log
     const partyLoadStartTime = Date.now();
     const partyMembers: AdventurerRecord[] = [];
+    
+    // Use the pre-validated contract address from function start
     for (const tokenId of party) {
       const heroId: HeroIdentifier = {
         tokenId,
-        contractAddress: HERO_CONTRACT_ADDRESS,
+        contractAddress: heroContractAddress, // Use pre-validated address
         chainId: CHAIN_ID,
       };
 
       let adventurer = await getAdventurer(heroId);
       if (!adventurer) {
         // Auto-initialize adventurer if not found
-        console.log(`[DungeonRun] Hero ${tokenId} not found in adventurers table. Auto-initializing...`);
+        // Only log initialization issues, not every hero load
         try {
           const { initializeAdventurerStats } = await import('./heroAdventurerInit');
 
@@ -149,11 +266,11 @@ export async function executeDungeonRun(
 
           adventurer = await initializeAdventurerStats(
             tokenId,
-            HERO_CONTRACT_ADDRESS,
+            heroContractAddress, // Use pre-validated address
             CHAIN_ID,
             walletForInit
           );
-          console.log(`[DungeonRun] Successfully auto-initialized hero ${tokenId}`);
+          // Removed frequent log
         } catch (initError) {
           const errorMsg = initError instanceof Error ? initError.message : String(initError);
           // Log the full error for debugging RLS issues
@@ -218,15 +335,22 @@ export async function executeDungeonRun(
     }
     console.log(`[DungeonRun] Party loaded in ${Date.now() - partyLoadStartTime}ms: ${partyMembers.map(p => `${p.name} (L${p.level})`).join(', ')}`);
 
-    // 4. Execute level-by-level
+    // 4. Execute level-by-level (FAST MODE: Keep everything in memory, defer DB writes)
     let currentLevel = 1;
     let totalXP = 0;
     const maxLevel = Math.min(dungeon.depth, 100); // Cap at 100 levels for safety
-    console.log(`[DungeonRun] Starting level-by-level execution (max ${maxLevel} levels)`);
+    console.log(`[DungeonRun] Starting level-by-level execution (max ${maxLevel} levels) - FAST MODE: Deferring DB writes`);
+    
+    // Accumulate all DB updates to batch at the end
+    const deferredStatUpdates: Array<{ heroId: HeroIdentifier; updates: Partial<AdventurerRecord['stats']>; reason: string }> = [];
+    const deferredXPUpdates: Array<{ heroId: HeroIdentifier; xp: number }> = [];
 
     while (currentLevel <= maxLevel) {
       const levelStartTime = Date.now();
-      console.log(`[DungeonRun] === Level ${currentLevel}/${maxLevel} ===`);
+      // Only log every 10 levels or on important levels (1, 5, 10, etc.)
+      if (currentLevel === 1 || currentLevel % 10 === 0 || currentLevel === maxLevel) {
+        console.log(`[DungeonRun] Level ${currentLevel}/${maxLevel}`);
+      }
 
       // Safety check: warn if level processing is taking too long
       const levelTimeout = 60 * 1000; // 1 minute per level
@@ -248,7 +372,10 @@ export async function executeDungeonRun(
         });
         break;
       }
-      console.log(`[DungeonRun] Party status: ${aliveMembers.length}/${partyMembers.length} alive`);
+      // Only log party status if members died or every 10 levels
+      if (aliveMembers.length < partyMembers.length || currentLevel % 10 === 0) {
+        console.log(`[DungeonRun] Level ${currentLevel}: ${aliveMembers.length}/${partyMembers.length} alive`);
+      }
 
       // Generate room for this level
       // Rooms are stored in levelLayout, but we may need to generate on-demand if not present
@@ -256,10 +383,10 @@ export async function executeDungeonRun(
       const roomGenStartTime = Date.now();
       try {
         room = dungeonGenerator.getRoomForLevel(dungeon, currentLevel);
-        console.log(`[DungeonRun] Room loaded from levelLayout in ${Date.now() - roomGenStartTime}ms: ${room.room.name} (${room.room.type})`);
+        // Removed frequent room load log
       } catch (error) {
         // Room not pre-generated, generate on-demand
-        console.log(`[DungeonRun] Room not pre-generated, generating on-demand...`);
+        // Removed frequent log
         try {
           const { RoomGenerator } = await import('../../contributions/themed-dungeon-generation/code/generators/room-generator');
           const roomGenerator = new RoomGenerator();
@@ -269,7 +396,7 @@ export async function executeDungeonRun(
             dungeon,
           });
           room = generatedRoom;
-          console.log(`[DungeonRun] Room generated in ${Date.now() - roomGenStartTime}ms: ${room.room.name} (${room.room.type})`);
+          // Removed frequent log
         } catch (genError) {
           console.error(`[DungeonRun] Error generating room for level ${currentLevel}:`, genError);
           // Create a fallback empty room to continue
@@ -287,9 +414,13 @@ export async function executeDungeonRun(
       }
 
       // Execute room based on type
-      console.log(`[DungeonRun] Executing room: ${room.room.name} (${room.room.type})`);
+      // Only log combat/boss rooms or every 5th room
+      if (room.room.type === 'combat' || room.room.type === 'boss' || room.room.type === 'mid_boss' || currentLevel % 5 === 0) {
+        console.log(`[DungeonRun] Level ${currentLevel}: ${room.room.type} room`);
+      }
       const roomExecStartTime = Date.now();
       let roomResult: RoomExecutionResult;
+      let partyDefeated = false;
       try {
         roomResult = await executeRoom(
           room,
@@ -301,7 +432,10 @@ export async function executeDungeonRun(
           loggingContext
         );
         const roomExecDuration = Date.now() - roomExecStartTime;
-        console.log(`[DungeonRun] Room executed in ${roomExecDuration}ms: ${roomResult.events.length} events, ${roomResult.xpAwarded || 0} XP awarded`);
+        // Only log if room took long or is important
+        if (roomExecDuration > 1000 || room.room.type === 'boss' || room.room.type === 'mid_boss') {
+          console.log(`[DungeonRun] Level ${currentLevel} ${room.room.type}: ${roomResult.events.length} events, ${roomResult.xpAwarded || 0} XP`);
+        }
 
         // Safety check: warn if no events were generated
         if (roomResult.events.length === 0) {
@@ -310,6 +444,13 @@ export async function executeDungeonRun(
 
         events.push(...roomResult.events);
         totalXP += roomResult.xpAwarded || 0;
+
+        // Check if combat resulted in defeat (before updating stats)
+        const defeatEvent = roomResult.events.find(e => e.type === 'combat_defeat' || e.type === 'party_wipe');
+        if (defeatEvent) {
+          console.log(`[DungeonRun] Party defeated detected in room events at level ${currentLevel}. Will stop after processing this room.`);
+          partyDefeated = true;
+        }
       } catch (roomError) {
         console.error(`[DungeonRun] Error executing room at level ${currentLevel}:`, roomError);
         // Add error event and continue to next level
@@ -328,71 +469,57 @@ export async function executeDungeonRun(
       // Clear level timeout
       clearTimeout(levelTimeoutId);
 
-      // Update party stats
+      // FAST MODE: Update party stats in memory only (defer DB writes)
       if (roomResult.partyUpdates.length > 0) {
-        console.log(`[DungeonRun] Updating ${roomResult.partyUpdates.length} party member stats...`);
-        const updateStartTime = Date.now();
+        // Removed frequent log
         for (const update of roomResult.partyUpdates) {
           const member = partyMembers.find(m =>
             m.heroId.tokenId === update.heroId.tokenId
           );
           if (member) {
-            try {
-              const updated = await withTimeout(
-                updateAdventurerStats({
-                  heroId: update.heroId,
-                  updates: update.updates,
-                  reason: update.reason,
-                }),
-                DB_OPERATION_TIMEOUT,
-                `updateAdventurerStats(${update.heroId.tokenId})`
-              );
-              // Update in-place
-              const index = partyMembers.indexOf(member);
-              partyMembers[index] = updated;
-            } catch (error) {
-              console.error(`[DungeonRun] Error updating stats for hero ${update.heroId.tokenId}:`, error);
-            }
+            // Update in memory
+            member.stats = { ...member.stats, ...update.updates };
+            // Accumulate for batch DB write later
+            deferredStatUpdates.push(update);
           }
         }
-        console.log(`[DungeonRun] Party stats updated in ${Date.now() - updateStartTime}ms`);
 
         // Check if all party members are dead after updating stats
         const aliveAfterUpdate = partyMembers.filter(m => m.stats.health > 0);
         if (aliveAfterUpdate.length === 0) {
           console.log(`[DungeonRun] All party members defeated after level ${currentLevel}. Ending run.`);
-          // Break out of the level loop - run will be marked as defeat
-          break;
+          partyDefeated = true;
         }
       }
 
-      // Award XP
+      // Stop immediately if party was defeated - don't process more levels
+      if (partyDefeated) {
+        console.log(`[DungeonRun] Stopping dungeon run early due to party defeat at level ${currentLevel}`);
+        break;
+      }
+
+      // FAST MODE: Accumulate XP updates (defer DB writes)
       if (roomResult.xpUpdates.length > 0) {
-        console.log(`[DungeonRun] Awarding XP to ${roomResult.xpUpdates.length} party members...`);
-        const xpStartTime = Date.now();
+        // Removed frequent log
+        // Update XP in memory and accumulate for batch write
         for (const xpUpdate of roomResult.xpUpdates) {
-          try {
-            const result = await withTimeout(
-              addXP(xpUpdate.heroId, xpUpdate.xp),
-              DB_OPERATION_TIMEOUT,
-              `addXP(${xpUpdate.heroId.tokenId})`
-            );
-            const member = partyMembers.find(m =>
-              m.heroId.tokenId === xpUpdate.heroId.tokenId
-            );
-            if (member) {
-              const index = partyMembers.indexOf(member);
-              partyMembers[index] = result.adventurer;
-            }
-          } catch (error) {
-            console.error(`[DungeonRun] Error awarding XP to hero ${xpUpdate.heroId.tokenId}:`, error);
+          const member = partyMembers.find(m =>
+            m.heroId.tokenId === xpUpdate.heroId.tokenId
+          );
+          if (member) {
+            // Update XP in memory
+            member.experience = (member.experience || 0) + xpUpdate.xp;
+            // Accumulate for batch DB write later
+            deferredXPUpdates.push(xpUpdate);
           }
         }
-        console.log(`[DungeonRun] XP awarded in ${Date.now() - xpStartTime}ms`);
       }
 
       const levelDuration = Date.now() - levelStartTime;
-      console.log(`[DungeonRun] Level ${currentLevel} completed in ${levelDuration}ms (Total XP: ${totalXP})`);
+      // Only log every 10 levels or if level took long
+      if (currentLevel === 1 || currentLevel % 10 === 0 || levelDuration > 5000) {
+        console.log(`[DungeonRun] Level ${currentLevel} done (${levelDuration}ms, ${totalXP} XP)`);
+      }
 
       // Safety check: warn if level took too long
       if (levelDuration > levelTimeout) {
@@ -402,7 +529,80 @@ export async function executeDungeonRun(
       currentLevel++;
     }
 
-    // 5. Persist key events to database
+    // 5. FAST MODE: Batch all DB operations now that simulation is complete
+    console.log(`[DungeonRun] Simulation complete! Batch processing ${deferredStatUpdates.length} stat updates and ${deferredXPUpdates.length} XP awards...`);
+    const batchStartTime = Date.now();
+    
+    // Batch update all hero stats
+    if (deferredStatUpdates.length > 0) {
+      console.log(`[DungeonRun] Batch updating ${deferredStatUpdates.length} hero stat updates...`);
+      const updateStartTime = Date.now();
+      // Group updates by hero to merge multiple updates
+      const updatesByHero = new Map<string, { heroId: HeroIdentifier; updates: Partial<AdventurerRecord['stats']>; reason: string }>();
+      for (const update of deferredStatUpdates) {
+        const key = `${update.heroId.tokenId}-${update.heroId.contractAddress}`;
+        const existing = updatesByHero.get(key);
+        if (existing) {
+          // Merge updates
+          existing.updates = { ...existing.updates, ...update.updates };
+        } else {
+          updatesByHero.set(key, update);
+        }
+      }
+      
+      // Execute batched updates
+      const updatePromises = Array.from(updatesByHero.values()).map(update =>
+        withTimeout(
+          updateAdventurerStats({
+            heroId: update.heroId,
+            updates: update.updates,
+            reason: update.reason,
+          }),
+          DB_OPERATION_TIMEOUT,
+          `updateAdventurerStats(${update.heroId.tokenId})`
+        ).catch(error => {
+          console.error(`[DungeonRun] Error updating stats for hero ${update.heroId.tokenId}:`, error);
+          return null;
+        })
+      );
+      await Promise.all(updatePromises);
+      console.log(`[DungeonRun] Batch stat updates completed in ${Date.now() - updateStartTime}ms`);
+    }
+
+    // Batch award all XP
+    if (deferredXPUpdates.length > 0) {
+      console.log(`[DungeonRun] Batch awarding XP to ${deferredXPUpdates.length} heroes...`);
+      const xpStartTime = Date.now();
+      // Group XP by hero to sum multiple awards
+      const xpByHero = new Map<string, { heroId: HeroIdentifier; xp: number }>();
+      for (const xpUpdate of deferredXPUpdates) {
+        const key = `${xpUpdate.heroId.tokenId}-${xpUpdate.heroId.contractAddress}`;
+        const existing = xpByHero.get(key);
+        if (existing) {
+          existing.xp += xpUpdate.xp;
+        } else {
+          xpByHero.set(key, { ...xpUpdate });
+        }
+      }
+      
+      // Execute batched XP awards
+      const xpPromises = Array.from(xpByHero.values()).map(xpUpdate =>
+        withTimeout(
+          addXP(xpUpdate.heroId, xpUpdate.xp),
+          DB_OPERATION_TIMEOUT,
+          `addXP(${xpUpdate.heroId.tokenId})`
+        ).catch(error => {
+          console.error(`[DungeonRun] Error awarding XP to hero ${xpUpdate.heroId.tokenId}:`, error);
+          return null;
+        })
+      );
+      await Promise.all(xpPromises);
+      console.log(`[DungeonRun] Batch XP awards completed in ${Date.now() - xpStartTime}ms`);
+    }
+    
+    console.log(`[DungeonRun] All batch DB operations completed in ${Date.now() - batchStartTime}ms`);
+
+    // 6. Persist key events to database
     console.log(`[DungeonRun] Persisting key events to database...`);
     try {
       const { persistAllKeyEventsForRun } = await import('./gameLoggingService');
@@ -413,8 +613,8 @@ export async function executeDungeonRun(
       // Don't fail the run if persistence fails
     }
 
-    // 6. Schedule all events with sequential timestamps (6-second intervals)
-    // All deterministic calculations are done, now schedule events for time-based delivery
+    // 7. Store all events at once with sequential timestamps (6-second intervals)
+    // All deterministic calculations are done, now store events for time-based delivery
     const scheduleStartTime = Date.now();
     const startDeliveryTime = new Date(); // Start delivering events immediately
 
@@ -437,13 +637,13 @@ export async function executeDungeonRun(
           startDeliveryTime,
           { eventIntervalSeconds: 6 }
         );
-        console.log(`[DungeonRun] ✅ Scheduled ${scheduledEvents.length} events in ${Date.now() - scheduleStartTime}ms`);
+        console.log(`[DungeonRun] ✅ Stored ${scheduledEvents.length} events with sequential delivery times in ${Date.now() - scheduleStartTime}ms`);
       } catch (scheduleError) {
-        console.error(`[DungeonRun] ❌ Error scheduling events:`, scheduleError);
+        console.error(`[DungeonRun] ❌ Error storing events:`, scheduleError);
         // Don't fail the run if scheduling fails - events are still calculated
       }
     } else {
-      console.warn(`[DungeonRun] ⚠️ No events to schedule!`);
+      console.warn(`[DungeonRun] ⚠️ No events to store!`);
     }
 
     // 7. Determine final status

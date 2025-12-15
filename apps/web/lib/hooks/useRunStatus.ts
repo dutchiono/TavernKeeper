@@ -1,20 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { runService, RunStatus } from '../services/runService';
 
-export function useRunStatus(runId: string | null, pollInterval = 2000) {
+export function useRunStatus(runId: string | null, pollInterval = 5000) {
     const [status, setStatus] = useState<RunStatus | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const isCompletedRef = useRef<boolean>(false);
 
     useEffect(() => {
         if (!runId) {
             setStatus(null);
+            isCompletedRef.current = false;
             return;
         }
 
         let intervalId: NodeJS.Timeout | null = null;
 
         const fetchStatus = async () => {
+            // Skip if already completed
+            if (isCompletedRef.current) {
+                return;
+            }
+
             setLoading(true);
             setError(null);
 
@@ -23,9 +30,9 @@ export function useRunStatus(runId: string | null, pollInterval = 2000) {
                 setStatus(runStatus);
 
                 // Stop polling if run is completed (has result or end_time)
-                // Status might be inferred: if end_time exists, it's completed
                 const isCompleted = runStatus.result || runStatus.end_time || runStatus.status === 'completed' || runStatus.status === 'failed';
                 if (isCompleted) {
+                    isCompletedRef.current = true;
                     if (intervalId) {
                         clearInterval(intervalId);
                         intervalId = null;
@@ -42,7 +49,7 @@ export function useRunStatus(runId: string | null, pollInterval = 2000) {
         // Fetch immediately
         fetchStatus();
 
-        // Poll for updates
+        // Poll for updates (slower - 5 seconds instead of 2)
         intervalId = setInterval(fetchStatus, pollInterval);
 
         return () => {

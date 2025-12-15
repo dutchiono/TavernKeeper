@@ -9,9 +9,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { dungeonId, party, seed, paymentHash, walletAddress } = body;
 
-    if (!dungeonId || !party || !Array.isArray(party) || party.length === 0 || !walletAddress) {
+    // Validate required fields (dungeonId is optional - will be randomly selected if not provided)
+    if (!party || !Array.isArray(party) || party.length === 0 || !walletAddress) {
       return NextResponse.json(
-        { error: 'Missing required fields: dungeonId, party (array), walletAddress' },
+        { error: 'Missing required fields: party (array), walletAddress' },
         { status: 400 }
       );
     }
@@ -111,10 +112,26 @@ export async function POST(request: NextRequest) {
     run = data;
 
     // 5. Lock Heroes & Update User Stats
+    console.log(`[API] Locking ${checkingHeroes.length} heroes for run ${run.id}...`);
     await Promise.all([
       dungeonStateService.lockHeroes(run.id, checkingHeroes),
       dungeonStateService.incrementUserDailyRun(walletAddress)
     ]);
+    
+    // Verify heroes were actually locked
+    const { data: verifyLocked } = await supabase
+      .from('hero_states')
+      .select('token_id, status, locked_until, current_run_id')
+      .in('token_id', party);
+    
+    if (verifyLocked) {
+      const notLocked = verifyLocked.filter(h => h.status !== 'dungeon' || h.current_run_id !== run.id);
+      if (notLocked.length > 0) {
+        console.warn(`[API] Warning: ${notLocked.length} heroes not properly locked:`, notLocked.map(h => h.token_id));
+      } else {
+        console.log(`[API] Verified: All ${party.length} heroes successfully locked for run ${run.id}`);
+      }
+    }
 
     // 5. Enqueue simulation job
     // Sending resolved UUID (finalDungeonId) to worker

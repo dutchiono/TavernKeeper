@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { supabase } from '../lib/supabase'; // Uses service role key automatically in server context
 import { executeDungeonRun } from '../lib/services/dungeonRunService';
 import { dungeonStateService } from '../lib/services/dungeonStateService';
+import { CONTRACT_ADDRESSES } from '../lib/contracts/addresses';
 
 /**
  * Wrap a promise with a timeout
@@ -19,7 +20,44 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: s
 }
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+// Use environment variable first, then try CONTRACT_ADDRESSES, then fallback to testnet address
+// Ensure we always have a valid address - never undefined
+let HERO_CONTRACT_ADDRESS: string;
+try {
+  // Try to get from env first
+  const envAddress = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS;
+  
+  // Try to get from CONTRACT_ADDRESSES (may not be loaded yet)
+  let contractAddressesValue: string | undefined;
+  try {
+    contractAddressesValue = CONTRACT_ADDRESSES?.ADVENTURER;
+  } catch (e) {
+    // CONTRACT_ADDRESSES might not be loaded yet, ignore
+  }
+  
+  // Use env, then CONTRACT_ADDRESSES, then testnet fallback
+  HERO_CONTRACT_ADDRESS = envAddress || contractAddressesValue || '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+  
+  // Final safety check - if somehow still undefined or zero address, use testnet address
+  if (!HERO_CONTRACT_ADDRESS || HERO_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000' || HERO_CONTRACT_ADDRESS === 'undefined') {
+    console.warn('[Worker] HERO_CONTRACT_ADDRESS was invalid, using testnet fallback');
+    HERO_CONTRACT_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+  }
+} catch (error) {
+  console.error('[Worker] Error initializing HERO_CONTRACT_ADDRESS:', error);
+  HERO_CONTRACT_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E'; // Fallback to testnet
+}
+
+// Final absolute safety check - ensure it's never undefined
+if (typeof HERO_CONTRACT_ADDRESS === 'undefined' || !HERO_CONTRACT_ADDRESS) {
+  HERO_CONTRACT_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
+  console.error('[Worker] CRITICAL: HERO_CONTRACT_ADDRESS was still undefined after initialization! Using hardcoded fallback.');
+}
+
 console.log(`[Worker] Connecting to Redis: ${redisUrl.replace(/:[^:@]+@/, ':****@')}`);
+console.log(`[Worker] Hero Contract Address: ${HERO_CONTRACT_ADDRESS}`);
+console.log(`[Worker] CONTRACT_ADDRESSES?.ADVENTURER: ${CONTRACT_ADDRESSES?.ADVENTURER}`);
+console.log(`[Worker] NEXT_PUBLIC_HERO_CONTRACT_ADDRESS: ${process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS}`);
 
 const connection = new Redis(redisUrl, {
   maxRetriesPerRequest: null, // Required by BullMQ
@@ -115,22 +153,39 @@ export const runWorker = new Worker<RunJobData>(
       }
 
       console.log(`[Worker] Wallet address: ${walletAddress}`);
+      console.log(`[Worker] HERO_CONTRACT_ADDRESS before executeDungeonRun: ${HERO_CONTRACT_ADDRESS}`);
+      console.log(`[Worker] HERO_CONTRACT_ADDRESS type: ${typeof HERO_CONTRACT_ADDRESS}`);
+      console.log(`[Worker] HERO_CONTRACT_ADDRESS is undefined: ${typeof HERO_CONTRACT_ADDRESS === 'undefined'}`);
 
       // Execute dungeon run using new service with timeout (5 minutes)
       console.log(`[Worker] Starting dungeon run execution (5 minute timeout)...`);
       const executionStartTime = Date.now();
       const DUNGEON_RUN_TIMEOUT = 5 * 60 * 1000; // 5 minutes
-      const result = await withTimeout(
-        executeDungeonRun(
-          runId,
-          dungeonId,
-          party,
-          seed,
-          walletAddress
-        ),
-        DUNGEON_RUN_TIMEOUT,
-        'executeDungeonRun'
-      );
+      
+      let result;
+      try {
+        console.log(`[Worker] About to call executeDungeonRun...`);
+        result = await withTimeout(
+          executeDungeonRun(
+            runId,
+            dungeonId,
+            party,
+            seed,
+            walletAddress
+          ),
+          DUNGEON_RUN_TIMEOUT,
+          'executeDungeonRun'
+        );
+        console.log(`[Worker] executeDungeonRun completed successfully`);
+      } catch (executeError) {
+        console.error(`[Worker] Error in executeDungeonRun call:`, executeError);
+        if (executeError instanceof Error) {
+          console.error(`[Worker] executeDungeonRun error name: ${executeError.name}`);
+          console.error(`[Worker] executeDungeonRun error message: ${executeError.message}`);
+          console.error(`[Worker] executeDungeonRun error stack: ${executeError.stack}`);
+        }
+        throw executeError; // Re-throw to be caught by outer catch
+      }
       const executionDuration = Date.now() - executionStartTime;
       console.log(`[Worker] Dungeon run completed in ${executionDuration}ms. Events generated: ${result.events.length}, Status: ${result.status}, Levels: ${result.levelsCompleted}, XP: ${result.totalXP}`);
 
@@ -157,20 +212,10 @@ export const runWorker = new Worker<RunJobData>(
         console.log(`[Worker] Successfully inserted ${runLogs.length} run logs`);
       }
 
-      // Unlock heroes
-      console.log(`[Worker] Unlocking heroes...`);
-      const unlockStartTime = Date.now();
-      const checkingHeroes = party.map((id: string) => ({
-        contractAddress: HERO_CONTRACT_ADDRESS,
-        tokenId: id
-      }));
-      await dungeonStateService.unlockHeroes(checkingHeroes);
-      console.log(`[Worker] Heroes unlocked in ${Date.now() - unlockStartTime}ms`);
-
-      // Update run status
+      // Update run status FIRST (before unlocking heroes)
       console.log(`[Worker] Updating run status in database...`);
       const updateStartTime = Date.now();
-      await supabase
+      const updateResult = await supabase
         .from('runs')
         .update({
           end_time: new Date().toISOString(),
@@ -178,6 +223,45 @@ export const runWorker = new Worker<RunJobData>(
         })
         .eq('id', runId);
       console.log(`[Worker] Run status updated in ${Date.now() - updateStartTime}ms`);
+      
+      if (updateResult.error) {
+        console.error(`[Worker] Error updating run status:`, updateResult.error);
+        console.error(`[Worker] Will still unlock heroes despite status update error`);
+      } else {
+        console.log(`[Worker] Run ${runId} marked as ${result.status}`);
+      }
+
+      // ALWAYS unlock heroes after run completes (success or failure)
+      // The run has finished executing, so heroes should be unlocked regardless of status update success
+      console.log(`[Worker] Unlocking heroes for completed run ${runId}...`);
+      const unlockStartTime = Date.now();
+      const checkingHeroes = party.map((id: string) => ({
+        contractAddress: HERO_CONTRACT_ADDRESS,
+        tokenId: id
+      }));
+      
+      try {
+        await dungeonStateService.unlockHeroes(checkingHeroes);
+        console.log(`[Worker] Heroes unlocked in ${Date.now() - unlockStartTime}ms`);
+        
+        // Verify heroes were actually unlocked
+        const { data: verifyHeroes } = await supabase
+          .from('hero_states')
+          .select('token_id, status, locked_until')
+          .in('token_id', party);
+        
+        if (verifyHeroes) {
+          const stillLocked = verifyHeroes.filter(h => h.status === 'dungeon' && h.locked_until && new Date(h.locked_until) > new Date());
+          if (stillLocked.length > 0) {
+            console.warn(`[Worker] Warning: ${stillLocked.length} heroes still appear locked after unlock attempt:`, stillLocked.map(h => h.token_id));
+          } else {
+            console.log(`[Worker] Verified: All ${party.length} heroes successfully unlocked`);
+          }
+        }
+      } catch (unlockError) {
+        console.error(`[Worker] Error unlocking heroes:`, unlockError);
+        // Don't throw - we've already completed the run, just log the error
+      }
 
       const totalDuration = Date.now() - jobStartTime;
       console.log(`[Worker] Job ${job.id} completed successfully in ${totalDuration}ms`);
@@ -194,13 +278,21 @@ export const runWorker = new Worker<RunJobData>(
       const errorDuration = Date.now() - jobStartTime;
       console.error(`[Worker] Error processing run ${runId} after ${errorDuration}ms:`, error);
       if (error instanceof Error) {
+        console.error(`[Worker] Error name: ${error.name}`);
         console.error(`[Worker] Error message: ${error.message}`);
         console.error(`[Worker] Error stack: ${error.stack}`);
+        // If it's a ReferenceError, log additional details
+        if (error.name === 'ReferenceError') {
+          console.error(`[Worker] ReferenceError detected! This usually means a variable is not defined in scope.`);
+          console.error(`[Worker] Error message suggests: ${error.message}`);
+        }
+      } else {
+        console.error(`[Worker] Non-Error object thrown:`, typeof error, error);
       }
 
       // Unlock heroes on error
       try {
-        const HERO_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
+        // Use the module-level HERO_CONTRACT_ADDRESS (already initialized with proper fallbacks)
         const checkingHeroes = party.map((id: string) => ({
           contractAddress: HERO_CONTRACT_ADDRESS,
           tokenId: id

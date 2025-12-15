@@ -8,27 +8,117 @@ import { PartySelector } from '../party/PartySelector';
 import { PublicPartyLobby } from '../party/PublicPartyLobby';
 import { PixelButton } from '../PixelComponents';
 
-interface Room {
+interface Dungeon {
     id: string;
-    name?: string;
-    type: 'room' | 'corridor' | 'chamber' | 'boss';
-    connections: string[];
+    seed: string;
+    name: string;
+    depth: number;
+    theme: string;
+    finalBoss: string;
+    createdAt: string;
+    icon_x?: number | null; // Icon position X (percentage 10-90)
+    icon_y?: number | null; // Icon position Y (percentage 10-90)
 }
 
-interface DungeonMap {
-    id: string;
-    name: string;
-    description?: string;
-    geographyType: string;
-    rooms: Room[];
+interface DungeonIcon extends Dungeon {
+    x: number; // Random position percentage (0-100)
+    y: number; // Random position percentage (0-100)
+    emoji: string; // Icon emoji for this dungeon
 }
+
+// Array of dungeon/adventure-themed emojis
+const DUNGEON_EMOJIS = [
+    '🗺️', '🏰', '🏛️', '⛰️', '🌋', '🏔️', '🕳️', '🕸️', 
+    '💎', '⚔️', '🛡️', '🗡️', '🏴', '👑', '💀', '👹',
+    '🐉', '🦇', '🕷️', '🦂', '🔥', '❄️', '⚡', '🌊',
+    '🌑', '⭐', '🔮', '📜', '🗝️', '💍', '🏺', '⚱️'
+];
+
+// Get emoji for dungeon based on ID (deterministic hash)
+const getDungeonEmoji = (dungeonId: string): string => {
+    // Simple hash function to get consistent emoji for each dungeon
+    let hash = 0;
+    for (let i = 0; i < dungeonId.length; i++) {
+        const char = dungeonId.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    const index = Math.abs(hash) % DUNGEON_EMOJIS.length;
+    return DUNGEON_EMOJIS[index];
+};
+
+// Check if two positions are too close (collision detection)
+const isTooClose = (pos1: { x: number; y: number }, pos2: { x: number; y: number }, minDistance: number = 12): boolean => {
+    const dx = pos1.x - pos2.x;
+    const dy = pos1.y - pos2.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance < minDistance;
+};
+
+// Generate non-overlapping positions for dungeons
+const generateNonOverlappingPositions = (count: number, minDistance: number = 12): Array<{ x: number; y: number }> => {
+    return generateNonOverlappingPositionsWithExisting(count, [], minDistance);
+};
+
+// Generate non-overlapping positions considering existing positions
+const generateNonOverlappingPositionsWithExisting = (
+    count: number,
+    existingPositions: Array<{ x: number; y: number }> = [],
+    minDistance: number = 12
+): Array<{ x: number; y: number }> => {
+    const positions: Array<{ x: number; y: number }> = [...existingPositions];
+    const maxAttempts = 100; // Maximum attempts to find a non-overlapping position
+    
+    for (let i = 0; i < count; i++) {
+        let attempts = 0;
+        let position: { x: number; y: number } | null = null;
+        
+        while (attempts < maxAttempts) {
+            const candidate = {
+                x: 10 + Math.random() * 80, // Between 10% and 90%
+                y: 10 + Math.random() * 80,
+            };
+            
+            // Check if this position is far enough from all existing positions (including already placed ones)
+            const isValid = positions.every(pos => !isTooClose(candidate, pos, minDistance));
+            
+            if (isValid) {
+                position = candidate;
+                break;
+            }
+            
+            attempts++;
+        }
+        
+        // If we couldn't find a non-overlapping position, use a fallback grid-based position
+        if (!position) {
+            const totalCount = positions.length + count;
+            const gridSize = Math.ceil(Math.sqrt(totalCount));
+            const cellWidth = 80 / gridSize;
+            const cellHeight = 80 / gridSize;
+            const totalIndex = positions.length;
+            const row = Math.floor(totalIndex / gridSize);
+            const col = totalIndex % gridSize;
+            position = {
+                x: 10 + col * cellWidth + cellWidth / 2 + (Math.random() - 0.5) * (cellWidth * 0.6),
+                y: 10 + row * cellHeight + cellHeight / 2 + (Math.random() - 0.5) * (cellHeight * 0.6),
+            };
+        }
+        
+        positions.push(position);
+    }
+    
+    // Return only the new positions (not the existing ones)
+    return positions.slice(existingPositions.length);
+};
 
 export const MapScene: React.FC = () => {
     const { selectedPartyTokenIds, setSelectedPartyTokenIds, currentRunId, setCurrentRunId, switchView } = useGameStore();
     const { address, isConnected } = useAccount();
     const authenticated = isConnected;
 
-    const [map, setMap] = useState<DungeonMap | null>(null);
+    const [dungeons, setDungeons] = useState<DungeonIcon[]>([]);
+    const [selectedDungeonId, setSelectedDungeonId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showPartySelector, setShowPartySelector] = useState(false);
@@ -41,11 +131,29 @@ export const MapScene: React.FC = () => {
     // Poll run status if we have a current run
     const { status: runStatus } = useRunStatus(currentRunId);
 
-    // Fetch Stats & Map
+    // Clear party selection when returning to map if run is complete
     useEffect(() => {
-        const fetchMap = async () => {
+        // If we have a run status and it's complete, clear the party selection
+        if (runStatus?.result && (runStatus.result === 'victory' || runStatus.result === 'defeat')) {
+            console.log(`[MapScene] Run ${currentRunId} is ${runStatus.result}, clearing party selection`);
+            setSelectedPartyTokenIds([]);
+            setCurrentRunId(null);
+        }
+    }, [runStatus?.result, currentRunId, setSelectedPartyTokenIds, setCurrentRunId]);
+
+    // Clear party selection when map view is first loaded (if no active run)
+    useEffect(() => {
+        if (!currentRunId && selectedPartyTokenIds.length > 0) {
+            console.log(`[MapScene] No active run but party is selected, clearing party selection`);
+            setSelectedPartyTokenIds([]);
+        }
+    }, []); // Only run on mount
+
+    // Fetch Stats & Dungeons
+    useEffect(() => {
+        const fetchDungeons = async () => {
             try {
-                // Fetch a random dungeon from available dungeons
+                // Fetch all available dungeons
                 const dungeonsRes = await fetch('/api/dungeons');
                 if (!dungeonsRes.ok) throw new Error('Failed to load dungeons');
                 const dungeonsData = await dungeonsRes.json();
@@ -54,18 +162,70 @@ export const MapScene: React.FC = () => {
                     throw new Error('No dungeons available');
                 }
                 
-                // Randomly select a dungeon
-                const randomIndex = Math.floor(Math.random() * dungeonsData.dungeons.length);
-                const selectedDungeon = dungeonsData.dungeons[randomIndex];
+                // Separate dungeons with and without positions
+                const dungeonsWithPositions: Dungeon[] = [];
+                const dungeonsWithoutPositions: Dungeon[] = [];
                 
-                // Fetch the map for the selected dungeon
-                const res = await fetch(`/api/map?id=${selectedDungeon.id}`);
-                if (!res.ok) throw new Error('Failed to load map');
-                const data = await res.json();
-                setMap(data);
+                dungeonsData.dungeons.forEach((dungeon: Dungeon) => {
+                    if (dungeon.icon_x !== null && dungeon.icon_x !== undefined && 
+                        dungeon.icon_y !== null && dungeon.icon_y !== undefined) {
+                        dungeonsWithPositions.push(dungeon);
+                    } else {
+                        dungeonsWithoutPositions.push(dungeon);
+                    }
+                });
+                
+                // Generate positions only for dungeons that don't have them
+                let newPositions: Array<{ x: number; y: number }> = [];
+                if (dungeonsWithoutPositions.length > 0) {
+                    // Consider existing positions when generating new ones to avoid overlap
+                    const existingPositions = dungeonsWithPositions.map(d => ({ x: d.icon_x!, y: d.icon_y! }));
+                    newPositions = generateNonOverlappingPositionsWithExisting(
+                        dungeonsWithoutPositions.length,
+                        existingPositions
+                    );
+                    
+                    // Save new positions to database
+                    await Promise.all(dungeonsWithoutPositions.map(async (dungeon, index) => {
+                        const pos = newPositions[index];
+                        try {
+                            await fetch('/api/dungeons/update-icon-position', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    dungeonId: dungeon.id,
+                                    icon_x: pos.x,
+                                    icon_y: pos.y,
+                                }),
+                            });
+                        } catch (e) {
+                            console.warn(`Failed to save icon position for dungeon ${dungeon.id}:`, e);
+                        }
+                    }));
+                }
+                
+                // Combine all dungeons with their positions
+                const allDungeons: Dungeon[] = [
+                    ...dungeonsWithPositions,
+                    ...dungeonsWithoutPositions.map((dungeon, index) => ({
+                        ...dungeon,
+                        icon_x: newPositions[index].x,
+                        icon_y: newPositions[index].y,
+                    })),
+                ];
+                
+                // Create icons with positions and varied emojis (deterministic based on dungeon ID)
+                const dungeonIcons: DungeonIcon[] = allDungeons.map((dungeon: Dungeon) => ({
+                    ...dungeon,
+                    x: dungeon.icon_x!,
+                    y: dungeon.icon_y!,
+                    emoji: getDungeonEmoji(dungeon.id),
+                }));
+                
+                setDungeons(dungeonIcons);
             } catch (err) {
                 console.error(err);
-                setError('Could not load map data');
+                setError('Could not load dungeons');
             } finally {
                 setLoading(false);
             }
@@ -94,7 +254,7 @@ export const MapScene: React.FC = () => {
             }
         };
 
-        fetchMap();
+        fetchDungeons();
         if (address) {
             fetchStats();
             fetchPrice();
@@ -137,10 +297,18 @@ export const MapScene: React.FC = () => {
         );
     }
 
-    if (!map) return null;
+    if (dungeons.length === 0 && !loading) return null;
 
-    // Simple vertical layout for now, filtering for main rooms
-    const mainRooms = map.rooms.filter(r => r.type !== 'corridor');
+    const selectedDungeon = dungeons.find(d => d.id === selectedDungeonId);
+
+    const handleDungeonIconClick = (dungeonId: string) => {
+        // Toggle selection: if clicking the same icon, deselect; otherwise select the new one
+        if (selectedDungeonId === dungeonId) {
+            setSelectedDungeonId(null);
+        } else {
+            setSelectedDungeonId(dungeonId);
+        }
+    };
 
     async function handleEnterArea() {
         if (!authenticated || !address) {
@@ -148,8 +316,10 @@ export const MapScene: React.FC = () => {
             return;
         }
 
-        // If no party selected, show party selector
-        if (selectedPartyTokenIds.length === 0 && !currentPartyId) {
+        // Always show party selector if no party is selected (even if we have a currentPartyId)
+        // This ensures players always assemble a party before entering a dungeon
+        if (selectedPartyTokenIds.length === 0) {
+            console.log('[MapScene] No party selected, showing party selector');
             setShowPartySelector(true);
             return;
         }
@@ -179,9 +349,9 @@ export const MapScene: React.FC = () => {
                 paymentHash = "0xmock_payment_hash_" + Date.now();
             }
 
-            // If no specific dungeon selected, let the API randomly select one
+            // Use selected dungeon ID, or let API randomly select if none selected
             const result = await runService.createRun({
-                dungeonId: map?.id || undefined, // Let API randomly select if not provided
+                dungeonId: selectedDungeonId || undefined, // Use selected dungeon or let API randomly select
                 party: tokenIds,
                 walletAddress: address as string,
                 paymentHash
@@ -220,78 +390,58 @@ export const MapScene: React.FC = () => {
     return (
         <div className="w-full h-full bg-[#1a120b] flex flex-col items-center py-8 relative overflow-hidden font-pixel">
             {/* Background Image Layer */}
-            <div className="absolute inset-0 opacity-30 pointer-events-none" style={{
-                backgroundColor: '#2a1d17', // Fallback color
-                backgroundImage: 'radial-gradient(#4a3b32 2px, transparent 2px)', // Procedural pattern
-                backgroundSize: '20px 20px',
-                filter: 'sepia(1) contrast(1.2)'
-            }} />
+            <div 
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                    backgroundImage: "url('/sprites/palceholdermap.png')",
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    opacity: 0.8
+                }}
+            />
 
-            {/* Map Area */}
-            <div className="flex-1 w-full max-w-md relative flex items-center justify-center min-h-0">
-                {/* TODO: This flowchart visualization is a placeholder and does not accurately represent the actual dungeon structure.
-                     The current implementation generates a simplified room list from dungeon depth, but the actual dungeon has:
-                     - A levelLayout array with specific room types per level
-                     - Mid-boss and final boss locations
-                     - Actual room connections and structure
-                     This needs to be updated to visualize the real dungeon structure from the dungeon.map.levelLayout data. */}
-                {/* Connection Lines */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-1 h-[80%] bg-gradient-to-b from-amber-900/20 via-amber-700/40 to-amber-900/20 rounded-full" />
-                </div>
-
-                {/* Nodes Container */}
-                <div className="flex flex-col gap-12 z-10 w-full items-center py-8">
-                    {mainRooms.map((room, index) => {
-                        // Mock status for visualization
-                        const isCurrent = index === 0;
-                        const isLocked = index > 1;
-                        const isVisited = index === 0;
-                        const isBoss = room.type === 'boss';
-
-                        let icon = '📍';
-                        if (room.type === 'boss') icon = '💀';
-                        if (room.type === 'chamber') icon = '💎';
-                        if (index === 0) icon = '⛺';
-
-                        return (
-                            <div key={room.id} className="group relative flex items-center justify-center">
-                                {/* Node Button */}
-                                <button
-                                    disabled={isLocked}
+            {/* Map Area - Dungeon Icons */}
+            <div className="flex-1 w-full relative min-h-0">
+                {dungeons.map((dungeon) => {
+                    const isSelected = selectedDungeonId === dungeon.id;
+                    return (
+                        <div
+                            key={dungeon.id}
+                            className="absolute z-10"
+                            style={{
+                                left: `${dungeon.x}%`,
+                                top: `${dungeon.y}%`,
+                                transform: 'translate(-50%, -50%)',
+                            }}
+                        >
+                            {/* Platform (thin ellipse) */}
+                            <button
+                                onClick={() => handleDungeonIconClick(dungeon.id)}
+                                className={`
+                                    relative transition-all duration-300 cursor-pointer
+                                    ${isSelected ? 'scale-110' : 'hover:scale-105'}
+                                `}
+                                title={dungeon.name}
+                            >
+                                {/* Ellipse platform (miniature base perspective - circular but slightly squashed) */}
+                                <div 
                                     className={`
-                                        w-16 h-16 rounded-full border-4 flex items-center justify-center text-2xl shadow-xl transition-all duration-300 relative
-                                        ${isCurrent
-                                            ? 'bg-[#eaddcf] border-amber-500 scale-110 shadow-[0_0_30px_rgba(245,158,11,0.4)] animate-pulse-slow'
-                                            : 'bg-[#2a1d17] border-[#5c4033] hover:scale-105 hover:border-amber-700'}
-                                        ${isLocked ? 'opacity-40 grayscale cursor-not-allowed' : 'cursor-pointer'}
-                                        ${isBoss ? 'w-20 h-20 border-red-900 bg-red-950/50' : ''}
+                                        w-9 h-7 rounded-full border-2 shadow-lg
+                                        ${isSelected
+                                            ? 'bg-[#5c4033] border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+                                            : 'bg-[#2a1d17] border-[#5c4033] hover:border-amber-700'}
                                     `}
-                                >
-                                    <span className={`drop-shadow-md ${isLocked ? 'blur-[1px]' : ''}`}>{icon}</span>
-
-                                    {/* Current Indicator Ring */}
-                                    {isCurrent && (
-                                        <div className="absolute inset-[-8px] border-2 border-amber-500/30 rounded-full animate-ping" />
-                                    )}
-                                </button>
-
-                                {/* Label Tooltip (Always visible for current/next) */}
-                                <div className={`
-                                    absolute left-full ml-6 bg-black/80 border border-amber-900/50 px-3 py-2 rounded text-left w-32 backdrop-blur-sm transition-all
-                                    ${isLocked ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}
-                                `}>
-                                    <div className={`text-[10px] uppercase font-bold tracking-wider ${isCurrent ? 'text-amber-400' : 'text-slate-400'}`}>
-                                        {room.type}
-                                    </div>
-                                    <div className="text-[8px] text-slate-500 capitalize">
-                                        {isLocked ? 'Locked' : isCurrent ? 'Current Location' : 'Next Area'}
-                                    </div>
+                                />
+                                
+                                {/* Icon sitting on platform */}
+                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-3xl drop-shadow-lg">
+                                    {dungeon.emoji}
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            </button>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Action Area */}
@@ -304,6 +454,11 @@ export const MapScene: React.FC = () => {
                             ) : (
                                 <span className="text-amber-400">Daily Limit Reached. Cost: {runCostMon} MON ($0.25)</span>
                             )}
+                        </div>
+                    )}
+                    {selectedDungeon && (
+                        <div className="text-center font-pixel text-xs text-amber-300">
+                            {selectedDungeon.name}
                         </div>
                     )}
                 </div>
@@ -345,7 +500,7 @@ export const MapScene: React.FC = () => {
                     <div className="w-full max-w-2xl">
                         <PartySelector
                             walletAddress={address}
-                            dungeonId={map?.id}
+                            dungeonId={selectedDungeonId || undefined}
                             onConfirm={async (tokenIds, mode, partyId) => {
                                 if (mode === 'public' && partyId) {
                                     // Show public lobby

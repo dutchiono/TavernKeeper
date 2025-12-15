@@ -36,7 +36,7 @@ interface CombatTurn {
 }
 
 export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
-    const { currentRunId, selectedPartyTokenIds, switchView } = useGameStore();
+    const { currentRunId, selectedPartyTokenIds, switchView, setSelectedPartyTokenIds, setCurrentRunId } = useGameStore();
     const { events, loading: eventsLoading } = useRunEvents(currentRunId);
     const { status: runStatus } = useRunStatus(currentRunId);
     const [dungeonInfo, setDungeonInfo] = useState<{ name: string; depth: number; theme?: string } | null>(null);
@@ -44,6 +44,41 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
     const [revealedEventCount, setRevealedEventCount] = useState(0);
     const hasInitializedRef = useRef(false);
     const revealIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const transitionInitiatedRef = useRef(false);
+    const roomDetailsScrollRef = useRef<HTMLDivElement>(null);
+    const mapScrollRef = useRef<HTMLDivElement>(null);
+    const previousLevelRef = useRef<number>(1);
+    const lastPendingCountRef = useRef<number>(-1);
+    const lastRevealedCountRef = useRef<number>(-1);
+    const lastTransitionCheckRef = useRef<string>('');
+    const revealedCountsByLevelRef = useRef<Map<number, number>>(new Map());
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Reset transition flag and level ref when run changes
+    useEffect(() => {
+        transitionInitiatedRef.current = false;
+        currentLevelRef.current = 1;
+        previousLevelRef.current = 1;
+        revealedCountsByLevelRef.current.clear();
+        setRevealedEventCount(0);
+        
+        // Clear any running reveal interval
+        if (revealIntervalRef.current) {
+            clearInterval(revealIntervalRef.current);
+            revealIntervalRef.current = null;
+        }
+        
+        // Clear any polling intervals
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+        }
+        if (pollingTimeoutRef.current) {
+            clearTimeout(pollingTimeoutRef.current);
+            pollingTimeoutRef.current = null;
+        }
+    }, [currentRunId]);
 
     // Parse events from world_events (they're stored in the payload field)
     const dungeonEvents = useMemo(() => {
@@ -146,11 +181,112 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         return result;
     }, [dungeonEvents, dungeonInfo]);
 
-    // Calculate current level (highest level with events)
+    // Track the current level in a ref to persist across renders
+    const currentLevelRef = useRef<number>(1);
+    
+    // Calculate current level - only advance when all events for current level are revealed
+    // This prevents levels from advancing prematurely before events are shown
     const currentLevel = useMemo(() => {
-        if (dungeonEvents.length === 0) return 1;
-        return Math.max(...dungeonEvents.map(e => e.level));
-    }, [dungeonEvents]);
+        if (dungeonEvents.length === 0) {
+            currentLevelRef.current = 1;
+            return 1;
+        }
+        
+        // Get the highest level with events
+        const maxLevelWithEvents = Math.max(...dungeonEvents.map(e => e.level));
+        
+        // Start with the current level from ref (don't go backwards)
+        let levelToCheck = Math.max(currentLevelRef.current, 1);
+        
+        // Only check the current level - don't look ahead to future levels
+        const levelData = levelsProgress.find(l => l.level === levelToCheck);
+        if (!levelData || levelData.events.length === 0) {
+            // No events for current level yet, stay on this level
+            return levelToCheck;
+        }
+        
+        // Calculate total items for current level
+        const roomEnterCount = levelData.events.filter(e => e.type === 'room_enter').length;
+        const combatEvents = levelData.events.filter(e => e.combatTurns && Array.isArray(e.combatTurns) && e.combatTurns.length > 0);
+        const combatTurnsCount = combatEvents.reduce((sum, e) => sum + (e.combatTurns?.length || 0), 0);
+        const eventsWithoutCombatTurns = levelData.events.filter(e => 
+            e.type !== 'room_enter' && (!e.combatTurns || !Array.isArray(e.combatTurns) || e.combatTurns.length === 0)
+        );
+        const combatResultEvents = combatEvents.length;
+        const otherEventsCount = eventsWithoutCombatTurns.length + combatResultEvents;
+        const totalItemsForLevel = roomEnterCount + combatTurnsCount + otherEventsCount;
+        
+        // Get the revealed count for THIS level (use saved count if available, otherwise use current)
+        const savedRevealedCount = revealedCountsByLevelRef.current.get(levelToCheck);
+        const actualRevealedCount = (savedRevealedCount !== undefined && savedRevealedCount > revealedEventCount) 
+            ? savedRevealedCount 
+            : revealedEventCount;
+        
+        // Check if we've revealed all events for the current level
+        // Only advance if ALL events are revealed AND the reveal interval has stopped
+        if (actualRevealedCount >= totalItemsForLevel && totalItemsForLevel > 0 && !revealIntervalRef.current) {
+            // All events revealed for current level, can advance to next level
+            // But only advance by 1 level at a time - don't skip levels
+            const nextLevel = levelToCheck + 1;
+            if (nextLevel <= maxLevelWithEvents) {
+                // Check if next level has events - if not, don't advance yet
+                const nextLevelData = levelsProgress.find(l => l.level === nextLevel);
+                if (nextLevelData && nextLevelData.events.length > 0) {
+                    currentLevelRef.current = nextLevel;
+                    return nextLevel;
+                }
+            }
+        }
+        
+        // Still revealing events for current level, stay on this level
+        return levelToCheck;
+    }, [dungeonEvents, levelsProgress, revealedEventCount]);
+
+    // Reset revealedEventCount when level changes (only show current level events)
+    // But preserve revealed counts per level so returning to view doesn't reset progress
+    useEffect(() => {
+        if (previousLevelRef.current !== currentLevel) {
+            // Save current revealed count for previous level BEFORE changing
+            if (previousLevelRef.current > 0 && revealedEventCount > 0) {
+                revealedCountsByLevelRef.current.set(previousLevelRef.current, revealedEventCount);
+            }
+            
+            // Restore revealed count for new level, or start at 0 if first time
+            const savedCount = revealedCountsByLevelRef.current.get(currentLevel) || 0;
+            setRevealedEventCount(savedCount);
+            
+            // Update the currentLevelRef to match
+            currentLevelRef.current = currentLevel;
+            
+            // Only log level changes (not initial load from 1 to 1)
+            if (previousLevelRef.current !== 1 || currentLevel !== 1) {
+                console.log(`[BattleScene] Level ${previousLevelRef.current} -> ${currentLevel} (restored ${savedCount} revealed, total for level: ${levelsProgress.find(l => l.level === currentLevel)?.events.length || 0})`);
+            }
+            previousLevelRef.current = currentLevel;
+            // Reset logging refs on level change
+            lastRevealedCountRef.current = -1;
+            lastPendingCountRef.current = -1;
+            
+            // Center map on current level
+            setTimeout(() => {
+                if (mapScrollRef.current) {
+                    const currentLevelElement = mapScrollRef.current.querySelector(`[data-level="${currentLevel}"]`);
+                    if (currentLevelElement) {
+                        currentLevelElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }, 100);
+        }
+    }, [currentLevel, levelsProgress]);
+    
+    // Save revealed count whenever it changes (for persistence across view switches)
+    // This ensures progress is saved even if user switches views
+    useEffect(() => {
+        if (currentLevel > 0) {
+            // Always save the current count, even if 0 (to mark level as started)
+            revealedCountsByLevelRef.current.set(currentLevel, revealedEventCount);
+        }
+    }, [revealedEventCount, currentLevel]);
 
     // Calculate total XP from events
     useEffect(() => {
@@ -193,73 +329,356 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
     }, [currentRunId]);
 
     // Progressive reveal of events (1 line every 6 seconds)
-    // Accumulate events across all levels - don't reset when level changes
+    // Only show events for CURRENT level - reset when level changes
     useEffect(() => {
-        // Calculate total items across ALL levels that have been reached
+        // Calculate total items for CURRENT level only
+        // Events with combatTurns should be counted as: combatTurns.length + 1 (for the result event itself)
+        const currentLevelData = levelsProgress.find(l => l.level === currentLevel);
         let totalItems = 0;
-
-        levelsProgress.forEach(levelData => {
-            if (levelData.level > currentLevel) return; // Only count levels we've reached
-
-            const roomEnterCount = levelData.events.filter(e => e.type === 'room_enter').length;
-            const combatEvent = levelData.events.find(e => e.combatTurns && e.combatTurns.length > 0);
-            const combatTurnsCount = combatEvent?.combatTurns?.length || 0;
-            const otherEventsCount = levelData.events.filter(e => e.type !== 'room_enter' && !e.combatTurns).length;
-            const levelItems = roomEnterCount + combatTurnsCount + otherEventsCount;
-
-            totalItems += levelItems;
-        });
+        let roomEnterCount = 0;
+        let combatTurnsCount = 0;
+        let otherEventsCount = 0;
+        let combatEvents: DungeonEvent[] = [];
+        
+        if (currentLevelData) {
+            roomEnterCount = currentLevelData.events.filter(e => e.type === 'room_enter').length;
+            
+            // Count combat turns from events that have combatTurns
+            combatEvents = currentLevelData.events.filter(e => e.combatTurns && Array.isArray(e.combatTurns) && e.combatTurns.length > 0);
+            combatTurnsCount = combatEvents.reduce((sum, e) => sum + (e.combatTurns?.length || 0), 0);
+            
+            // Count other events (events WITHOUT combatTurns, plus combat result events AFTER their turns)
+            // Events with combatTurns are counted separately: turns + result event
+            const eventsWithoutCombatTurns = currentLevelData.events.filter(e => 
+                e.type !== 'room_enter' && (!e.combatTurns || !Array.isArray(e.combatTurns) || e.combatTurns.length === 0)
+            );
+            const combatResultEvents = combatEvents.length; // Each combat event gets 1 result event shown after turns
+            otherEventsCount = eventsWithoutCombatTurns.length + combatResultEvents;
+            
+            totalItems = roomEnterCount + combatTurnsCount + otherEventsCount;
+            
+            // Log when level changes or total items changes significantly
+            const logKey = `${currentLevel}-${totalItems}`;
+            if (lastTransitionCheckRef.current !== logKey && totalItems > 0) {
+                console.log(`[BattleScene] Level ${currentLevel}: ${totalItems} total events (${revealedEventCount} revealed)`);
+                console.log(`[BattleScene] Level ${currentLevel} breakdown:`, {
+                    roomEnterCount,
+                    combatTurnsCount,
+                    otherEventsCount,
+                    combatEvents: combatEvents.length,
+                    eventsWithoutCombatTurns: eventsWithoutCombatTurns.length,
+                    totalEvents: currentLevelData.events.length
+                });
+                lastTransitionCheckRef.current = logKey;
+            }
+        }
 
         // Only start/continue interval if we have new items to reveal
-        if (totalItems > revealedEventCount && !revealIntervalRef.current) {
+        // Also ensure we start even if revealedEventCount is 0 (initial state)
+        if (totalItems > 0 && totalItems > revealedEventCount && !revealIntervalRef.current) {
+            // Log when starting the reveal interval
+            console.log(`[BattleScene] Starting reveal interval for level ${currentLevel}: ${revealedEventCount}/${totalItems} revealed`);
+            console.log(`[BattleScene] Current level data:`, {
+                level: currentLevel,
+                eventsCount: currentLevelData?.events.length || 0,
+                roomEnterCount,
+                combatTurnsCount,
+                otherEventsCount,
+                totalItems,
+                hasRevealInterval: !!revealIntervalRef.current
+            });
+            
             // Start revealing events progressively
             revealIntervalRef.current = setInterval(() => {
                 setRevealedEventCount(prev => {
-                    // Recalculate total items in case new events arrived
+                    // Recalculate total items for current level in case new events arrived
+                    const currentLevelData = levelsProgress.find(l => l.level === currentLevel);
                     let newTotalItems = 0;
-                    levelsProgress.forEach(levelData => {
-                        if (levelData.level > currentLevel) return;
-                        const roomEnterCount = levelData.events.filter(e => e.type === 'room_enter').length;
-                        const combatEvent = levelData.events.find(e => e.combatTurns && e.combatTurns.length > 0);
-                        const combatTurnsCount = combatEvent?.combatTurns?.length || 0;
-                        const otherEventsCount = levelData.events.filter(e => e.type !== 'room_enter' && !e.combatTurns).length;
-                        newTotalItems += roomEnterCount + combatTurnsCount + otherEventsCount;
-                    });
+                    if (currentLevelData) {
+                        const roomEnterCount = currentLevelData.events.filter(e => e.type === 'room_enter').length;
+                        
+                        // Count combat turns from events that have combatTurns
+                        let combatTurnsCount = 0;
+                        const combatEvents = currentLevelData.events.filter(e => e.combatTurns && Array.isArray(e.combatTurns) && e.combatTurns.length > 0);
+                        combatTurnsCount = combatEvents.reduce((sum, e) => sum + (e.combatTurns?.length || 0), 0);
+                        
+                        // Count other events (events WITHOUT combatTurns, plus combat result events AFTER their turns)
+                        const eventsWithoutCombatTurns = currentLevelData.events.filter(e => 
+                            e.type !== 'room_enter' && (!e.combatTurns || !Array.isArray(e.combatTurns) || e.combatTurns.length === 0)
+                        );
+                        const combatResultEvents = combatEvents.length; // Each combat event gets 1 result event shown after turns
+                        const otherEventsCount = eventsWithoutCombatTurns.length + combatResultEvents;
+                        
+                        newTotalItems = roomEnterCount + combatTurnsCount + otherEventsCount;
+                    }
 
                     if (prev < newTotalItems) {
-                        return prev + 1;
+                        const nextCount = prev + 1;
+                        // Save progress to ref immediately
+                        revealedCountsByLevelRef.current.set(currentLevel, nextCount);
+                        // Log every 5 reveals to avoid spam
+                        if (nextCount % 5 === 0 || nextCount === 1) {
+                            console.log(`[BattleScene] Revealed ${nextCount}/${newTotalItems} events for level ${currentLevel}`);
+                        }
+                        return nextCount;
                     }
                     // Stop interval when all items are revealed
                     if (revealIntervalRef.current) {
                         clearInterval(revealIntervalRef.current);
                         revealIntervalRef.current = null;
                     }
+                    // Save final count
+                    revealedCountsByLevelRef.current.set(currentLevel, prev);
                     return prev;
                 });
             }, 6000); // 6 seconds per item
         }
 
         return () => {
-            // Don't clear interval here - let it run until all events are revealed
+            // Cleanup: clear interval if component unmounts or dependencies change
+            // But only if we're not actively revealing (to prevent clearing during normal operation)
+            // The interval will clear itself when all events are revealed
+            // NOTE: We intentionally don't clear the interval here to allow it to continue running
         };
-    }, [levelsProgress, currentLevel]); // Removed revealedEventCount from deps to prevent restart
+    }, [levelsProgress, currentLevel]); // Removed revealedEventCount from deps to prevent restart, but interval will start when levelsProgress changes
 
-    // Check for victory/defeat
+    // Don't redirect immediately on mount - wait for events to be revealed
+    // The transition logic below will handle redirecting after all events are shown
+
+    // Check for victory/defeat - but wait for all events to be delivered AND revealed first
     useEffect(() => {
-        if (!runStatus) return;
-
-        if (runStatus.result === 'victory') {
-            setTimeout(() => {
-                onComplete(true);
-                switchView(GameView.INN);
-            }, 2000);
-        } else if (runStatus.result === 'defeat') {
-            setTimeout(() => {
-                onComplete(false);
-                switchView(GameView.INN);
-            }, 2000);
+        if (!runStatus || !currentRunId) return;
+        if (transitionInitiatedRef.current) {
+            return; // Already transitioning - stop all checks
         }
-    }, [runStatus, onComplete, switchView]);
+
+        // Only proceed if run has completed (victory or defeat)
+        if (runStatus.result !== 'victory' && runStatus.result !== 'defeat') {
+            return;
+        }
+        
+        // Only log once when run status changes to victory/defeat
+        const statusKey = `${runStatus.result}-${currentRunId}`;
+        if (lastTransitionCheckRef.current !== statusKey) {
+            console.log(`[BattleScene] Run status is ${runStatus.result}. Checking if all events are delivered and revealed...`);
+            lastTransitionCheckRef.current = statusKey;
+        }
+
+        const checkAndTransition = async () => {
+            // Stop checking if transition already initiated
+            if (transitionInitiatedRef.current) {
+                return true; // Already transitioning
+            }
+            
+            // First check if there are any undelivered events for this run
+            try {
+                const res = await fetch(`/api/runs/${currentRunId}/events/pending`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const hasPendingEvents = data.pendingCount > 0;
+                    
+                    // Only log when pending count changes and not transitioning
+                    if (!transitionInitiatedRef.current && data.pendingCount !== lastPendingCountRef.current) {
+                        if (hasPendingEvents) {
+                            console.log(`[BattleScene] Waiting for ${data.pendingCount} pending events...`);
+                        }
+                        lastPendingCountRef.current = data.pendingCount;
+                    }
+                    
+                    if (hasPendingEvents) {
+                        return false; // Not ready to transition
+                    }
+                } else {
+                    // Only log errors once
+                    if (lastPendingCountRef.current !== -2) {
+                        console.warn(`[BattleScene] Failed to check pending events: ${res.status}`);
+                        lastPendingCountRef.current = -2;
+                    }
+                    return false;
+                }
+            } catch (error) {
+                // Only log errors once
+                if (lastPendingCountRef.current !== -3) {
+                    console.warn('[BattleScene] Error checking pending events:', error);
+                    lastPendingCountRef.current = -3;
+                }
+                return false;
+            }
+
+            // All events delivered, but check if they've all been REVEALED to the user
+            const currentLevelData = levelsProgress.find(l => l.level === currentLevel);
+            if (!currentLevelData) {
+                return false; // No data for current level yet - wait silently
+            }
+            
+            // Calculate total items for current level
+            const roomEnterCount = currentLevelData.events.filter(e => e.type === 'room_enter').length;
+            const combatEvents = currentLevelData.events.filter(e => e.combatTurns && Array.isArray(e.combatTurns) && e.combatTurns.length > 0);
+            const combatTurnsCount = combatEvents.reduce((sum, e) => sum + (e.combatTurns?.length || 0), 0);
+            const eventsWithoutCombatTurns = currentLevelData.events.filter(e => 
+                e.type !== 'room_enter' && (!e.combatTurns || !Array.isArray(e.combatTurns) || e.combatTurns.length === 0)
+            );
+            const combatResultEvents = combatEvents.length;
+            const otherEventsCount = eventsWithoutCombatTurns.length + combatResultEvents;
+            const totalItemsForCurrentLevel = roomEnterCount + combatTurnsCount + otherEventsCount;
+            
+            // Check if we're still revealing events for the current level
+            if (revealedEventCount < totalItemsForCurrentLevel) {
+                // Only log when revealed count changes significantly (every 25% progress)
+                const progressPercent = Math.floor((revealedEventCount / totalItemsForCurrentLevel) * 4);
+                const lastProgressRef = Math.floor((lastRevealedCountRef.current / totalItemsForCurrentLevel) * 4);
+                if (progressPercent !== lastProgressRef && progressPercent > 0) {
+                    console.log(`[BattleScene] Revealing events: ${revealedEventCount}/${totalItemsForCurrentLevel} (${Math.floor((revealedEventCount / totalItemsForCurrentLevel) * 100)}%)`);
+                }
+                lastRevealedCountRef.current = revealedEventCount;
+                return false; // Not ready to transition
+            }
+            
+            // Also check if the reveal interval is still running (means we're actively revealing)
+            if (revealIntervalRef.current) {
+                return false; // Not ready to transition - still revealing (no log, happens frequently)
+            }
+            
+            // Check ALL levels to see if any haven't been fully revealed yet
+            const levelsWithEvents = levelsProgress.filter(l => l.events.length > 0);
+            for (const levelData of levelsWithEvents) {
+                const level = levelData.level;
+                
+                // Calculate total items for this level
+                const roomEnterCount = levelData.events.filter(e => e.type === 'room_enter').length;
+                const combatEvents = levelData.events.filter(e => e.combatTurns && Array.isArray(e.combatTurns) && e.combatTurns.length > 0);
+                const combatTurnsCount = combatEvents.reduce((sum, e) => sum + (e.combatTurns?.length || 0), 0);
+                const eventsWithoutCombatTurns = levelData.events.filter(e => 
+                    e.type !== 'room_enter' && (!e.combatTurns || !Array.isArray(e.combatTurns) || e.combatTurns.length === 0)
+                );
+                const combatResultEvents = combatEvents.length;
+                const otherEventsCount = eventsWithoutCombatTurns.length + combatResultEvents;
+                const totalItemsForLevel = roomEnterCount + combatTurnsCount + otherEventsCount;
+                
+                // Get revealed count for this level
+                const revealedCountForLevel = revealedCountsByLevelRef.current.get(level) || 0;
+                
+                // If this level hasn't been fully revealed, don't transition
+                if (revealedCountForLevel < totalItemsForLevel && totalItemsForLevel > 0) {
+                    // Only log once per level
+                    if (lastRevealedCountRef.current !== -level) {
+                        console.log(`[BattleScene] Level ${level} not complete: ${revealedCountForLevel}/${totalItemsForLevel} revealed`);
+                        lastRevealedCountRef.current = -level;
+                    }
+                    return false; // Not ready to transition - more levels to process
+                }
+            }
+            
+            // Final check: ensure we've revealed at least some events (safety check)
+            if (revealedEventCount === 0 && totalItemsForCurrentLevel > 0) {
+                return false; // Not ready - events exist but none revealed yet (no log, happens at start)
+            }
+            
+            // Only log once when ready to transition
+            if (lastRevealedCountRef.current !== totalItemsForCurrentLevel) {
+                console.log(`[BattleScene] All events revealed (${revealedEventCount}/${totalItemsForCurrentLevel}). Ready to transition.`);
+                lastRevealedCountRef.current = totalItemsForCurrentLevel;
+            }
+
+            // All events delivered AND revealed, proceed with transition
+            transitionInitiatedRef.current = true;
+            console.log(`[BattleScene] All events delivered and revealed. Transitioning to map...`);
+            
+            // Redirect to map (not INN) after completion
+            // Clear party selection and run ID when transitioning back to map
+            setTimeout(() => {
+                setSelectedPartyTokenIds([]);
+                setCurrentRunId(null);
+                if (runStatus.result === 'victory') {
+                    onComplete(true);
+                    switchView(GameView.MAP);
+                } else if (runStatus.result === 'defeat') {
+                    onComplete(false);
+                    switchView(GameView.MAP);
+                }
+            }, 2000);
+            
+            return true; // Transition initiated
+        };
+
+        // Set up polling to check every 5 seconds until all events are delivered (reduced frequency)
+        // Use refs to persist interval IDs across renders
+        const startPolling = () => {
+            // Don't start polling if already transitioning or if polling already active
+            if (transitionInitiatedRef.current || pollingIntervalRef.current) {
+                return;
+            }
+            
+            pollingIntervalRef.current = setInterval(async () => {
+                // Stop polling if transition was initiated
+                if (transitionInitiatedRef.current) {
+                    if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                        pollingIntervalRef.current = null;
+                    }
+                    return;
+                }
+                
+                const transitioned = await checkAndTransition();
+                if (transitioned && pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                    pollingIntervalRef.current = null;
+                }
+            }, 5000); // 5 seconds between checks
+        };
+
+        // Cleanup after 5 minutes max (safety timeout)
+        if (!pollingTimeoutRef.current) {
+            pollingTimeoutRef.current = setTimeout(() => {
+                if (transitionInitiatedRef.current) {
+                    return; // Already transitioning
+                }
+                console.warn('[BattleScene] Timeout waiting for events. Forcing transition...');
+                if (pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                    pollingIntervalRef.current = null;
+                }
+                transitionInitiatedRef.current = true;
+                // Clear party selection and run ID when transitioning back to map
+                setSelectedPartyTokenIds([]);
+                setCurrentRunId(null);
+                if (runStatus.result === 'victory') {
+                    onComplete(true);
+                    switchView(GameView.MAP);
+                } else if (runStatus.result === 'defeat') {
+                    onComplete(false);
+                    switchView(GameView.MAP);
+                }
+                if (pollingTimeoutRef.current) {
+                    clearTimeout(pollingTimeoutRef.current);
+                    pollingTimeoutRef.current = null;
+                }
+            }, 5 * 60 * 1000); // 5 minutes
+        }
+
+        // Check immediately, then start polling if needed
+        // Use a small delay to ensure state is settled
+        const initialCheckTimeout = setTimeout(() => {
+            checkAndTransition().then(transitioned => {
+                if (!transitioned && !transitionInitiatedRef.current) {
+                    startPolling(); // Start polling silently
+                }
+            });
+        }, 500); // Small delay to ensure state is settled
+
+        return () => {
+            // Cleanup on unmount or dependency change
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+            }
+            if (pollingTimeoutRef.current) {
+                clearTimeout(pollingTimeoutRef.current);
+                pollingTimeoutRef.current = null;
+            }
+            clearTimeout(initialCheckTimeout);
+        };
+    }, [runStatus?.result, currentRunId]); // Only depend on result and runId, not frequently changing values
 
     // Get events for current level (needed for hooks below)
     const currentLevelEvents = levelsProgress.find(l => l.level === currentLevel)?.events || [];
@@ -358,52 +777,33 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         const events: Array<{ type: string; content: React.ReactNode; isCombatTurn?: boolean }> = [];
         let itemIndex = 0;
 
-        // Process events from ALL levels up to current level
-        for (let level = 1; level <= currentLevel; level++) {
-            const levelEvents = levelsProgress.find(l => l.level === level)?.events || [];
-            if (levelEvents.length === 0) continue;
+        // Only process events for the CURRENT level (not all levels)
+        const levelEvents = levelsProgress.find(l => l.level === currentLevel)?.events || [];
+        if (levelEvents.length === 0) {
+            return events;
+        }
 
-            // Add level header if we have events for this level
-            if (level > 1 && itemIndex < revealedEventCount) {
+        // Room entry events (always show first)
+        const roomEnterEvents = levelEvents.filter(e => e.type === 'room_enter');
+        roomEnterEvents.forEach((event, idx) => {
+            if (itemIndex < revealedEventCount) {
                 events.push({
-                    type: 'level_header',
+                    type: 'room_enter',
                     content: (
-                        <div key={`level-${level}-header`} className="text-sm font-bold text-[#ffd700] mb-2 mt-4 border-b border-[#5c4033] pb-1">
-                            Level {level}
+                        <div key={event.id || `level-${currentLevel}-room-${idx}`} className="mb-1 text-amber-950">
+                            <span className="text-amber-800">🚪 </span>
+                            <span>{event.description}</span>
                         </div>
                     ),
                 });
             }
+            itemIndex++;
+        });
 
-            // Room entry events (always show first)
-            const roomEnterEvents = levelEvents.filter(e => e.type === 'room_enter');
-            roomEnterEvents.forEach((event, idx) => {
-                if (itemIndex < revealedEventCount) {
-                    events.push({
-                        type: 'room_enter',
-                        content: (
-                            <div key={event.id || `level-${level}-room-${idx}`} className="p-3 bg-[#2a1d17] border-l-4 border-[#5c4033] rounded">
-                                <div className="flex items-start gap-2">
-                                    <span className="text-lg shrink-0">🚪</span>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-mono text-sm text-[#eaddcf]">
-                                            {event.description}
-                                        </div>
-                                        <div className="text-xs text-[#8c7b63] mt-1">
-                                            {new Date(event.timestamp).toLocaleTimeString()}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ),
-                    });
-                }
-                itemIndex++;
-            });
-
-            // Combat turns for this level (revealed one by one)
-            const levelCombatTurns = levelEvents
-                .filter(e => e.combatTurns && Array.isArray(e.combatTurns))
+        // Combat turns for this level (revealed one by one)
+        // Extract turns from events that have combatTurns
+        const combatEventsWithTurns = levelEvents.filter(e => e.combatTurns && Array.isArray(e.combatTurns) && e.combatTurns.length > 0);
+        const levelCombatTurns = combatEventsWithTurns
                 .flatMap(e => e.combatTurns)
                 .map(turn => ({
                     turnNumber: turn.turnNumber || 0,
@@ -414,111 +814,155 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                 }))
                 .sort((a, b) => a.turnNumber - b.turnNumber);
 
-            if (itemIndex < revealedEventCount && levelCombatTurns.length > 0) {
-                // Show combat turns header on first turn
-                if (itemIndex === roomEnterEvents.length) {
-                    events.push({
-                        type: 'header',
-                        content: (
-                            <div key={`level-${level}-combat-header`} className="text-xs font-bold text-[#ffd700] mb-2 border-b border-[#5c4033] pb-1">
-                                Combat Turns
-                            </div>
-                        ),
-                    });
-                }
-
-                const turnsToShow = Math.min(levelCombatTurns.length, revealedEventCount - itemIndex);
-                levelCombatTurns.slice(0, turnsToShow).forEach((turn, idx) => {
-                const isAttack = turn.actionType === 'attack';
-                const isHeal = turn.actionType === 'heal';
-                const isMagic = turn.actionType === 'magic-attack';
-                const result = turn.result;
-                const hit = result?.hit;
-
+        if (itemIndex < revealedEventCount && levelCombatTurns.length > 0) {
+            // Show combat turns header on first turn
+            if (itemIndex === roomEnterEvents.length) {
                 events.push({
-                    type: 'combat_turn',
-                    isCombatTurn: true,
+                    type: 'header',
                     content: (
-                        <div
-                            key={`turn-${turn.turnNumber}-${idx}`}
-                            className={`p-2 bg-[#2a1d17] border-l-4 rounded text-xs font-mono ${
-                                hit === false
-                                    ? 'border-[#8c7b63] text-[#8c7b63]'
-                                    : isHeal
-                                    ? 'border-[#22c55e] text-[#22c55e]'
-                                    : hit
-                                    ? 'border-[#ef4444] text-[#ef4444]'
-                                    : 'border-[#5c4033] text-[#eaddcf]'
-                            }`}
-                        >
-                            {formatCombatTurn(turn)}
+                        <div key={`level-${currentLevel}-combat-header`} className="text-xs font-bold text-amber-800 mb-1 mt-1">
+                            Combat Turns
                         </div>
                     ),
                 });
-            });
-                itemIndex += turnsToShow;
             }
 
-            // Other events for this level (revealed after combat)
-            const otherEvents = levelEvents.filter(e => e.type !== 'room_enter' && !e.combatTurns);
-            const remainingReveals = revealedEventCount - itemIndex;
-            otherEvents.slice(0, remainingReveals).forEach((event, idx) => {
-            const getEventColor = () => {
-                if (event.type.includes('victory') || event.type.includes('disarmed') || event.type === 'rest') {
-                    return 'text-[#22c55e]';
-                }
-                if (event.type.includes('defeat') || event.type.includes('triggered') || event.type === 'party_wipe') {
-                    return 'text-[#ef4444]';
-                }
-                if (event.type === 'treasure_found') {
-                    return 'text-[#ffd700]';
-                }
-                return 'text-[#eaddcf]';
-            };
+            const turnsToShow = Math.min(levelCombatTurns.length, revealedEventCount - itemIndex);
+            levelCombatTurns.slice(0, turnsToShow).forEach((turn, idx) => {
+            const isAttack = turn.actionType === 'attack';
+            const isHeal = turn.actionType === 'heal';
+            const isMagic = turn.actionType === 'magic-attack';
+            const result = turn.result;
+            const hit = result?.hit;
 
-            const getEventIcon = () => {
-                if (event.type.includes('combat')) return '⚔️';
-                if (event.type.includes('trap')) return '⚠️';
-                if (event.type === 'treasure_found') return '💰';
-                if (event.type === 'rest') return '💤';
-                return '•';
-            };
-
+            const turnColor = hit === false
+                ? 'text-amber-700'
+                : isHeal
+                ? 'text-emerald-700'
+                : hit
+                ? 'text-red-700'
+                : 'text-amber-950';
+            
             events.push({
-                type: event.type,
+                type: 'combat_turn',
+                isCombatTurn: true,
                 content: (
-                    <div
-                        key={event.id || idx}
-                        className={`p-3 bg-[#2a1d17] border-l-4 ${
-                            event.type.includes('victory') || event.type.includes('disarmed')
-                                ? 'border-[#22c55e]'
-                                : event.type.includes('defeat') || event.type.includes('triggered')
-                                ? 'border-[#ef4444]'
-                                : event.type === 'treasure_found'
-                                ? 'border-[#ffd700]'
-                                : 'border-[#5c4033]'
-                        } rounded`}
-                    >
-                        <div className="flex items-start gap-2">
-                            <span className="text-lg shrink-0">{getEventIcon()}</span>
-                            <div className="flex-1 min-w-0">
-                                <div className={`font-mono text-sm ${getEventColor()}`}>
-                                    {event.description}
-                                </div>
-                                <div className="text-xs text-[#8c7b63] mt-1">
-                                    {new Date(event.timestamp).toLocaleTimeString()}
-                                </div>
-                            </div>
-                        </div>
+                    <div key={`turn-${turn.turnNumber}-${idx}`} className={`mb-1 ${turnColor}`}>
+                        {formatCombatTurn(turn)}
                     </div>
                 ),
             });
-            itemIndex += Math.min(otherEvents.length, remainingReveals);
-            });
+        });
+            itemIndex += turnsToShow;
+        }
+
+        // Other events for this level (revealed after combat turns)
+        // Process events in chronological order
+        const remainingReveals = revealedEventCount - itemIndex;
+        
+        // Calculate total combat turns shown so far
+        const totalCombatTurnsShown = Math.max(0, itemIndex - roomEnterEvents.length);
+        
+        // Get all non-room_enter events, sorted by timestamp
+        const otherEvents = levelEvents
+            .filter(e => e.type !== 'room_enter')
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        
+        // Track which combat events we've processed turns for
+        let combatTurnsProcessed = 0;
+        
+        // Show events in order
+        for (const event of otherEvents) {
+            if (itemIndex >= revealedEventCount) break;
+            
+            // If event has combatTurns, check if we should show the result event
+            if (event.combatTurns && Array.isArray(event.combatTurns) && event.combatTurns.length > 0) {
+                // Check if all turns for this combat event have been shown
+                const turnsForThisCombat = event.combatTurns.length;
+                const turnsShownForThisCombat = Math.min(turnsForThisCombat, Math.max(0, totalCombatTurnsShown - combatTurnsProcessed));
+                
+                if (turnsShownForThisCombat >= turnsForThisCombat) {
+                    // All turns for this combat event have been shown, now show the result
+                    const getEventColor = () => {
+                        if (event.type.includes('victory')) return 'text-emerald-700';
+                        if (event.type.includes('defeat') || event.type.includes('party_wipe')) return 'text-red-700';
+                        return 'text-amber-950';
+                    };
+                    
+                    events.push({
+                        type: event.type,
+                        content: (
+                            <div key={event.id || `combat-result-${currentLevel}-${combatTurnsProcessed}`} className={`mb-1 ${getEventColor()}`}>
+                                <span>⚔️ </span>
+                                <span>{event.description}</span>
+                            </div>
+                        ),
+                    });
+                    itemIndex++;
+                }
+                combatTurnsProcessed += turnsForThisCombat;
+            } else {
+                // Regular event without combat turns - show it immediately if we have reveals left
+                const getEventColor = () => {
+                    if (event.type.includes('victory') || event.type.includes('disarmed') || event.type === 'rest') {
+                        return 'text-emerald-700';
+                    }
+                    if (event.type.includes('defeat') || event.type.includes('triggered') || event.type === 'party_wipe') {
+                        return 'text-red-700';
+                    }
+                    if (event.type === 'treasure_found') {
+                        return 'text-amber-800';
+                    }
+                    return 'text-amber-950';
+                };
+
+                const getEventIcon = () => {
+                    if (event.type.includes('combat')) return '⚔️';
+                    if (event.type.includes('trap')) return '⚠️';
+                    if (event.type === 'treasure_found') return '💰';
+                    if (event.type === 'rest') return '💤';
+                    return '•';
+                };
+
+                events.push({
+                    type: event.type,
+                    content: (
+                        <div key={event.id || `event-${itemIndex}`} className={`mb-1 ${getEventColor()}`}>
+                            <span>{getEventIcon()} </span>
+                            <span>{event.description}</span>
+                        </div>
+                    ),
+                });
+                itemIndex++;
+            }
         }
 
         return events;
     }, [levelsProgress, currentLevel, revealedEventCount]);
+
+    // Auto-scroll room details to bottom when new events are revealed
+    useEffect(() => {
+        if (roomDetailsScrollRef.current && displayedEvents.length > 0) {
+            // Use requestAnimationFrame for smoother scrolling
+            requestAnimationFrame(() => {
+                if (roomDetailsScrollRef.current) {
+                    roomDetailsScrollRef.current.scrollTo({
+                        top: roomDetailsScrollRef.current.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        }
+    }, [revealedEventCount, displayedEvents.length]);
+
+    // Check if first room_enter event for current level has been revealed
+    const firstRoomEnterRevealed = useMemo(() => {
+        const levelEvents = levelsProgress.find(l => l.level === currentLevel)?.events || [];
+        const roomEnterEvents = levelEvents.filter(e => e.type === 'room_enter');
+        if (roomEnterEvents.length === 0) return false;
+        // First room_enter is revealed when revealedEventCount >= 1
+        return revealedEventCount >= 1;
+    }, [currentLevel, levelsProgress, revealedEventCount]);
 
     // NOW do all conditional returns AFTER all hooks have been called
     if (!currentRunId) {
@@ -527,7 +971,11 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                 <div className="text-4xl">⚠️</div>
                 <div className="text-xl">No active run</div>
                 <div className="text-sm text-slate-400">Please start a run from the map</div>
-                <PixelButton variant="primary" onClick={() => switchView(GameView.MAP)}>
+                <PixelButton variant="primary" onClick={() => {
+                    setSelectedPartyTokenIds([]);
+                    setCurrentRunId(null);
+                    switchView(GameView.MAP);
+                }}>
                     Go to Map
                 </PixelButton>
             </div>
@@ -565,7 +1013,11 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                     </div>
                 )}
                 <div className="flex gap-4 mt-4">
-                    <PixelButton variant="primary" onClick={() => switchView(GameView.MAP)}>
+                    <PixelButton variant="primary" onClick={() => {
+                        setSelectedPartyTokenIds([]);
+                        setCurrentRunId(null);
+                        switchView(GameView.MAP);
+                    }}>
                         Back to Map
                     </PixelButton>
                 </div>
@@ -601,7 +1053,11 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                     </ul>
                 </div>
                 <div className="flex gap-4 mt-4">
-                    <PixelButton variant="primary" onClick={() => switchView(GameView.MAP)}>
+                    <PixelButton variant="primary" onClick={() => {
+                        setSelectedPartyTokenIds([]);
+                        setCurrentRunId(null);
+                        switchView(GameView.MAP);
+                    }}>
                         Back to Map
                     </PixelButton>
                 </div>
@@ -636,23 +1092,24 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                 </div>
 
                 {/* Room Scene Content - Placeholder for animations */}
+                {/* Only show room type when first room_enter event is revealed */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                    {currentLevelData?.roomType === 'combat' || currentLevelData?.roomType === 'boss' || currentLevelData?.roomType === 'mid_boss' ? (
+                    {firstRoomEnterRevealed && (currentLevelData?.roomType === 'combat' || currentLevelData?.roomType === 'boss' || currentLevelData?.roomType === 'mid_boss') ? (
                         <div className="text-center">
                             <div className="text-6xl mb-4 animate-pulse">⚔️</div>
                             <div className="text-lg text-[#eaddcf]">Combat in Progress...</div>
                         </div>
-                    ) : currentLevelData?.roomType === 'trap' ? (
+                    ) : firstRoomEnterRevealed && currentLevelData?.roomType === 'trap' ? (
                         <div className="text-center">
                             <div className="text-6xl mb-4">⚠️</div>
                             <div className="text-lg text-[#eaddcf]">Trap Encounter</div>
                         </div>
-                    ) : currentLevelData?.roomType === 'treasure' ? (
+                    ) : firstRoomEnterRevealed && currentLevelData?.roomType === 'treasure' ? (
                         <div className="text-center">
                             <div className="text-6xl mb-4">💰</div>
                             <div className="text-lg text-[#eaddcf]">Treasure Room</div>
                         </div>
-                    ) : currentLevelData?.roomType === 'safe' ? (
+                    ) : firstRoomEnterRevealed && currentLevelData?.roomType === 'safe' ? (
                         <div className="text-center">
                             <div className="text-6xl mb-4">💤</div>
                             <div className="text-lg text-[#eaddcf]">Safe Room - Resting</div>
@@ -670,7 +1127,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
             <div className="flex-1 min-h-0 flex gap-4 p-4 overflow-hidden">
                 {/* Left Column - Dungeon Map (Flowchart Style, Thinner) - Using MapScene styling */}
                 <PixelBox className="w-48 shrink-0 flex flex-col" title="Dungeon Map" variant="wood">
-                    <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col items-center relative">
+                    <div ref={mapScrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col items-center relative">
                         {/* Connection Line (vertical gradient like MapScene) */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="w-1 h-[80%] bg-gradient-to-b from-amber-900/20 via-amber-700/40 to-amber-900/20 rounded-full" />
@@ -683,24 +1140,24 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                                 const isCompleted = item.data?.status === 'completed';
                                 const isVisited = item.isVisited;
 
-                                // For current level, check if we have any events to determine room type
+                                // For current level, only show room type emoji when first room_enter event is revealed
                                 let roomTypeForEmoji = item.data?.roomType;
                                 if (isCurrent && !roomTypeForEmoji) {
                                     // Check current level events for room_enter to get room type
                                     const currentLevelEvents = levelsProgress.find(l => l.level === currentLevel)?.events || [];
                                     const roomEnterEvent = currentLevelEvents.find(e => e.type === 'room_enter');
-                                    if (roomEnterEvent) {
+                                    if (roomEnterEvent && firstRoomEnterRevealed) {
                                         roomTypeForEmoji = roomEnterEvent.roomType;
                                     }
                                 }
 
-                                // Current level should always show the actual room type if we have it, otherwise ?
+                                // Current level should show ? until first room_enter is revealed, then show actual room type
                                 const roomEmoji = isCurrent
-                                    ? (roomTypeForEmoji ? getRoomEmoji(roomTypeForEmoji) : '❓')
+                                    ? (firstRoomEnterRevealed && roomTypeForEmoji ? getRoomEmoji(roomTypeForEmoji) : '❓')
                                     : (item.isVisited ? getRoomEmoji(item.data?.roomType) : '❓');
 
                                 return (
-                                    <div key={item.level} className="group relative flex items-center justify-center">
+                                    <div key={item.level} data-level={item.level} className="group relative flex items-center justify-center">
                                         {/* Level number to the side - positioned outside the circle */}
                                         <div className={`absolute -left-10 text-right shrink-0 w-8 ${
                                             isCurrent ? 'text-[#ffd700]' : isCompleted ? 'text-[#22c55e]' : 'text-[#8c7b63]'
@@ -732,9 +1189,9 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
 
                 {/* Right Column - Current Room Details (Wider) */}
                 <PixelBox className="flex-1 min-w-0 flex flex-col" title={`Level ${currentLevel} - Room Details`} variant="paper">
-                    <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+                    <div ref={roomDetailsScrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 text-xs font-mono text-amber-950 leading-relaxed">
                         {currentLevelEvents.length === 0 ? (
-                            <div className="flex items-center justify-center h-full text-[#8c7b63]">
+                            <div className="flex items-center justify-center h-full text-amber-800">
                                 <div className="text-center">
                                     <div className="text-4xl mb-4">🚪</div>
                                     <div>Entering level {currentLevel}...</div>
@@ -743,7 +1200,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                             </div>
                         ) : (
                             <>
-                                {/* Display events progressively */}
+                                {/* Display events progressively as simple text */}
                                 {displayedEvents.map((eventItem, idx) => (
                                     <React.Fragment key={idx}>
                                         {eventItem.content}
@@ -755,35 +1212,6 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                 </PixelBox>
             </div>
 
-            {/* Bottom Status Bar */}
-            <div className="h-14 shrink-0 bg-[#1a120b] border-t-4 border-[#5c4033] px-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    {runStatus && (
-                        <div className="text-sm text-[#8c7b63]">
-                            Status: <span className={`font-bold ${
-                                runStatus.result === 'victory' ? 'text-[#22c55e]' :
-                                runStatus.result === 'defeat' ? 'text-[#ef4444]' :
-                                runStatus.result === 'error' ? 'text-[#ef4444]' :
-                                runStatus.status === 'timeout' ? 'text-[#ef4444]' :
-                                runStatus.status === 'error' ? 'text-[#ef4444]' :
-                                'text-[#ffd700]'
-                            }`}>
-                                {runStatus.result || runStatus.status || 'In Progress'}
-                            </span>
-                            {events.length > 0 && (
-                                <span className="text-xs ml-2 text-[#8c7b63]">
-                                    ({events.length} events, {dungeonEvents.length} parsed)
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-                <div className="flex items-center gap-2">
-                    <PixelButton variant="neutral" onClick={() => switchView(GameView.MAP)}>
-                        Back to Map
-                    </PixelButton>
-                </div>
-            </div>
         </div>
     );
 };

@@ -1,5 +1,5 @@
 export interface CreateRunParams {
-    dungeonId: string;
+    dungeonId?: string; // Optional - will be randomly selected if not provided
     party: string[]; // NFT token IDs
     seed?: string;
     paymentHash?: string;

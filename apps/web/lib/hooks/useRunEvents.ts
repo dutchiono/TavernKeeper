@@ -33,9 +33,13 @@ export function useRunEvents(runId: string | null, pollInterval = 1500) {
                     : `/api/runs/${runId}/events`;
 
                 const res = await fetch(url);
-                if (!res.ok) throw new Error('Failed to fetch events');
+                if (!res.ok) {
+                    const errorText = await res.text().catch(() => 'Unknown error');
+                    throw new Error(`Failed to fetch events: ${res.status} ${res.statusText} - ${errorText}`);
+                }
 
-                const { events: newEvents } = await res.json();
+                const data = await res.json().catch(() => ({ events: [] }));
+                const { events: newEvents } = data;
 
                 if (newEvents && newEvents.length > 0) {
                     setEvents(prev => {

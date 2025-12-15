@@ -1,6 +1,6 @@
 /**
  * Dungeon Run Service
- * 
+ *
  * Orchestrates dungeon runs using all contribution systems.
  * Handles level-by-level generation, combat, traps, loot, and completion.
  */
@@ -68,12 +68,12 @@ export async function executeDungeonRun(
 ): Promise<DungeonRunResult> {
   const events: DungeonRunResult['events'] = [];
   const runStartTime = Date.now();
-  
+
   // Store runId for logging context
   const loggingContext = { runId };
-  
+
   console.log(`[DungeonRun] Starting dungeon run ${runId} for dungeon ${dungeonId} with ${party.length} party members`);
-  
+
   try {
     // 1. Load dungeon from database
     console.log(`[DungeonRun] Loading dungeon data from database...`);
@@ -119,15 +119,64 @@ export async function executeDungeonRun(
         chainId: CHAIN_ID,
       };
 
-      const adventurer = await getAdventurer(heroId);
+      let adventurer = await getAdventurer(heroId);
       if (!adventurer) {
-        throw new Error(`Adventurer not found for hero ${tokenId}`);
+        // Auto-initialize adventurer if not found
+        console.log(`[DungeonRun] Hero ${tokenId} not found in adventurers table. Auto-initializing...`);
+        try {
+          const { initializeAdventurerStats } = await import('./heroAdventurerInit');
+
+          // Try to get wallet address from hero ownership table
+          let walletForInit = walletAddress;
+          if (!walletForInit) {
+            try {
+              const { data: ownership } = await supabase
+                .from('hero_ownership')
+                .select('owner_address')
+                .eq('token_id', tokenId)
+                .single();
+              if (ownership?.owner_address) {
+                walletForInit = ownership.owner_address;
+              }
+            } catch (e) {
+              console.warn(`[DungeonRun] Could not get wallet address for hero ${tokenId}:`, e instanceof Error ? e.message : String(e));
+            }
+          }
+
+          if (!walletForInit) {
+            throw new Error(`Cannot initialize hero ${tokenId}: wallet address not available`);
+          }
+
+          adventurer = await initializeAdventurerStats(
+            tokenId,
+            HERO_CONTRACT_ADDRESS,
+            CHAIN_ID,
+            walletForInit
+          );
+          console.log(`[DungeonRun] Successfully auto-initialized hero ${tokenId}`);
+        } catch (initError) {
+          const errorMsg = initError instanceof Error ? initError.message : String(initError);
+          // Log the full error for debugging RLS issues
+          if (initError instanceof Error && (initError.message.includes('row-level security') || initError.message.includes('RLS'))) {
+            console.error(`[DungeonRun] RLS policy violation when initializing hero ${tokenId}.`);
+            console.error(`[DungeonRun] Error details:`, initError);
+            console.error(`[DungeonRun] Ensure SUPABASE_SERVICE_ROLE_KEY is set in environment variables.`);
+            // Re-throw with clearer message
+            throw new Error(`Row-level security policy violation: Cannot auto-initialize adventurer for hero ${tokenId}. The worker needs SUPABASE_SERVICE_ROLE_KEY to bypass RLS policies. Error: ${errorMsg}`);
+          }
+          console.error(`[DungeonRun] Failed to auto-initialize hero ${tokenId}:`, errorMsg);
+          throw new Error(`Could not find or initialize adventurer for hero ${tokenId}: ${errorMsg}`);
+        }
+      }
+
+      if (!adventurer) {
+        throw new Error(`Adventurer initialization failed for hero ${tokenId}`);
       }
 
       // Load equipped items and apply equipment bonuses
       try {
         const equippedItems = await getEquippedItems(heroId);
-        
+
         // Apply equipment bonuses to adventurer stats
         let attackBonus = adventurer.stats.attackBonus || 0;
         let spellAttackBonus = adventurer.stats.spellAttackBonus || 0;
@@ -178,13 +227,13 @@ export async function executeDungeonRun(
     while (currentLevel <= maxLevel) {
       const levelStartTime = Date.now();
       console.log(`[DungeonRun] === Level ${currentLevel}/${maxLevel} ===`);
-      
+
       // Safety check: warn if level processing is taking too long
       const levelTimeout = 60 * 1000; // 1 minute per level
       const levelTimeoutId = setTimeout(() => {
         console.warn(`[DungeonRun] WARNING: Level ${currentLevel} processing is taking longer than 1 minute`);
       }, levelTimeout);
-      
+
       // Check if party is wiped
       const aliveMembers = partyMembers.filter(m => m.stats.health > 0);
       if (aliveMembers.length === 0) {
@@ -275,7 +324,7 @@ export async function executeDungeonRun(
         currentLevel++;
         continue; // Skip to next level
       }
-      
+
       // Clear level timeout
       clearTimeout(levelTimeoutId);
 
@@ -284,7 +333,7 @@ export async function executeDungeonRun(
         console.log(`[DungeonRun] Updating ${roomResult.partyUpdates.length} party member stats...`);
         const updateStartTime = Date.now();
         for (const update of roomResult.partyUpdates) {
-          const member = partyMembers.find(m => 
+          const member = partyMembers.find(m =>
             m.heroId.tokenId === update.heroId.tokenId
           );
           if (member) {
@@ -307,7 +356,7 @@ export async function executeDungeonRun(
           }
         }
         console.log(`[DungeonRun] Party stats updated in ${Date.now() - updateStartTime}ms`);
-        
+
         // Check if all party members are dead after updating stats
         const aliveAfterUpdate = partyMembers.filter(m => m.stats.health > 0);
         if (aliveAfterUpdate.length === 0) {
@@ -328,7 +377,7 @@ export async function executeDungeonRun(
               DB_OPERATION_TIMEOUT,
               `addXP(${xpUpdate.heroId.tokenId})`
             );
-            const member = partyMembers.find(m => 
+            const member = partyMembers.find(m =>
               m.heroId.tokenId === xpUpdate.heroId.tokenId
             );
             if (member) {
@@ -344,12 +393,12 @@ export async function executeDungeonRun(
 
       const levelDuration = Date.now() - levelStartTime;
       console.log(`[DungeonRun] Level ${currentLevel} completed in ${levelDuration}ms (Total XP: ${totalXP})`);
-      
+
       // Safety check: warn if level took too long
       if (levelDuration > levelTimeout) {
         console.warn(`[DungeonRun] WARNING: Level ${currentLevel} took ${levelDuration}ms (exceeded ${levelTimeout}ms threshold)`);
       }
-      
+
       currentLevel++;
     }
 
@@ -368,7 +417,7 @@ export async function executeDungeonRun(
     // All deterministic calculations are done, now schedule events for time-based delivery
     const scheduleStartTime = Date.now();
     const startDeliveryTime = new Date(); // Start delivering events immediately
-    
+
     if (events.length > 0) {
       try {
         const eventPayloads = events.map(event => ({
@@ -382,7 +431,7 @@ export async function executeDungeonRun(
             timestamp: event.timestamp,
           },
         }));
-        
+
         const scheduledEvents = await scheduleEventsSequentially(
           eventPayloads,
           startDeliveryTime,
@@ -419,18 +468,44 @@ export async function executeDungeonRun(
       console.error(`[DungeonRun] Error message: ${error.message}`);
       console.error(`[DungeonRun] Error stack: ${error.stack}`);
     }
+
+    const errorEvent = {
+      type: 'error',
+      level: 0,
+      roomType: 'combat' as RoomType,
+      description: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: Date.now(),
+    };
+
+    // Schedule error event to world_events so UI can display it
+    try {
+      const startDeliveryTime = new Date();
+      await scheduleEventsSequentially(
+        [{
+          runId,
+          type: 'error',
+          payload: {
+            level: errorEvent.level,
+            roomType: errorEvent.roomType,
+            description: errorEvent.description,
+            timestamp: errorEvent.timestamp,
+          },
+        }],
+        startDeliveryTime,
+        { eventIntervalSeconds: 6 }
+      );
+      console.log(`[DungeonRun] ✅ Scheduled error event to world_events`);
+    } catch (scheduleError) {
+      console.error(`[DungeonRun] ❌ Error scheduling error event:`, scheduleError);
+      // Continue - at least we tried
+    }
+
     return {
       runId,
       status: 'error',
       levelsCompleted: 0,
       totalXP: 0,
-      events: [{
-        type: 'error',
-        level: 0,
-        roomType: 'combat',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: Date.now(),
-      }],
+      events: [errorEvent],
       finalPartyStats: [],
     };
   }
@@ -568,7 +643,7 @@ async function executeRoom(
       console.log(`[RoomExecution] Starting combat simulation (2 minute timeout)...`);
       const combatStartTime = Date.now();
       const COMBAT_TIMEOUT = 2 * 60 * 1000; // 2 minutes
-      
+
       const combatResult: CombatResult = await withTimeout(
         runCombat(combatState, {
           clericHealRatio: 0.3,
@@ -585,7 +660,7 @@ async function executeRoom(
         type: combatResult.status === 'victory' ? 'combat_victory' : 'combat_defeat',
         level,
         roomType,
-        description: combatResult.status === 'victory' 
+        description: combatResult.status === 'victory'
           ? `Defeated ${monsters.length} monster(s) - ${combatResult.totalTurns} turns, ${combatResult.xpAwarded || 0} XP`
           : 'Party was defeated',
         timestamp: Date.now(),

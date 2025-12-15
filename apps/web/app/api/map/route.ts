@@ -49,34 +49,73 @@ export async function GET(request: NextRequest) {
 
         // Extract map data and convert to the expected format
         const dungeonMap = dungeon.map as any;
-        
-        // Convert dungeon map structure to the room-based format expected by MapScene
-        // The dungeon has a levelLayout, but MapScene expects rooms
-        // For now, create a simple room structure based on the dungeon depth
+
+        // Convert dungeon levelLayout to the room-based format expected by MapScene
+        // The dungeon has a levelLayout array with pre-generated rooms
         const rooms: Array<{ id: string; type: 'room' | 'corridor' | 'chamber' | 'boss'; connections: string[] }> = [];
-        
-        // Create rooms for each level (simplified representation)
-        const depth = dungeonMap?.depth || 100;
-        const maxRooms = Math.min(depth, 10); // Limit to 10 rooms for visualization
-        
+
+        const levelLayout = dungeonMap?.levelLayout || [];
+        const depth = dungeonMap?.depth || levelLayout.length || 100;
+
+        // Determine boss levels from levelLayout
+        const bossLevels = new Set<number>();
+        if (dungeonMap?.finalBoss) {
+            bossLevels.add(depth); // Final boss at bottom
+        }
+        if (dungeonMap?.midBosses && Array.isArray(dungeonMap.midBosses)) {
+            dungeonMap.midBosses.forEach((boss: any) => {
+                if (boss.level) {
+                    bossLevels.add(boss.level);
+                }
+            });
+        }
+
+        // Also check levelLayout entries for bosses
+        levelLayout.forEach((layout: any) => {
+            if (layout.boss && layout.level) {
+                bossLevels.add(layout.level);
+            }
+        });
+
+        // Create rooms from levelLayout (limit to reasonable number for visualization)
+        const maxRooms = Math.min(depth, 20); // Show up to 20 levels for visualization
+
         for (let i = 1; i <= maxRooms; i++) {
-            const roomId = `room-${i}`;
+            const roomId = `level-${i}`;
             const connections: string[] = [];
-            
+
+            // Sequential connections (each level connects to next)
             if (i > 1) {
-                connections.push(`room-${i - 1}`);
+                connections.push(`level-${i - 1}`);
             }
             if (i < maxRooms) {
-                connections.push(`room-${i + 1}`);
+                connections.push(`level-${i + 1}`);
             }
-            
+
+            // Determine room type from levelLayout or defaults
             let roomType: 'room' | 'corridor' | 'chamber' | 'boss' = 'room';
-            if (i === maxRooms) {
+
+            // Check if this level has a boss
+            if (bossLevels.has(i)) {
                 roomType = 'boss';
-            } else if (i === Math.floor(maxRooms / 2)) {
-                roomType = 'chamber';
+            } else {
+                // Check levelLayout for room type
+                const layoutEntry = levelLayout.find((l: any) => l.level === i);
+                if (layoutEntry?.room) {
+                    const roomTypeFromLayout = layoutEntry.room.type;
+                    // Map RoomType to MapScene room type
+                    if (roomTypeFromLayout === 'boss' || roomTypeFromLayout === 'mid_boss') {
+                        roomType = 'boss';
+                    } else if (roomTypeFromLayout === 'treasure') {
+                        roomType = 'chamber';
+                    } else if (roomTypeFromLayout === 'safe') {
+                        roomType = 'chamber';
+                    } else if (roomTypeFromLayout === 'combat' || roomTypeFromLayout === 'trap') {
+                        roomType = 'room';
+                    }
+                }
             }
-            
+
             rooms.push({
                 id: roomId,
                 type: roomType,

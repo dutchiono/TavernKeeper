@@ -52,7 +52,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         events.forEach((event, idx) => {
             // Events from world_events table have a payload field
             const eventData = event.payload || {};
-            
+
             // Debug: log first few events to see structure
             if (idx < 3) {
                 console.log(`[BattleScene] Event ${idx}:`, {
@@ -62,7 +62,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                     hasLevel: eventData.level !== undefined,
                 });
             }
-            
+
             // Check if this is a dungeon event (has level property)
             if (eventData.level !== undefined) {
                 parsed.push({
@@ -81,12 +81,12 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                 }
             }
         });
-        
+
         console.log(`[BattleScene] Parsed ${parsed.length} dungeon events from ${events.length} total events`);
         if (parsed.length > 0) {
             console.log(`[BattleScene] Sample parsed event:`, parsed[0]);
         }
-        
+
         return parsed.sort((a, b) => {
             // Sort by level first, then timestamp
             if (a.level !== b.level) return a.level - b.level;
@@ -117,7 +117,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
             }
             const levelData = levels.get(event.level)!;
             levelData.events.push(event);
-            
+
             // Update status based on event type
             if (event.type === 'room_enter') {
                 levelData.status = 'in_progress';
@@ -175,8 +175,8 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data.dungeon) {
-                    const mapData = typeof data.dungeon.map === 'string' 
-                        ? JSON.parse(data.dungeon.map) 
+                    const mapData = typeof data.dungeon.map === 'string'
+                        ? JSON.parse(data.dungeon.map)
                         : data.dungeon.map;
                     setDungeonInfo({
                         name: mapData?.name || data.dungeon.name || 'Unknown Dungeon',
@@ -197,16 +197,16 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
     useEffect(() => {
         // Calculate total items across ALL levels that have been reached
         let totalItems = 0;
-        
+
         levelsProgress.forEach(levelData => {
             if (levelData.level > currentLevel) return; // Only count levels we've reached
-            
+
             const roomEnterCount = levelData.events.filter(e => e.type === 'room_enter').length;
             const combatEvent = levelData.events.find(e => e.combatTurns && e.combatTurns.length > 0);
             const combatTurnsCount = combatEvent?.combatTurns?.length || 0;
             const otherEventsCount = levelData.events.filter(e => e.type !== 'room_enter' && !e.combatTurns).length;
             const levelItems = roomEnterCount + combatTurnsCount + otherEventsCount;
-            
+
             totalItems += levelItems;
         });
 
@@ -225,7 +225,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                         const otherEventsCount = levelData.events.filter(e => e.type !== 'room_enter' && !e.combatTurns).length;
                         newTotalItems += roomEnterCount + combatTurnsCount + otherEventsCount;
                     });
-                    
+
                     if (prev < newTotalItems) {
                         return prev + 1;
                     }
@@ -261,36 +261,12 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         }
     }, [runStatus, onComplete, switchView]);
 
-    if (!currentRunId) {
-        return (
-            <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4">
-                <div className="text-4xl">⚠️</div>
-                <div className="text-xl">No active run</div>
-                <div className="text-sm text-slate-400">Please start a run from the map</div>
-                <PixelButton variant="primary" onClick={() => switchView(GameView.MAP)}>
-                    Go to Map
-                </PixelButton>
-            </div>
-        );
-    }
-
-    // Only show loading on very first load, use ref to prevent re-renders
-    if (!hasInitializedRef.current && eventsLoading && dungeonEvents.length === 0) {
-        return (
-            <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4">
-                <div className="text-4xl animate-pulse">⚔️</div>
-                <div className="text-xl">Loading dungeon run...</div>
-                <div className="text-xs text-slate-400">Waiting for simulation to start...</div>
-            </div>
-        );
-    }
-
-    // Get events for current level
+    // Get events for current level (needed for hooks below)
     const currentLevelEvents = levelsProgress.find(l => l.level === currentLevel)?.events || [];
     const currentLevelData = levelsProgress.find(l => l.level === currentLevel);
     const completedLevels = levelsProgress.filter(l => l.status === 'completed').length;
 
-    // Get room type emoji
+    // Get room type emoji (helper function - must be defined before useMemo)
     const getRoomEmoji = (roomType?: string) => {
         if (!roomType) return '❓';
         const type = roomType.toLowerCase();
@@ -306,7 +282,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         const levelsToShow = 9; // Show 4 above, current, 4 below
         const startLevel = Math.max(1, currentLevel - 4);
         const endLevel = Math.min(levelsProgress.length, startLevel + levelsToShow);
-        
+
         const visible: Array<{ level: number; data: LevelProgress | null; isVisited: boolean }> = [];
         for (let i = startLevel; i <= endLevel; i++) {
             const levelData = levelsProgress[i - 1] || null;
@@ -381,12 +357,12 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
     const displayedEvents = useMemo(() => {
         const events: Array<{ type: string; content: React.ReactNode; isCombatTurn?: boolean }> = [];
         let itemIndex = 0;
-        
+
         // Process events from ALL levels up to current level
         for (let level = 1; level <= currentLevel; level++) {
             const levelEvents = levelsProgress.find(l => l.level === level)?.events || [];
             if (levelEvents.length === 0) continue;
-            
+
             // Add level header if we have events for this level
             if (level > 1 && itemIndex < revealedEventCount) {
                 events.push({
@@ -398,7 +374,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                     ),
                 });
             }
-            
+
             // Room entry events (always show first)
             const roomEnterEvents = levelEvents.filter(e => e.type === 'room_enter');
             roomEnterEvents.forEach((event, idx) => {
@@ -437,7 +413,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                     result: turn.result,
                 }))
                 .sort((a, b) => a.turnNumber - b.turnNumber);
-            
+
             if (itemIndex < revealedEventCount && levelCombatTurns.length > 0) {
                 // Show combat turns header on first turn
                 if (itemIndex === roomEnterEvents.length) {
@@ -450,7 +426,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                         ),
                     });
                 }
-                
+
                 const turnsToShow = Math.min(levelCombatTurns.length, revealedEventCount - itemIndex);
                 levelCombatTurns.slice(0, turnsToShow).forEach((turn, idx) => {
                 const isAttack = turn.actionType === 'attack';
@@ -544,6 +520,95 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         return events;
     }, [levelsProgress, currentLevel, revealedEventCount]);
 
+    // NOW do all conditional returns AFTER all hooks have been called
+    if (!currentRunId) {
+        return (
+            <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4">
+                <div className="text-4xl">⚠️</div>
+                <div className="text-xl">No active run</div>
+                <div className="text-sm text-slate-400">Please start a run from the map</div>
+                <PixelButton variant="primary" onClick={() => switchView(GameView.MAP)}>
+                    Go to Map
+                </PixelButton>
+            </div>
+        );
+    }
+
+    // Check for error events
+    const errorEvent = dungeonEvents.find(e => e.type === 'error');
+    const hasError = errorEvent || (runStatus && (runStatus.result === 'error' || runStatus.status === 'error'));
+
+    // Show error state prominently if we have an error event or error status
+    if (hasError && (errorEvent || !eventsLoading)) {
+        return (
+            <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4 p-8">
+                <div className="text-6xl">❌</div>
+                <div className="text-2xl font-bold text-[#ef4444]">Run Failed</div>
+                {errorEvent && (
+                    <div className="max-w-2xl text-center bg-[#1a120b] border-4 border-[#ef4444] rounded-lg p-6">
+                        <div className="text-lg mb-2 text-[#ef4444] font-bold">Error Details:</div>
+                        <div className="text-sm text-[#eaddcf] font-mono whitespace-pre-wrap">
+                            {errorEvent.description}
+                        </div>
+                        {errorEvent.level > 0 && (
+                            <div className="text-xs text-[#8c7b63] mt-4">
+                                Failed at Level {errorEvent.level}
+                            </div>
+                        )}
+                    </div>
+                )}
+                {runStatus && runStatus.result === 'error' && !errorEvent && (
+                    <div className="max-w-2xl text-center bg-[#1a120b] border-4 border-[#ef4444] rounded-lg p-6">
+                        <div className="text-sm text-[#eaddcf]">
+                            The dungeon run encountered an error. Please try again.
+                        </div>
+                    </div>
+                )}
+                <div className="flex gap-4 mt-4">
+                    <PixelButton variant="primary" onClick={() => switchView(GameView.MAP)}>
+                        Back to Map
+                    </PixelButton>
+                </div>
+            </div>
+        );
+    }
+
+    // Only show loading on very first load, use ref to prevent re-renders
+    if (!hasInitializedRef.current && eventsLoading && dungeonEvents.length === 0) {
+        return (
+            <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4">
+                <div className="text-4xl animate-pulse">⚔️</div>
+                <div className="text-xl">Loading dungeon run...</div>
+                <div className="text-xs text-slate-400">Waiting for simulation to start...</div>
+            </div>
+        );
+    }
+
+    // Show timeout state if we have timeout status but no events
+    if (runStatus && runStatus.status === 'timeout' && dungeonEvents.length === 0 && !eventsLoading) {
+        return (
+            <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4 p-8">
+                <div className="text-6xl">⏱️</div>
+                <div className="text-2xl font-bold text-[#ef4444]">Run Timed Out</div>
+                <div className="max-w-2xl text-center bg-[#1a120b] border-4 border-[#ef4444] rounded-lg p-6">
+                    <div className="text-sm text-[#eaddcf]">
+                        The dungeon run simulation timed out before generating any events. This may indicate:
+                    </div>
+                    <ul className="text-xs text-[#8c7b63] mt-4 list-disc list-inside text-left space-y-2">
+                        <li>Hero initialization failed</li>
+                        <li>Dungeon data was missing or invalid</li>
+                        <li>Simulation encountered an unexpected error</li>
+                    </ul>
+                </div>
+                <div className="flex gap-4 mt-4">
+                    <PixelButton variant="primary" onClick={() => switchView(GameView.MAP)}>
+                        Back to Map
+                    </PixelButton>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="w-full h-full bg-[#2a1d17] relative flex flex-col font-pixel overflow-hidden">
             {/* Top Panel - Room Scene (1/2 height) */}
@@ -553,7 +618,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                     backgroundImage: 'radial-gradient(#4a3b32 2px, transparent 2px)',
                     backgroundSize: '20px 20px'
                 }} />
-                
+
                 {/* Room Title Overlay - Smaller text, cleaned up */}
                 <div className="absolute top-3 left-3 z-10">
                     <div className="bg-[#2a1d17]/90 border-2 border-[#5c4033] rounded px-3 py-1.5">
@@ -617,7 +682,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                                 const isCurrent = item.level === currentLevel;
                                 const isCompleted = item.data?.status === 'completed';
                                 const isVisited = item.isVisited;
-                                
+
                                 // For current level, check if we have any events to determine room type
                                 let roomTypeForEmoji = item.data?.roomType;
                                 if (isCurrent && !roomTypeForEmoji) {
@@ -628,9 +693,9 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                                         roomTypeForEmoji = roomEnterEvent.roomType;
                                     }
                                 }
-                                
+
                                 // Current level should always show the actual room type if we have it, otherwise ?
-                                const roomEmoji = isCurrent 
+                                const roomEmoji = isCurrent
                                     ? (roomTypeForEmoji ? getRoomEmoji(roomTypeForEmoji) : '❓')
                                     : (item.isVisited ? getRoomEmoji(item.data?.roomType) : '❓');
 
@@ -698,7 +763,9 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                             Status: <span className={`font-bold ${
                                 runStatus.result === 'victory' ? 'text-[#22c55e]' :
                                 runStatus.result === 'defeat' ? 'text-[#ef4444]' :
+                                runStatus.result === 'error' ? 'text-[#ef4444]' :
                                 runStatus.status === 'timeout' ? 'text-[#ef4444]' :
+                                runStatus.status === 'error' ? 'text-[#ef4444]' :
                                 'text-[#ffd700]'
                             }`}>
                                 {runStatus.result || runStatus.status || 'In Progress'}

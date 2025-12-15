@@ -12,27 +12,27 @@ dotenv.config({ path: rootEnvPath });
 
 async function checkRunDetails() {
   console.log('🔍 Checking Latest Run Details...\n');
-  
+
   try {
     const { supabase } = await import('../lib/supabase');
-    
+
     // Get the most recent run
     const { data: runs, error: runsError } = await supabase
       .from('runs')
       .select('*')
       .order('start_time', { ascending: false })
       .limit(1);
-    
+
     if (runsError) {
       console.error('Error fetching runs:', runsError);
       return;
     }
-    
+
     if (!runs || runs.length === 0) {
       console.log('No runs found in database');
       return;
     }
-    
+
     const latestRun = runs[0];
     console.log('📊 Latest Run Details:');
     console.log(`   ID: ${latestRun.id}`);
@@ -44,41 +44,43 @@ async function checkRunDetails() {
     console.log(`   Dungeon ID: ${latestRun.dungeon_id}`);
     console.log(`   Party: ${JSON.stringify(latestRun.party)}`);
     console.log(`   Seed: ${latestRun.seed || 'N/A'}\n`);
-    
+
     // Calculate duration
     if (latestRun.start_time && latestRun.end_time) {
       const start = new Date(latestRun.start_time);
       const end = new Date(latestRun.end_time);
       const duration = (end.getTime() - start.getTime()) / 1000;
       console.log(`   Duration: ${duration.toFixed(2)} seconds\n`);
-      
+
       if (duration < 5) {
         console.log('⚠️  Run completed very quickly (< 5 seconds) - likely failed immediately\n');
       }
     }
-    
-    // Check if dungeon exists
+
+    // Check if dungeon exists (schema-accurate: derive name from map JSON)
     if (latestRun.dungeon_id) {
       const { data: dungeon, error: dungeonError } = await supabase
         .from('dungeons')
-        .select('id, name, slug')
+        .select('id, seed, map, created_at')
         .eq('id', latestRun.dungeon_id)
         .single();
-      
-      if (dungeonError) {
+
+      if (dungeonError || !dungeon) {
         console.log(`❌ Dungeon not found: ${latestRun.dungeon_id}`);
-        console.log(`   Error: ${dungeonError.message}\n`);
+        console.log(`   Error: ${dungeonError?.message || 'No record found'}\n`);
       } else {
-        console.log(`✅ Dungeon found: ${dungeon.name} (${dungeon.slug || 'no slug'})\n`);
+        const mapData = typeof dungeon.map === 'string' ? JSON.parse(dungeon.map) : dungeon.map;
+        const name = mapData?.name || `Dungeon ${dungeon.seed}`;
+        console.log(`✅ Dungeon found: ${name} (id: ${dungeon.id})\n`);
       }
     }
-    
+
     // Check if party members exist in adventurers table
     if (latestRun.party && Array.isArray(latestRun.party)) {
       console.log(`🔍 Checking party members (${latestRun.party.length} members)...`);
-      
+
       const HERO_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
-      
+
       for (const tokenId of latestRun.party) {
         const { data: adventurer, error: advError } = await supabase
           .from('adventurers')
@@ -86,7 +88,7 @@ async function checkRunDetails() {
           .eq('token_id', tokenId)
           .eq('contract_address', HERO_CONTRACT_ADDRESS)
           .single();
-        
+
         if (advError || !adventurer) {
           console.log(`   ❌ Hero ${tokenId}: NOT FOUND in adventurers table`);
           console.log(`      Error: ${advError?.message || 'No record found'}`);
@@ -96,14 +98,14 @@ async function checkRunDetails() {
       }
       console.log('');
     }
-    
+
     // Get events for this run
     const { data: events, error: eventsError } = await supabase
       .from('world_events')
       .select('*')
       .eq('run_id', latestRun.id)
       .order('timestamp', { ascending: true });
-    
+
     if (eventsError) {
       console.error('Error fetching events:', eventsError);
     } else {
@@ -122,14 +124,14 @@ async function checkRunDetails() {
         console.log('   ⚠️  No events generated - run likely failed before processing any rooms\n');
       }
     }
-    
+
   } catch (error) {
     console.error('Error:', error);
     if (error instanceof Error) {
       console.error('   Stack:', error.stack);
     }
   }
-  
+
   process.exit(0);
 }
 

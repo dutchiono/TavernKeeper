@@ -89,93 +89,31 @@ export const runWorker = new Worker<RunJobData>(
         .single();
       console.log(`[Worker] Run data fetched in ${Date.now() - fetchStartTime}ms`);
 
-      // Extract wallet from party - in production, this should be stored in run record
-      // For now, we'll need to get it from hero ownership
-      const HERO_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
-      console.log(`[Worker] Loading adventurer service and fetching first hero...`);
-      const heroFetchStartTime = Date.now();
-      const { getAdventurer } = await import('../contributions/adventurer-tracking/code/services/adventurerService');
-      
-      let firstHero;
-      try {
-        firstHero = await getAdventurer({
-          tokenId: party[0],
-          contractAddress: HERO_CONTRACT_ADDRESS,
-          chainId: parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '143', 10),
-        });
-        console.log(`[Worker] Hero data fetched in ${Date.now() - heroFetchStartTime}ms`);
-      } catch (heroError) {
-        const errorMsg = heroError instanceof Error ? heroError.message : String(heroError);
-        if (errorMsg.includes('adventurers') || errorMsg.includes('table')) {
-          throw new Error(`Database schema missing: The 'adventurers' table does not exist. Please run the migration: apps/web/contributions/adventurer-tracking/code/database/migration.sql`);
-        }
-        throw heroError;
-      }
+      // Get wallet address from run record (now stored when run is created)
+      // Fall back to getting from first hero if not in run record (for backwards compatibility)
+      let walletAddress = runData?.wallet_address || '';
 
-      if (!firstHero) {
-        // Auto-initialize hero if it doesn't exist
-        console.log(`[Worker] Hero ${party[0]} not found in adventurers table. Auto-initializing...`);
+      if (!walletAddress) {
+        // Fallback: try to get from hero ownership table
+        console.log(`[Worker] Wallet address not in run record, attempting to get from hero ownership...`);
         try {
-          const { initializeAdventurerStats } = await import('../lib/services/heroAdventurerInit');
-          
-          // Try to get wallet address from run data or hero ownership
-          let walletForInit = '';
-          try {
-            // Check if run data has wallet info
-            if (runData?.wallet_address) {
-              walletForInit = runData.wallet_address;
-            } else {
-              // Try to get from hero ownership table
-              const { data: ownership } = await supabase
-                .from('hero_ownership')
-                .select('owner_address')
-                .eq('token_id', party[0])
-                .single();
-              if (ownership?.owner_address) {
-                walletForInit = ownership.owner_address;
-              }
-            }
-          } catch (e) {
-            console.warn(`[Worker] Could not get wallet address:`, e instanceof Error ? e.message : String(e));
+          const { data: ownership } = await supabase
+            .from('hero_ownership')
+            .select('owner_address')
+            .eq('token_id', party[0])
+            .single();
+          if (ownership?.owner_address) {
+            walletAddress = ownership.owner_address;
           }
-          
-          // initializeAdventurerStats will handle fetching hero metadata internally if needed
-          console.log(`[Worker] Initializing hero ${party[0]} with wallet=${walletForInit || 'none'} (will fetch metadata if available)`);
-          firstHero = await initializeAdventurerStats(
-            party[0],
-            HERO_CONTRACT_ADDRESS,
-            parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '143', 10),
-            walletForInit
-            // Don't pass class/name - let initializeAdventurerStats fetch it or use defaults
-          );
-          console.log(`[Worker] Successfully auto-initialized hero ${party[0]}`);
-        } catch (initError) {
-          console.error(`[Worker] Failed to auto-initialize hero ${party[0]}:`, initError);
-          // Better error formatting
-          let errorDetails = '';
-          if (initError instanceof Error) {
-            errorDetails = initError.message;
-            if (initError.stack) {
-              errorDetails += `\nStack: ${initError.stack.split('\n').slice(0, 5).join('\n')}`; // First 5 lines of stack
-            }
-          } else if (typeof initError === 'object' && initError !== null) {
-            try {
-              errorDetails = JSON.stringify(initError, Object.getOwnPropertyNames(initError), 2);
-            } catch {
-              errorDetails = String(initError);
-            }
-          } else {
-            errorDetails = String(initError);
-          }
-          throw new Error(`Could not find or initialize adventurer for hero ${party[0]}. Error: ${errorDetails}`);
+        } catch (e) {
+          console.warn(`[Worker] Could not get wallet address from hero ownership:`, e instanceof Error ? e.message : String(e));
         }
       }
 
-      if (!firstHero) {
-        throw new Error(`Could not find or initialize adventurer for hero ${party[0]}.`);
+      if (!walletAddress) {
+        throw new Error(`Cannot determine wallet address for run ${runId}. Wallet address must be stored in run record or hero_ownership table.`);
       }
 
-      const walletAddress = firstHero.walletAddress;
       console.log(`[Worker] Wallet address: ${walletAddress}`);
 
       // Execute dungeon run using new service with timeout (5 minutes)
@@ -212,7 +150,7 @@ export const runWorker = new Worker<RunJobData>(
       const logsResult = await supabase.from('run_logs').insert(runLogs);
       const insertDuration = Date.now() - insertStartTime;
       console.log(`[Worker] Database insert completed in ${insertDuration}ms`);
-      
+
       if (logsResult.error) {
         console.error(`[Worker] Error inserting run logs:`, logsResult.error);
       } else {
@@ -222,9 +160,9 @@ export const runWorker = new Worker<RunJobData>(
       // Unlock heroes
       console.log(`[Worker] Unlocking heroes...`);
       const unlockStartTime = Date.now();
-      const checkingHeroes = party.map((id: string) => ({ 
-        contractAddress: HERO_CONTRACT_ADDRESS, 
-        tokenId: id 
+      const checkingHeroes = party.map((id: string) => ({
+        contractAddress: HERO_CONTRACT_ADDRESS,
+        tokenId: id
       }));
       await dungeonStateService.unlockHeroes(checkingHeroes);
       console.log(`[Worker] Heroes unlocked in ${Date.now() - unlockStartTime}ms`);
@@ -263,13 +201,13 @@ export const runWorker = new Worker<RunJobData>(
       // Unlock heroes on error
       try {
         const HERO_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
-        const checkingHeroes = party.map((id: string) => ({ 
-          contractAddress: HERO_CONTRACT_ADDRESS, 
-          tokenId: id 
+        const checkingHeroes = party.map((id: string) => ({
+          contractAddress: HERO_CONTRACT_ADDRESS,
+          tokenId: id
         }));
         await dungeonStateService.unlockHeroes(checkingHeroes);
       } catch (unlockError) {
-        console.error('Error unlocking heroes:', unlockError);
+        console.error('[Worker] Error unlocking heroes:', unlockError);
       }
 
       // Log error to database for debugging
@@ -282,7 +220,7 @@ export const runWorker = new Worker<RunJobData>(
         dungeonId,
         party,
       });
-      
+
       await supabase.from('run_logs').insert({
         run_id: runId,
         text: `Simulation Failed: ${errorMessage}\nStack: ${errorStack}`,
@@ -315,7 +253,7 @@ export const runWorker = new Worker<RunJobData>(
 
       // Check if error is a timeout
       const isTimeout = error instanceof Error && error.message.includes('timed out');
-      
+
       // Update run with error or timeout status
       await supabase
         .from('runs')
@@ -382,7 +320,7 @@ runWorker.on('failed', async (job, err) => {
   if (job?.data?.runId) {
     try {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      
+
       // Log error to database
       await supabase.from('run_logs').insert({
         run_id: job.data.runId,
@@ -435,7 +373,7 @@ setTimeout(() => {
   console.log(`[Worker]   - isPaused: ${runWorker.isPaused()}`);
   console.log(`[Worker]   - name: ${runWorker.name}`);
   console.log(`[Worker]   - Redis connection: ${redisUrl.replace(/:[^:@]+@/, ':****@')}`);
-  
+
   if (runWorker.isPaused()) {
     console.log(`[Worker] ⚠️ Worker is paused! Resuming...`);
     runWorker.resume();

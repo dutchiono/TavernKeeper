@@ -12,12 +12,12 @@ const getSupabaseConfig = () => {
   // Service role key bypasses RLS policies, which is needed for workers
   const isServerSide = typeof window === 'undefined';
   const hasServiceRoleKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
+
   if (isServerSide && hasServiceRoleKey) {
     // Use service role key in server context (workers, API routes)
     // This bypasses RLS policies
   }
-  
+
   const key = (isServerSide && hasServiceRoleKey)
     ? process.env.SUPABASE_SERVICE_ROLE_KEY!
     : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
@@ -122,7 +122,13 @@ async function supabaseRequest<T>(
     };
 
     if (options.upsert) {
-      headers['Prefer'] = `resolution=merge-duplicates,return=representation${options.onConflict ? `,on_conflict=${options.onConflict}` : ''}`;
+      // For upsert, use resolution=merge-duplicates and specify conflict columns
+      const conflictColumns = options.onConflict || '';
+      headers['Prefer'] = `resolution=merge-duplicates,return=representation`;
+      // Supabase REST API needs conflict columns in the URL as on_conflict query param
+      if (conflictColumns) {
+        url.searchParams.set('on_conflict', conflictColumns);
+      }
     } else if (options.single || method === 'POST' || method === 'PATCH') {
       headers['Prefer'] = 'return=representation';
     }

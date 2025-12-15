@@ -91,12 +91,21 @@ export async function POST(request: NextRequest) {
         party,
         seed: seed || `run-${Date.now()}`,
         start_time: new Date().toISOString(),
+        wallet_address: walletAddress, // Store wallet address for hero initialization
       })
       .select()
       .single();
 
     if (dbError) {
       console.error('Supabase Insert Error:', dbError);
+      // Check if error is due to missing wallet_address column
+      if (dbError.message.includes('wallet_address') || dbError.message.includes('column') || dbError.code === '42703') {
+        console.error('Database schema missing wallet_address column. Please run migration: 20250116000000_add_wallet_address_to_runs.sql');
+        return NextResponse.json(
+          { error: 'Database schema update required. Please run migration: 20250116000000_add_wallet_address_to_runs.sql' },
+          { status: 500 }
+        );
+      }
       throw new Error(`Database insert failed: ${dbError.message} (Dungeon: ${finalDungeonId})`);
     }
     run = data;

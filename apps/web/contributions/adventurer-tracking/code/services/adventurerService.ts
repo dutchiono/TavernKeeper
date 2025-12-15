@@ -1,6 +1,6 @@
 /**
  * Adventurer Tracking Service
- * 
+ *
  * Service for managing hero/adventurer stats and attributes.
  * Handles stat updates, health/mana restoration, and trap interactions.
  */
@@ -17,8 +17,8 @@ import type {
   AdventurerQueryFilters,
   HeroClass,
 } from '../types/adventurer-stats';
-import { 
-  XP_PER_LEVEL, 
+import {
+  XP_PER_LEVEL,
   calculateLevelFromXP,
   calculateProficiencyBonus,
   calculateAbilityModifier,
@@ -91,14 +91,35 @@ export async function getAdventurersByWallet(
 export async function upsertAdventurer(adventurer: AdventurerRecord): Promise<AdventurerRecord> {
   const dbRecord = mapAdventurerToDb(adventurer);
 
-  const { data, error } = await supabase
+  // Try upsert first
+  let { data, error } = await supabase
     .from('adventurers')
     .upsert(dbRecord, {
       onConflict: 'token_id,contract_address,chain_id',
-      ignoreDuplicates: false,
     })
     .select()
     .single();
+
+  // If upsert fails with duplicate key error, try update instead
+  if (error && (error.code === '23505' || error.code === '409' || error.message?.includes('duplicate key'))) {
+    console.warn('Upsert failed with duplicate key, attempting update instead:', error.message);
+    // Try update by the unique constraint columns
+    const { data: updateData, error: updateError } = await supabase
+      .from('adventurers')
+      .update(dbRecord)
+      .eq('token_id', dbRecord.token_id)
+      .eq('contract_address', dbRecord.contract_address)
+      .eq('chain_id', dbRecord.chain_id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Error updating adventurer:', updateError);
+      throw updateError;
+    }
+
+    return mapDbToAdventurer(updateData);
+  }
 
   if (error) {
     console.error('Error upserting adventurer:', error);
@@ -122,7 +143,7 @@ export async function updateAdventurerStats(update: StatUpdate): Promise<Adventu
     ...adventurer.stats,
     ...update.updates,
   };
-  
+
   // Recalculate proficiency bonus if level changed
   if (update.updates.proficiencyBonus === undefined && update.reason === 'level_up') {
     const newLevel = adventurer.level ? adventurer.level + 1 : 1;
@@ -230,8 +251,8 @@ export function calculateTrapInteraction(
 ): TrapInteractionResult {
   // Perception check to detect trap (D&D 5e formula: d20 + Wisdom Modifier + Proficiency if proficient)
   const wisdomModifier = calculateAbilityModifier(adventurer.stats.wisdom);
-  const proficiencyBonus = adventurer.stats.skillProficiencies?.perception 
-    ? adventurer.stats.proficiencyBonus 
+  const proficiencyBonus = adventurer.stats.skillProficiencies?.perception
+    ? adventurer.stats.proficiencyBonus
     : 0;
   const perceptionRoll = rollD20() + wisdomModifier + proficiencyBonus;
   const detected = perceptionRoll >= difficultyClass;
@@ -414,7 +435,7 @@ function mapAdventurerToDb(adventurer: AdventurerRecord): any {
   // Recalculate proficiency bonus if level changed
   const level = adventurer.level ?? 1;
   const proficiencyBonus = calculateProficiencyBonus(level);
-  
+
   return {
     token_id: adventurer.heroId.tokenId,
     contract_address: adventurer.heroId.contractAddress,
@@ -507,13 +528,13 @@ export function calculateMaxHPFromConstitution(
 ): number {
   const conModifier = Math.floor((constitution - 10) / 2);
   const hitDieAverage = Math.floor(hitDie / 2) + 1; // Average of hit die (e.g., d8 = 4.5, rounded to 5)
-  
+
   // Level 1: full hit die + CON modifier
   // Level 2+: average hit die + CON modifier per level
   if (level === 1) {
     return hitDie + conModifier;
   }
-  
+
   return hitDie + conModifier + (level - 1) * (hitDieAverage + conModifier);
 }
 
@@ -527,11 +548,11 @@ export function calculateHPGainOnLevelUp(
 ): number {
   const conModifier = Math.floor((constitution - 10) / 2);
   const hitDieAverage = Math.floor(hitDie / 2) + 1;
-  
+
   if (newLevel === 1) {
     return hitDie + conModifier;
   }
-  
+
   return hitDieAverage + conModifier;
 }
 
@@ -581,7 +602,7 @@ export async function addXP(
       newLevel,
       hitDie
     );
-    
+
     updatedAdventurer.stats = {
       ...adventurer.stats,
       maxHealth: newMaxHP,

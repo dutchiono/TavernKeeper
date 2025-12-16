@@ -17,7 +17,8 @@ interface HeroNFT {
             class?: string;
             gender?: string;
             colorPalette?: HeroColors;
-        }
+        };
+        attributes?: any[];
     };
     metadataUri?: string;
     status: 'idle' | 'dungeon';
@@ -59,6 +60,9 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
 
     // Fetch metadata for a hero
     const fetchMetadata = async (hero: HeroNFT) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:61', message: 'fetchMetadata entry', data: { tokenId: hero.token_id, hasMetadataUri: !!hero.metadataUri, currentMetadata: !!hero.metadata, currentName: hero.name }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A,D' }) }).catch(() => { });
+        // #endregion
         if (!hero.metadataUri) return;
 
         try {
@@ -68,6 +72,9 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
             if (uri.startsWith('data:application/json;base64,')) {
                 const base64 = uri.replace('data:application/json;base64,', '');
                 metadata = JSON.parse(atob(base64));
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:70', message: 'Metadata parsed from base64', data: { tokenId: hero.token_id, hasMetadata: !!metadata, metadataName: metadata?.name, metadataClass: metadata?.hero?.class || metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'C' }) }).catch(() => { });
+                // #endregion
             } else if (uri.startsWith('http')) {
                 const res = await fetch(uri);
                 if (res.ok) metadata = await res.json();
@@ -78,19 +85,81 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
             }
 
             if (metadata) {
-                setAvailableHeroes(prev => prev.map(h => {
-                    if (h.token_id === hero.token_id) {
-                        return {
-                            ...h,
-                            name: metadata.name || h.name,
-                            metadata: metadata,
+                const heroName = metadata.name || `Hero #${hero.token_id}`;
+                const heroClass = metadata.hero?.class || metadata.attributes?.find((a: any) => a.trait_type === 'Class')?.value || 'Warrior';
+                console.log(`[PartySelector] ✅ Metadata loaded for hero #${hero.token_id}: name="${heroName}", class="${heroClass}"`);
+                console.log(`[PartySelector] 📦 Full metadata object:`, JSON.stringify(metadata, null, 2));
+
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:86', message: 'Before setAvailableHeroes state update', data: { tokenId: hero.token_id, extractedName: heroName, extractedClass: heroClass, metadataKeys: Object.keys(metadata) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
+                // #endregion
+
+                setAvailableHeroes(prev => {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:88', message: 'Inside setAvailableHeroes updater', data: { tokenId: hero.token_id, prevHeroesCount: prev.length, prevHero9Data: prev.find(h => h.token_id === hero.token_id) ? { name: prev.find(h => h.token_id === hero.token_id)!.name, hasMetadata: !!prev.find(h => h.token_id === hero.token_id)!.metadata } : null }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
+                    // #endregion
+                    console.log(`[PartySelector] 🔄 State update starting for hero #${hero.token_id}, current heroes:`, prev.map(h => ({ id: h.token_id, name: h.name })));
+
+                    // FIX: If hero doesn't exist in prev array, add it instead of trying to update
+                    const existingHero = prev.find(h => h.token_id === hero.token_id);
+                    if (!existingHero) {
+                        // Hero not in array yet - add it
+                        // #region agent log
+                        fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:95', message: 'Hero not in array, adding new hero', data: { tokenId: hero.token_id, prevCount: prev.length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
+                        // #endregion
+                        const newHero: HeroNFT = {
+                            token_id: hero.token_id,
+                            tokenId: hero.token_id,
+                            name: heroName,
+                            metadataUri: hero.metadataUri,
+                            metadata: JSON.parse(JSON.stringify(metadata)),
+                            status: hero.status || 'idle',
+                            lockedUntil: hero.lockedUntil || null,
                         };
+                        return [...prev, newHero];
                     }
-                    return h;
-                }));
+
+                    // Hero exists - update it
+                    const updated = prev.map(h => {
+                        if (h.token_id === hero.token_id) {
+                            // Create completely new object - DEEP copy to ensure React detects change
+                            const newHero: HeroNFT = {
+                                ...h,
+                                name: heroName,
+                                metadata: JSON.parse(JSON.stringify(metadata)), // Deep clone
+                            };
+                            // #region agent log
+                            fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:94', message: 'Creating newHero object', data: { tokenId: hero.token_id, oldName: h.name, newName: heroName, oldHasMetadata: !!h.metadata, newHasMetadata: !!newHero.metadata, newMetadataClass: newHero.metadata?.hero?.class || newHero.metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
+                            // #endregion
+                            console.log(`[PartySelector] ✏️ State update for hero #${hero.token_id}:`, {
+                                oldName: h.name,
+                                newName: newHero.name,
+                                oldClass: h.metadata?.hero?.class || h.metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value,
+                                newClass: newHero.metadata?.hero?.class || newHero.metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value,
+                                oldMetadataStructure: Object.keys(h.metadata || {}),
+                                newMetadataStructure: Object.keys(newHero.metadata || {}),
+                            });
+                            return newHero;
+                        }
+                        return h;
+                    });
+                    // #region agent log
+                    fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:108', message: 'Returning updated heroes array', data: { tokenId: hero.token_id, updatedCount: updated.length, updatedHero9Data: updated.find(h => h.token_id === hero.token_id) ? { name: updated.find(h => h.token_id === hero.token_id)!.name, hasMetadata: !!updated.find(h => h.token_id === hero.token_id)!.metadata } : null }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
+                    // #endregion
+                    console.log(`[PartySelector] ✅ State update complete, returning ${updated.length} heroes`);
+                    return updated;
+                });
+            } else {
+                console.warn(`[PartySelector] ⚠️ No metadata returned for hero #${hero.token_id} from URI: ${uri.substring(0, 100)}...`);
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:112', message: 'No metadata returned', data: { tokenId: hero.token_id, uriPrefix: uri.substring(0, 50) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+                // #endregion
             }
         } catch (e) {
-            console.warn('Failed to fetch metadata for hero', hero.token_id, e);
+            console.error(`[PartySelector] ❌ Failed to fetch metadata for hero #${hero.token_id}:`, e);
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:115', message: 'fetchMetadata error', data: { tokenId: hero.token_id, error: (e as Error).message }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+            // #endregion
         }
     };
 
@@ -102,33 +171,56 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
 
         try {
             // 1. Fetch TavernKeepers
+            console.log(`[PartySelector] Fetching TavernKeepers for wallet: ${walletAddress}`);
             const keepers = await rpgService.getUserTavernKeepers(walletAddress);
+            console.log(`[PartySelector] Found ${keepers.length} TavernKeeper(s):`, keepers.map(k => ({ id: k.tokenId, tba: k.tbaAddress })));
 
             // 2. Fetch Heroes for each Keeper
             let allHeroes: HeroNFT[] = [];
 
             for (const keeper of keepers) {
                 if (keeper.tbaAddress) {
+                    console.log(`[PartySelector] Fetching heroes from TBA: ${keeper.tbaAddress} (Keeper #${keeper.tokenId})`);
                     const keeperHeroes = await rpgService.getHeroes(keeper.tbaAddress);
-                    // Map to local interface
-                    const mappedSubHeroes: HeroNFT[] = keeperHeroes.map(h => ({
-                        token_id: h.tokenId,
-                        tokenId: h.tokenId,
-                        name: `Hero #${h.tokenId}`, // Placeholder until metadata is loaded
-                        metadataUri: h.metadataUri,
-                        metadata: { hero: { class: 'Warrior' } }, // Default metadata
-                        status: 'idle'
-                    }));
+                    console.log(`[PartySelector] Found ${keeperHeroes.length} hero(es) for Keeper #${keeper.tokenId}:`, keeperHeroes.map(h => h.tokenId));
+                    // Map to local interface - DON'T set default metadata, let fetchMetadata handle it
+                    const mappedSubHeroes: HeroNFT[] = keeperHeroes.map(h => {
+                        // #region agent log
+                        fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:140', message: 'Initial hero mapping', data: { tokenId: h.tokenId, hasMetadataUri: !!h.metadataUri, metadataUriPrefix: h.metadataUri?.substring(0, 50) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A,D' }) }).catch(() => { });
+                        // #endregion
+                        return {
+                            token_id: h.tokenId,
+                            tokenId: h.tokenId,
+                            name: `Hero #${h.tokenId}`, // Placeholder until metadata is loaded
+                            metadataUri: h.metadataUri,
+                            metadata: undefined, // No default - will be set by fetchMetadata
+                            status: 'idle'
+                        };
+                    });
                     allHeroes = [...allHeroes, ...mappedSubHeroes];
+                } else {
+                    console.warn(`[PartySelector] Keeper #${keeper.tokenId} has no TBA address - skipping`);
                 }
             }
 
-            // Trigger metadata fetch for all heroes
-            allHeroes.forEach(hero => {
-                if (hero.metadataUri) {
-                    fetchMetadata(hero);
-                }
-            });
+            console.log(`[PartySelector] Total heroes collected: ${allHeroes.length}`);
+
+            // Set heroes in state FIRST
+            setAvailableHeroes(allHeroes);
+
+            // THEN trigger metadata fetch after state is set (use setTimeout to ensure state update completes)
+            console.log(`[PartySelector] Starting metadata fetch for ${allHeroes.length} heroes...`);
+            // Use setTimeout(0) to defer until after React's state update completes
+            setTimeout(() => {
+                allHeroes.forEach((hero, index) => {
+                    if (hero.metadataUri) {
+                        console.log(`[PartySelector] Fetching metadata for hero ${index + 1}/${allHeroes.length}: #${hero.token_id}`);
+                        fetchMetadata(hero);
+                    } else {
+                        console.warn(`[PartySelector] Hero #${hero.token_id} has no metadataUri - skipping metadata fetch`);
+                    }
+                });
+            }, 0);
 
             // 3. Fetch status for all heroes
             const tokenIds = allHeroes.map(h => h.token_id);
@@ -165,7 +257,32 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
             });
 
             console.log(`[PartySelector] Loaded ${heroesWithStatus.length} heroes from blockchain`);
-            setAvailableHeroes(heroesWithStatus as any);
+            console.log(`[PartySelector] Heroes:`, heroesWithStatus.map(h => ({ tokenId: h.token_id, name: h.name, class: h.metadata?.hero?.class })));
+            // Merge status into existing heroes (don't overwrite metadata that may have been loaded)
+            setAvailableHeroes(prev => {
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:262', message: 'Status merge starting', data: { prevCount: prev.length, prevHero9Name: prev.find(h => h.token_id === '9')?.name, prevHero9HasMetadata: !!prev.find(h => h.token_id === '9')?.metadata, newHeroesWithStatusCount: heroesWithStatus.length, newHero9Name: heroesWithStatus.find(h => h.token_id === '9')?.name }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'F' }) }).catch(() => { });
+                // #endregion
+                return heroesWithStatus.map(newHero => {
+                    const existing = prev.find(h => h.token_id === newHero.token_id);
+                    if (existing && existing.metadata) {
+                        // Preserve metadata AND name if it exists (metadata load means name was updated too)
+                        const preserved = { ...newHero, metadata: existing.metadata, name: existing.name };
+                        // #region agent log
+                        if (newHero.token_id === '9') {
+                            fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:268', message: 'Status merge preserving metadata for hero 9', data: { existingName: existing.name, newHeroName: newHero.name, preservedName: preserved.name, hasMetadata: !!existing.metadata }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'F' }) }).catch(() => { });
+                        }
+                        // #endregion
+                        return preserved;
+                    }
+                    // #region agent log
+                    if (newHero.token_id === '9') {
+                        fetch('http://127.0.0.1:7243/ingest/ed16fb33-7d16-4489-ada1-e35ba5bafda9', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'PartySelector.tsx:275', message: 'Status merge using newHero for hero 9 (no existing metadata)', data: { newHeroName: newHero.name, existingName: existing?.name, hasExisting: !!existing }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'F' }) }).catch(() => { });
+                    }
+                    // #endregion
+                    return newHero;
+                });
+            });
         } catch (e) {
             console.error('Error fetching owned heroes:', e);
             setError('Failed to load your heroes');
@@ -264,17 +381,45 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                        {availableHeroes.map((hero) => {
+                        {/* Show heroes with metadata loaded */}
+                        {availableHeroes.filter(hero => {
+
+                            return hero.metadata;
+                        }).map((hero) => {
+
                             const isSelected = selectedTokenIds.includes(hero.token_id);
                             const isLocked = hero.status === 'dungeon';
                             const canSelect = !isLocked && (isSelected || selectedTokenIds.length < (mode === 'solo' ? 1 : mode === 'own' ? 5 : 4));
 
-                            const heroClass = (hero.metadata?.hero?.class || 'Warrior') as HeroClass;
+                            // Get hero class - check multiple possible locations in metadata
+                            // Check attributes FIRST (more reliable), then hero.class
+                            const classFromAttributes = hero.metadata?.attributes?.find((a: any) =>
+                                a.trait_type === 'Class' || a.trait_type === 'class'
+                            )?.value;
+                            const classFromHero = hero.metadata?.hero?.class;
+                            const metadataClass = classFromAttributes || classFromHero || 'Warrior';
+
+
+
+                            // Normalize to lowercase and ensure it's a valid HeroClass
+                            // Normalize to TitleCase (e.g. "Rogue") as required by spriteService
+                            // Legacy lowercase handling in other components caused this confusion
+                            const rawString = String(metadataClass || 'Warrior').toLowerCase();
+                            const normalizedClass = (rawString.charAt(0).toUpperCase() + rawString.slice(1)) as HeroClass;
+
+                            // Get colors from metadata
                             const colors = hero.metadata?.hero?.colorPalette || DEFAULT_COLORS;
+
+                            // Debug log to see what's actually being rendered
+                            /*
+                            if (hero.token_id === '9') {
+                                console.log('[PartySelector] Rendering hero #9');
+                            }
+                            */
 
                             return (
                                 <button
-                                    key={hero.token_id}
+                                    key={`${hero.token_id}-${hero.name}-${normalizedClass}`}
                                     onClick={() => canSelect && toggleHero(hero.token_id)}
                                     disabled={!canSelect}
                                     className={`
@@ -298,7 +443,7 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
                                     <div className="mb-2 w-full flex justify-center">
                                         <div className="transform scale-[2] origin-top">
                                             <SpritePreview
-                                                type={heroClass}
+                                                type={normalizedClass}
                                                 colors={colors}
                                                 showFrame={false}
                                                 scale={1}
@@ -313,7 +458,7 @@ export const PartySelector: React.FC<PartySelectorProps> = ({ walletAddress, onC
                                             {hero.name}
                                         </div>
                                         <div className="text-[8px] text-slate-400 mt-1">
-                                            Lvl 1 {heroClass} #{hero.token_id}
+                                            Lvl 1 {normalizedClass.charAt(0).toUpperCase() + normalizedClass.slice(1)} #{hero.token_id}
                                         </div>
                                         {isSelected && (
                                             <div className="text-[8px] text-yellow-400 mt-1 font-bold">

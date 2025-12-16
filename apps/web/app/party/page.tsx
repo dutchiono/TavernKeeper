@@ -65,12 +65,12 @@ export default function PartyPage() {
   // Fetch Heroes when a Keeper is selected
   useEffect(() => {
     if (selectedKeeper && selectedKeeper.tbaAddress && selectedKeeper.tbaAddress.trim() !== '') {
-      console.log(`🔄 Selected keeper changed: #${selectedKeeper.tokenId}, TBA: ${selectedKeeper.tbaAddress}`);
-      console.log(`   Expected hero mint address: 0xB9f10e976987A871513EE8b21c7BFC41bea596af`);
-      console.log(`   TBA matches: ${selectedKeeper.tbaAddress.toLowerCase() === '0xB9f10e976987A871513EE8b21c7BFC41bea596af'.toLowerCase() ? '✅ YES' : '❌ NO'}`);
       fetchHeroes(selectedKeeper.tbaAddress);
     } else {
-      console.warn('⚠️ Selected keeper has no TBA address:', selectedKeeper);
+      if (selectedKeeper) {
+        // Just log info, not warning, as this might be expected for new/unindexed keepers
+        console.info(`ℹ️ Selected keeper #${selectedKeeper.tokenId} has no TBA address yet.`);
+      }
       setHeroes([]);
     }
   }, [selectedKeeper]);
@@ -462,11 +462,10 @@ export default function PartyPage() {
                 <button
                   key={keeper.tokenId}
                   onClick={() => setSelectedKeeper(keeper)}
-                  className={`px-4 py-2 border-2 transition-all whitespace-nowrap ${
-                    selectedKeeper?.tokenId === keeper.tokenId
+                  className={`px-4 py-2 border-2 transition-all whitespace-nowrap ${selectedKeeper?.tokenId === keeper.tokenId
                       ? 'border-yellow-400 bg-[#4a3b2a] text-[#eaddcf]'
                       : 'border-[#4a3b2a] text-[#8b7355] hover:border-yellow-400/50'
-                  }`}
+                    }`}
                 >
                   {metadata?.name || `Keeper #${keeper.tokenId}`}
                 </button>
@@ -534,82 +533,82 @@ export default function PartyPage() {
                 <PixelPanel title="Hero Roster" variant="wood">
                   <div>
                     {loadingHeroes ? (
-                    <div className="text-center text-[#8b7355] py-12">
-                      <div className="animate-pulse">Loading heroes...</div>
-                    </div>
-                  ) : heroes.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {heroes.map(hero => {
-                        const metadata = heroMetadata[hero.tokenId];
-                        const isLoadingMeta = loadingHeroMetadata[hero.tokenId];
-                        const heroClass = metadata?.hero?.class || 'Warrior';
-                        const heroName = metadata?.name || `Hero #${hero.tokenId}`;
-                        const colors = metadata?.hero?.colorPalette || {
-                          skin: '#fdbcb4',
-                          hair: '#8b4513',
-                          clothing: '#ef4444',
-                          accent: '#ffffff',
-                        };
-
-                        return (
-                          <PixelCard
-                            key={hero.tokenId}
-                            variant="default"
-                            className="bg-[#1a120d] border-2 border-[#4a3b2a] hover:border-yellow-400/50 transition-all"
-                          >
-                            <div className="flex flex-col items-center gap-4">
-                              {/* Hero Sprite */}
-                              <div className="w-full flex justify-center min-h-[120px] items-center">
-                                {isLoadingMeta ? (
-                                  <div className="text-[#8b7355] text-sm animate-pulse">Loading...</div>
-                                ) : (
-                                  <div className="scale-75 sm:scale-100">
-                                    <SpritePreview
-                                      type={heroClass as HeroClass}
-                                      colors={colors}
-                                      scale={3}
-                                      isKeeper={false}
-                                      showFrame={true}
-                                      name={heroName}
-                                      subtitle={`Level 1 ${heroClass}`}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Hero Info */}
-                              <div className="w-full space-y-2">
-                                <div className="text-center">
-                                  <div className="text-lg text-[#eaddcf] font-bold">{heroName}</div>
-                                  <div className="text-xs text-[#8b7355]">#{hero.tokenId} • {heroClass}</div>
-                                </div>
-                                <PixelButton
-                                  size="sm"
-                                  variant="neutral"
-                                  onClick={() => setUpdatingHero(hero)}
-                                  className="w-full"
-                                >
-                                  Update
-                                </PixelButton>
-                              </div>
-                            </div>
-                          </PixelCard>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 border-2 border-dashed border-[#4a3b2a] rounded-lg bg-[#1a120d]/50">
-                      <div className="text-[#8b7355] mb-4 italic">
-                        No heroes in this tavern yet.
+                      <div className="text-center text-[#8b7355] py-12">
+                        <div className="animate-pulse">Loading heroes...</div>
                       </div>
-                      <PixelButton
-                        onClick={() => setViewMode('recruit')}
-                        className="mt-4"
-                      >
-                        Recruit Your First Hero
-                      </PixelButton>
-                    </div>
-                  )}
+                    ) : heroes.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {heroes.map(hero => {
+                          const metadata = heroMetadata[hero.tokenId];
+                          const isLoadingMeta = loadingHeroMetadata[hero.tokenId];
+                          const heroClass = metadata?.hero?.class || 'Warrior';
+                          const heroName = metadata?.name || `Hero #${hero.tokenId}`;
+                          const colors = metadata?.hero?.colorPalette || {
+                            skin: '#fdbcb4',
+                            hair: '#8b4513',
+                            clothing: '#ef4444',
+                            accent: '#ffffff',
+                          };
+
+                          return (
+                            <PixelCard
+                              key={hero.tokenId}
+                              variant="default"
+                              className="bg-[#1a120d] border-2 border-[#4a3b2a] hover:border-yellow-400/50 transition-all"
+                            >
+                              <div className="flex flex-col items-center gap-4">
+                                {/* Hero Sprite */}
+                                <div className="w-full flex justify-center min-h-[120px] items-center">
+                                  {isLoadingMeta ? (
+                                    <div className="text-[#8b7355] text-sm animate-pulse">Loading...</div>
+                                  ) : (
+                                    <div className="scale-75 sm:scale-100">
+                                      <SpritePreview
+                                        type={heroClass as HeroClass}
+                                        colors={colors}
+                                        scale={3}
+                                        isKeeper={false}
+                                        showFrame={true}
+                                        name={heroName}
+                                        subtitle={`Level 1 ${heroClass}`}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Hero Info */}
+                                <div className="w-full space-y-2">
+                                  <div className="text-center">
+                                    <div className="text-lg text-[#eaddcf] font-bold">{heroName}</div>
+                                    <div className="text-xs text-[#8b7355]">#{hero.tokenId} • {heroClass}</div>
+                                  </div>
+                                  <PixelButton
+                                    size="sm"
+                                    variant="neutral"
+                                    onClick={() => setUpdatingHero(hero)}
+                                    className="w-full"
+                                  >
+                                    Update
+                                  </PixelButton>
+                                </div>
+                              </div>
+                            </PixelCard>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 border-2 border-dashed border-[#4a3b2a] rounded-lg bg-[#1a120d]/50">
+                        <div className="text-[#8b7355] mb-4 italic">
+                          No heroes in this tavern yet.
+                        </div>
+                        <PixelButton
+                          onClick={() => setViewMode('recruit')}
+                          className="mt-4"
+                        >
+                          Recruit Your First Hero
+                        </PixelButton>
+                      </div>
+                    )}
                   </div>
                 </PixelPanel>
               </div>

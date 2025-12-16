@@ -188,9 +188,9 @@ export function classifyEventImportance(event: GameEvent): EventImportance {
     case 'interaction': {
       const interactionEvent = event as InteractionEvent;
       // Critical: successful major interactions (treasure, keys, etc.)
-      if (interactionEvent.success && interactionEvent.interaction.includes('treasure'))
+      if (interactionEvent.success && interactionEvent.interaction?.includes('treasure'))
         return 'critical';
-      if (interactionEvent.success && interactionEvent.interaction.includes('key'))
+      if (interactionEvent.success && interactionEvent.interaction?.includes('key'))
         return 'critical';
       // Important: successful interactions
       if (interactionEvent.success) return 'important';

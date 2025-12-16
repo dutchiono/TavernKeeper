@@ -1,12 +1,12 @@
 /**
  * Hero Adventurer Initialization
- * 
+ *
  * Helper functions to initialize adventurer stats when a hero is minted or synced.
  * Also initializes starter weapon.
  */
 
 import { getHeroByTokenId } from './heroOwnership';
-import { 
+import {
   upsertAdventurer,
   getAdventurer,
   type AdventurerRecord,
@@ -20,7 +20,7 @@ import {
   type AdventurerStats,
 } from '../../contributions/adventurer-tracking/code/types/adventurer-stats';
 import { ItemGenerator } from '../../contributions/procedural-item-generation/code/generators/item-generator';
-import { 
+import {
   addItemToInventory,
   equipItem,
   getEquippedItems,
@@ -32,12 +32,12 @@ function getHeroContractAddress(): string {
   try {
     const envAddress = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS;
     const address = envAddress || '0x4Fff2Ce5144989246186462337F0eE2C086F913E'; // Testnet fallback
-    
+
     // Final safety check
     if (!address || address === '0x0000000000000000000000000000000000000000' || address === 'undefined' || typeof address !== 'string') {
       return '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
     }
-    
+
     return address;
   } catch (error) {
     console.error('[heroAdventurerInit] Error getting HERO_CONTRACT_ADDRESS:', error);
@@ -146,25 +146,41 @@ export async function initializeAdventurerStats(
   if (!classToUse || !nameToUse) {
     try {
       const hero = await getHeroByTokenId(tokenId);
-      classToUse = classToUse || hero.metadata?.hero?.class?.toLowerCase() || 
-                   hero.metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value?.toLowerCase() || 
-                   'warrior';
+      // Extract class from multiple possible metadata locations
+      const metadataClass = hero.metadata?.hero?.class ||
+                           hero.metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value ||
+                           hero.metadata?.attributes?.find((a: any) => a.trait_type === 'class')?.value;
+
+      classToUse = classToUse || (metadataClass ? metadataClass.toLowerCase() : null);
       nameToUse = nameToUse || hero.name || `Hero #${tokenId}`;
+
+      if (!classToUse) {
+        // CRITICAL: Do NOT default to warrior - if class is missing, this is an error
+        throw new Error(`[HeroInit] Hero ${tokenId} metadata is missing class information. Metadata: ${JSON.stringify(hero.metadata)}`);
+      }
     } catch (error) {
-      console.warn(`Could not fetch hero data for ${tokenId}, using defaults:`, error);
-      classToUse = classToUse || 'warrior';
-      nameToUse = nameToUse || `Hero #${tokenId}`;
+      // CRITICAL: Do NOT default to warrior - if we can't fetch hero data, throw error
+      console.error(`[HeroInit] Failed to fetch hero data for ${tokenId}:`, error);
+      throw new Error(`[HeroInit] Cannot initialize adventurer for hero ${tokenId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   // Normalize class name
   const normalizedClass = classToUse.toLowerCase() as HeroClass;
-  const baseStats = BASE_STATS[normalizedClass] || BASE_STATS.warrior;
+  // CRITICAL: Do NOT default to warrior stats - if class is invalid, throw error
+  const baseStats = BASE_STATS[normalizedClass];
+  if (!baseStats) {
+    throw new Error(`[HeroInit] Invalid hero class: ${normalizedClass}. Valid classes: warrior, mage, rogue, cleric`);
+  }
 
   // Calculate stats
   const level = 1;
   const proficiencyBonus = calculateProficiencyBonus(level);
-  const hitDie = HIT_DICE[normalizedClass] || 8;
+  // CRITICAL: Do NOT default hit die - if class is invalid, we already threw error above
+  const hitDie = HIT_DICE[normalizedClass];
+  if (!hitDie) {
+    throw new Error(`[HeroInit] Invalid hero class for hit die: ${normalizedClass}`);
+  }
 
   // Calculate HP from CON and level
   const maxHealth = calculateMaxHP(
@@ -182,8 +198,8 @@ export async function initializeAdventurerStats(
   // Calculate perception (WIS modifier + proficiency if proficient)
   const perceptionBase = 10 + calculateAbilityModifier(baseStats.wisdom || 10);
   const perceptionProficient = Math.random() < 0.35; // 35% chance
-  const perception = perceptionProficient 
-    ? perceptionBase + proficiencyBonus 
+  const perception = perceptionProficient
+    ? perceptionBase + proficiencyBonus
     : perceptionBase;
 
   // Calculate attack bonuses
@@ -267,14 +283,21 @@ async function initializeStarterWeapon(
   const itemClassPreference = classPreferenceMap[heroClass] || 'warrior';
 
   // Generate base weapon (common rarity, level 1)
+  // Force weapon generation by using 'combat' context which guarantees weapon generation
   const itemGenerator = new ItemGenerator();
   const baseWeapon = itemGenerator.generateItem({
-    context: 'dungeon_loot',
+    context: 'combat', // Use 'combat' context to guarantee weapon generation
     level: 1,
     classPreference: itemClassPreference,
     rarityModifier: 100, // Common rarity (100% = all common)
     seed: `hero-${heroId.tokenId}-starter-weapon`,
   });
+
+  // Ensure category is set to 'weapon' explicitly
+  if (!baseWeapon.category || baseWeapon.category !== 'weapon') {
+    console.warn(`Generated item for hero ${heroId.tokenId} is not a weapon (category: ${baseWeapon.category}), forcing to weapon`);
+    baseWeapon.category = 'weapon';
+  }
 
   // Add to inventory
   const inventoryItem = await addItemToInventory(

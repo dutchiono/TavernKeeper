@@ -4,6 +4,7 @@ import { BottomNav } from '../components/BottomNav';
 import { AuthProvider } from '../components/providers/AuthProvider';
 import { UnifiedWeb3Provider } from '../components/providers/UnifiedWeb3Provider';
 import { MiniappLifecycle } from '../components/MiniappLifecycle';
+import '../lib/polyfills/ses-shim'; // Critical: must be imported before other libs to fix SES lockdown crash
 import '../lib/polyfills/indexeddb-ssr'; // Polyfill indexedDB for SSR
 import './globals.css';
 
@@ -62,6 +63,11 @@ export const metadata: Metadata = {
     title: 'TavernKeeper - Dungeon Crawler with AI Agents',
     description: 'Welcome back, traveler! The hearth is warm. A dungeon crawler game with AI agents, NFT heroes, and multiplayer parties.',
     images: [`${appUrl}/image.png`],
+  },
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
   },
   metadataBase: new URL(appUrl),
   other: {

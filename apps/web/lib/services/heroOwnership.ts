@@ -106,6 +106,7 @@ export async function syncUserHeroes(walletAddress: string) {
                         name: metadata.name || `Hero #${tokenId}`,
                         image_uri: metadata.image || '',
                         attributes: metadata.attributes || [],
+                        metadata_uri: uri, // CRITICAL: Store the token URI so metadata can be fetched later
                         updated_at: new Date().toISOString(),
                     };
 
@@ -120,7 +121,7 @@ export async function syncUserHeroes(walletAddress: string) {
                         console.error('Error upserting hero:', error);
                     } else {
                         syncedHeroes.push(heroData);
-                        
+
                         // Initialize adventurer stats if not already initialized
                         try {
                             const { initializeAdventurerOnSync } = await import('./heroAdventurerInit');
@@ -164,6 +165,7 @@ export async function getHeroByTokenId(tokenId: string): Promise<{
         attackBonus: number;
     };
     metadata?: any;
+    metadataUri?: string; // Returning the URI allows client-side fetch retry
 }> {
     try {
         const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
@@ -193,10 +195,44 @@ export async function getHeroByTokenId(tokenId: string): Promise<{
                 }
             }
         } catch (e) {
-            console.warn(`Failed to fetch metadata for token ${tokenId}`, e);
+            // CRITICAL: If metadata fetch fails, we should still have the URI stored
+            // Log the error but don't silently fail - the URI is stored above
+            console.warn(`Failed to fetch metadata for token ${tokenId} from URI ${uri}:`, e);
+            // Don't throw here - we've stored the URI, so metadata can be fetched later
         }
 
-        // Extract hero class from metadata
+        // CRITICAL: If metadata is empty after fetch attempt, check if we have stored metadata_uri
+        // If metadata fetch failed but we have a URI, we should try to use stored metadata from database
+        if (!metadata || Object.keys(metadata).length === 0) {
+            try {
+                // Try to get metadata from heroes table if it was previously stored
+                const { data: heroRecord } = await supabase
+                    .from('heroes')
+                    .select('metadata_uri, attributes')
+                    .eq('token_id', tokenId)
+                    .eq('contract_address', contractAddress)
+                    .single();
+
+                if (heroRecord?.metadata_uri) {
+                    // Try fetching from stored URI
+                    const storedUri = heroRecord.metadata_uri;
+                    const httpUrl = metadataStorage.getHttpUrl(storedUri);
+                    if (httpUrl.startsWith('http')) {
+                        const res = await fetch(httpUrl);
+                        if (res.ok) metadata = await res.json();
+                    } else if (httpUrl.startsWith('data:')) {
+                        const base64 = httpUrl.split(',')[1];
+                        if (base64) {
+                            metadata = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8'));
+                        }
+                    }
+                }
+            } catch (fallbackError) {
+                console.warn(`Failed to fetch metadata from stored URI for token ${tokenId}:`, fallbackError);
+            }
+        }
+
+        // Extract hero class - default to "Unknown" if missing (don't throw)
         const heroClass = metadata.hero?.class || metadata.attributes?.find((a: any) => a.trait_type === 'Class')?.value || 'Warrior';
 
         // Generate stats based on class (default values if not in metadata)
@@ -231,6 +267,7 @@ export async function getHeroByTokenId(tokenId: string): Promise<{
             name,
             stats,
             metadata,
+            metadataUri: uri,
         };
     } catch (error) {
         console.error(`Error getting hero by token ID ${tokenId}:`, error);
@@ -300,4 +337,3 @@ export async function getUserOwnedTokenIds(walletAddress: string): Promise<strin
         throw error;
     }
 }
-

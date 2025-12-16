@@ -27,7 +27,7 @@ import { CONTRACT_ADDRESSES } from '../contracts/addresses';
 function getHeroContractAddress(): string {
   // Hardcoded fallback address (testnet)
   const FALLBACK_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
-  
+
   try {
     // Try to get from env first
     let envAddress: string | undefined;
@@ -37,7 +37,7 @@ function getHeroContractAddress(): string {
       // process.env might not be available in some contexts
       envAddress = undefined;
     }
-    
+
     // Try to get from CONTRACT_ADDRESSES (may not be loaded yet)
     let contractAddressesValue: string | undefined;
     try {
@@ -48,20 +48,20 @@ function getHeroContractAddress(): string {
       // CONTRACT_ADDRESSES might not be loaded yet, ignore
       contractAddressesValue = undefined;
     }
-    
+
     // Use env, then CONTRACT_ADDRESSES, then testnet fallback
     let address = envAddress || contractAddressesValue || FALLBACK_ADDRESS;
-    
+
     // Final safety check - if somehow still undefined or zero address, use testnet address
-    if (!address || 
-        address === '0x0000000000000000000000000000000000000000' || 
-        address === 'undefined' || 
-        typeof address !== 'string' ||
-        address.length < 10) {
+    if (!address ||
+      address === '0x0000000000000000000000000000000000000000' ||
+      address === 'undefined' ||
+      typeof address !== 'string' ||
+      address.length < 10) {
       console.warn('[DungeonRunService] HERO_CONTRACT_ADDRESS was invalid, using testnet fallback');
       address = FALLBACK_ADDRESS;
     }
-    
+
     return address;
   } catch (error) {
     console.error('[DungeonRunService] Error getting HERO_CONTRACT_ADDRESS:', error);
@@ -151,7 +151,7 @@ export async function executeDungeonRun(
   console.log(`[DungeonRun] Module-level HERO_CONTRACT_ADDRESS: ${HERO_CONTRACT_ADDRESS}`);
   console.log(`[DungeonRun] Module-level HERO_CONTRACT_ADDRESS type: ${typeof HERO_CONTRACT_ADDRESS}`);
   console.log(`[DungeonRun] Module-level HERO_CONTRACT_ADDRESS is undefined: ${typeof HERO_CONTRACT_ADDRESS === 'undefined'}`);
-  
+
   // Validate contract address immediately at function start
   let heroContractAddress: string;
   try {
@@ -159,7 +159,7 @@ export async function executeDungeonRun(
     heroContractAddress = getHeroContractAddress();
     console.log(`[DungeonRun] getHeroContractAddress() returned: ${heroContractAddress}`);
     console.log(`[DungeonRun] Returned address type: ${typeof heroContractAddress}`);
-    
+
     if (!heroContractAddress || heroContractAddress === '0x0000000000000000000000000000000000000000' || typeof heroContractAddress !== 'string') {
       console.error(`[DungeonRun] HERO_CONTRACT_ADDRESS validation failed. Value: ${heroContractAddress}, Type: ${typeof heroContractAddress}`);
       throw new Error(`HERO_CONTRACT_ADDRESS is not properly initialized. Got: ${heroContractAddress}`);
@@ -177,7 +177,7 @@ export async function executeDungeonRun(
     heroContractAddress = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
     console.warn(`[DungeonRun] Using hardcoded fallback address: ${heroContractAddress}`);
   }
-  
+
   const events: DungeonRunResult['events'] = [];
   const runStartTime = Date.now();
   console.log(`[DungeonRun] Starting dungeon run ${runId} for dungeon ${dungeonId} with ${party.length} heroes`);
@@ -221,13 +221,15 @@ export async function executeDungeonRun(
       midBosses: dungeonMap.midBosses || [],
       levelLayout: dungeonMap.levelLayout || [],
       provenance: dungeonMap.provenance,
+      seed: dungeonSeed,
+      metadata: dungeonMap.metadata || {},
     };
 
     // 3. Load party members with stats and equipment
     // Removed frequent log
     const partyLoadStartTime = Date.now();
     const partyMembers: AdventurerRecord[] = [];
-    
+
     // Use the pre-validated contract address from function start
     for (const tokenId of party) {
       const heroId: HeroIdentifier = {
@@ -300,8 +302,8 @@ export async function executeDungeonRun(
         let armorClass = adventurer.stats.armorClass || 10;
 
         // Apply weapon bonuses (mainHand)
-        if (equippedItems.mainHand?.item_data) {
-          const weapon = equippedItems.mainHand.item_data as any;
+        if (equippedItems.mainHand) {
+          const weapon = equippedItems.mainHand as any;
           if (weapon.attackModifier) {
             attackBonus += weapon.attackModifier;
           }
@@ -309,8 +311,8 @@ export async function executeDungeonRun(
         }
 
         // Apply armor bonuses
-        if (equippedItems.armor?.item_data) {
-          const armor = equippedItems.armor.item_data as any;
+        if (equippedItems.armor) {
+          const armor = equippedItems.armor as any;
           if (armor.armorClass) {
             armorClass += armor.armorClass;
           }
@@ -340,7 +342,7 @@ export async function executeDungeonRun(
     let totalXP = 0;
     const maxLevel = Math.min(dungeon.depth, 100); // Cap at 100 levels for safety
     console.log(`[DungeonRun] Starting level-by-level execution (max ${maxLevel} levels) - FAST MODE: Deferring DB writes`);
-    
+
     // Accumulate all DB updates to batch at the end
     const deferredStatUpdates: Array<{ heroId: HeroIdentifier; updates: Partial<AdventurerRecord['stats']>; reason: string }> = [];
     const deferredXPUpdates: Array<{ heroId: HeroIdentifier; xp: number }> = [];
@@ -532,7 +534,7 @@ export async function executeDungeonRun(
     // 5. FAST MODE: Batch all DB operations now that simulation is complete
     console.log(`[DungeonRun] Simulation complete! Batch processing ${deferredStatUpdates.length} stat updates and ${deferredXPUpdates.length} XP awards...`);
     const batchStartTime = Date.now();
-    
+
     // Batch update all hero stats
     if (deferredStatUpdates.length > 0) {
       console.log(`[DungeonRun] Batch updating ${deferredStatUpdates.length} hero stat updates...`);
@@ -549,7 +551,7 @@ export async function executeDungeonRun(
           updatesByHero.set(key, update);
         }
       }
-      
+
       // Execute batched updates
       const updatePromises = Array.from(updatesByHero.values()).map(update =>
         withTimeout(
@@ -584,7 +586,7 @@ export async function executeDungeonRun(
           xpByHero.set(key, { ...xpUpdate });
         }
       }
-      
+
       // Execute batched XP awards
       const xpPromises = Array.from(xpByHero.values()).map(xpUpdate =>
         withTimeout(
@@ -599,7 +601,7 @@ export async function executeDungeonRun(
       await Promise.all(xpPromises);
       console.log(`[DungeonRun] Batch XP awards completed in ${Date.now() - xpStartTime}ms`);
     }
-    
+
     console.log(`[DungeonRun] All batch DB operations completed in ${Date.now() - batchStartTime}ms`);
 
     // 6. Persist key events to database
@@ -890,12 +892,12 @@ async function executeRoom(
               id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               type: 'combat',
               timestamp: Date.now(),
-              action: turn.action || 'attack',
-              actorId: turn.actorId || 'unknown',
-              targetId: turn.targetId,
-              hit: turn.hit,
-              damage: turn.damage,
-              critical: turn.critical,
+              action: turn.action?.actionType || 'attack',
+              actorId: turn.entityName || 'unknown',
+              targetId: turn.targetName,
+              hit: turn.result && 'hit' in turn.result ? turn.result.hit : true,
+              damage: turn.result && 'damage' in turn.result ? turn.result.damage : (turn.result && 'amount' in turn.result ? turn.result.amount : 0),
+              critical: turn.result && 'criticalHit' in turn.result ? turn.result.criticalHit : false,
             } as any,
             { level, roomId: room.room.id, turn: turn.turnNumber },
             loggingContext
@@ -913,8 +915,8 @@ async function executeRoom(
             partyUpdates.push({
               heroId: partyMember.heroId,
               updates: {
-                health: partyEntity.currentHp || partyEntity.hp || 0,
-                mana: partyEntity.currentMana || partyEntity.mana || 0,
+                health: partyEntity.currentHp || 0,
+                mana: partyEntity.mana || 0,
               },
               reason: 'combat',
             });
@@ -946,8 +948,8 @@ async function executeRoom(
               partyUpdates.push({
                 heroId: partyMember.heroId,
                 updates: {
-                  health: partyEntity.currentHp || partyEntity.hp || 0,
-                  mana: partyEntity.currentMana || partyEntity.mana || 0,
+                  health: partyEntity.currentHp || 0,
+                  mana: partyEntity.mana || 0,
                 },
                 reason: 'combat_defeat',
               });
@@ -1002,6 +1004,7 @@ async function executeRoom(
           id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           type: 'interaction',
           timestamp: Date.now(),
+          interaction: 'trap',
           action: trapResult.status === 'success' ? 'disarm_trap' : 'trigger_trap',
           actorId: 'party',
           success: trapResult.status === 'success',
@@ -1012,7 +1015,7 @@ async function executeRoom(
       );
 
       // Apply damage
-      if (trapResult.damageDealt > 0) {
+      if (trapResult.totalDamage > 0) {
         for (const member of trapResult.updatedPartyMembers) {
           partyUpdates.push({
             heroId: member.heroId,

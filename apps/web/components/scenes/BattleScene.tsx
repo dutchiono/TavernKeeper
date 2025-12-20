@@ -1,14 +1,14 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { useRunEvents } from '../../lib/hooks/useRunEvents';
 import { useRunStatus } from '../../lib/hooks/useRunStatus';
+import { HeroMetadata } from '../../lib/services/heroMetadata';
+import { HeroNFT, rpgService } from '../../lib/services/rpgService';
+import { DEFAULT_COLORS, HeroClass, HeroColors } from '../../lib/services/spriteService';
 import { useGameStore } from '../../lib/stores/gameStore';
 import { GameView } from '../../lib/types';
 import { PixelBox, PixelButton } from '../PixelComponents';
 import { SpritePreview } from '../heroes/SpritePreview';
-import { rpgService, HeroNFT } from '../../lib/services/rpgService';
-import { HeroMetadata } from '../../lib/services/heroMetadata';
-import { HeroClass, HeroColors } from '../../lib/services/spriteService';
-import { useAccount } from 'wagmi';
 
 interface BattleSceneProps {
     party: any[]; // Keep for compatibility, but we'll use token IDs from store
@@ -43,14 +43,27 @@ interface CombatTurn {
 export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
     const { address } = useAccount();
     const { currentRunId, selectedPartyTokenIds, switchView, setSelectedPartyTokenIds, setCurrentRunId } = useGameStore();
-    const { events, loading: eventsLoading } = useRunEvents(currentRunId);
-    const { status: runStatus } = useRunStatus(currentRunId);
+    // Use effective run ID for hooks (will be set after we determine it)
+    const [effectiveRunId, setEffectiveRunId] = useState<string | null>(currentRunId);
+    const { status: runStatus } = useRunStatus(effectiveRunId);
+
+    // Update effectiveRunId when currentRunId or runStatus changes
+    useEffect(() => {
+        if (currentRunId) {
+            setEffectiveRunId(currentRunId);
+        } else if (runStatus?.id) {
+            setEffectiveRunId(runStatus.id);
+        }
+    }, [currentRunId, runStatus?.id]);
+
+    const { events, loading: eventsLoading } = useRunEvents(effectiveRunId);
     const [dungeonInfo, setDungeonInfo] = useState<{ name: string; depth: number; theme?: string } | null>(null);
     const [totalXP, setTotalXP] = useState(0);
     const [revealedEventCount, setRevealedEventCount] = useState(0);
     const [partyHeroes, setPartyHeroes] = useState<HeroNFT[]>([]);
     const [heroMetadata, setHeroMetadata] = useState<Record<string, HeroMetadata>>({});
     const [loadingHeroMetadata, setLoadingHeroMetadata] = useState<Record<string, boolean>>({});
+    const [partyStats, setPartyStats] = useState<Record<string, { hp: number; maxHp: number; mana: number; maxMana: number }>>({});
     const hasInitializedRef = useRef(false);
     const revealIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const transitionInitiatedRef = useRef(false);
@@ -310,7 +323,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         setTotalXP(xp);
     }, [dungeonEvents]);
 
-    // Fetch dungeon info
+    // Fetch dungeon info and party heroes
     useEffect(() => {
         if (!currentRunId) return;
 
@@ -334,8 +347,189 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
             }
         };
 
+        const fetchPartyHeroes = async () => {
+            // Get party from selectedPartyTokenIds or from runStatus
+            const partyToFetch = selectedPartyTokenIds.length > 0 ? selectedPartyTokenIds : (runStatus?.party || []);
+            if (!partyToFetch.length || !address) return;
+
+            try {
+                // Use the EXACT same approach as PartySelector - get TavernKeepers first, then heroes for each TBA
+                // 1. Fetch TavernKeepers
+                const keepers = await rpgService.getUserTavernKeepers(address);
+
+                // 2. Fetch Heroes for each Keeper
+                let allUserHeroes: HeroNFT[] = [];
+
+                for (const keeper of keepers) {
+                    if (keeper.tbaAddress) {
+                        const keeperHeroes = await rpgService.getHeroes(keeper.tbaAddress);
+                        allUserHeroes = [...allUserHeroes, ...keeperHeroes];
+                    }
+                }
+
+                // Filter to only the party members
+                const partyHeroesList = allUserHeroes.filter((h: HeroNFT) => partyToFetch.includes(h.tokenId));
+
+                // Fetch metadata for all heroes BEFORE setting state (EXACT same as PartySelector)
+                const heroesWithMetadata = await Promise.all(
+                    partyHeroesList.map(async (h: HeroNFT) => {
+                        const hero: HeroNFT & { name?: string; metadata?: any } = {
+                            tokenId: h.tokenId,
+                            metadataUri: h.metadataUri,
+                            tbaAddress: h.tbaAddress || '',
+                            name: `Hero #${h.tokenId}`, // Placeholder until metadata is loaded
+                        };
+
+                        if (!h.metadataUri) return hero;
+
+                        try {
+                            let metadata: HeroMetadata | null = null;
+                            const uri = h.metadataUri;
+
+                            // Handle data URIs (base64 encoded JSON) - EXACT same as PartySelector
+                            if (uri.startsWith('data:application/json;base64,')) {
+                                const base64 = uri.replace('data:application/json;base64,', '');
+                                metadata = JSON.parse(atob(base64)) as HeroMetadata;
+                                console.log(`[BattleScene] Parsed data URI for hero ${h.tokenId}:`, {
+                                    hasName: !!metadata?.name,
+                                    hasHero: !!metadata?.hero,
+                                    hasClass: !!metadata?.hero?.class,
+                                    hasColorPalette: !!metadata?.hero?.colorPalette,
+                                });
+                            } else if (uri.startsWith('http://') || uri.startsWith('https://')) {
+                                const res = await fetch(uri);
+                                if (res.ok) {
+                                    metadata = await res.json() as HeroMetadata;
+                                    console.log(`[BattleScene] Fetched HTTP metadata for hero ${h.tokenId}:`, {
+                                        hasName: !!metadata?.name,
+                                        hasHero: !!metadata?.hero,
+                                        hasClass: !!metadata?.hero?.class,
+                                        hasColorPalette: !!metadata?.hero?.colorPalette,
+                                    });
+                                }
+                            } else if (uri.startsWith('ipfs://')) {
+                                const url = uri.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                                const res = await fetch(url);
+                                if (res.ok) {
+                                    metadata = await res.json() as HeroMetadata;
+                                    console.log(`[BattleScene] Fetched IPFS metadata for hero ${h.tokenId}:`, {
+                                        hasName: !!metadata?.name,
+                                        hasHero: !!metadata?.hero,
+                                        hasClass: !!metadata?.hero?.class,
+                                        hasColorPalette: !!metadata?.hero?.colorPalette,
+                                    });
+                                }
+                            }
+
+                            if (metadata) {
+                                console.log(`[BattleScene] Successfully loaded metadata for hero ${h.tokenId}:`, {
+                                    name: metadata.name,
+                                    heroClass: metadata.hero?.class,
+                                    hasColorPalette: !!metadata.hero?.colorPalette,
+                                    colorPalette: metadata.hero?.colorPalette,
+                                });
+                                return {
+                                    ...hero,
+                                    name: metadata.name || hero.name,
+                                    metadata: metadata, // Store full metadata object with hero.class and hero.colorPalette - EXACT same as PartySelector
+                                };
+                            } else {
+                                console.warn(`[BattleScene] No metadata returned for hero ${h.tokenId}`);
+                            }
+                        } catch (e) {
+                            console.error(`[BattleScene] Failed to fetch metadata for hero ${h.tokenId}:`, e);
+                        }
+
+                        // Return hero with default metadata if fetch fails
+                        console.warn(`[BattleScene] Using default metadata for hero ${h.tokenId}`);
+                        return hero;
+                    })
+                );
+
+                setPartyHeroes(heroesWithMetadata);
+            } catch (error) {
+                console.error('[BattleScene] Error fetching party heroes:', error);
+            }
+        };
+
         fetchDungeonInfo();
-    }, [currentRunId]);
+        fetchPartyHeroes();
+    }, [currentRunId, selectedPartyTokenIds, address, runStatus?.party]);
+
+    // Track party stats from combat events
+    useEffect(() => {
+        if (!dungeonEvents.length) return;
+
+        // Initialize with max HP/mana
+        const initialStats: Record<string, { hp: number; maxHp: number; mana: number; maxMana: number }> = {};
+        selectedPartyTokenIds.forEach(tokenId => {
+            const metadata = heroMetadata[tokenId];
+            const heroClass = metadata?.hero?.class || 'Warrior';
+            // Default stats based on class
+            const maxHp = 100; // TODO: Get from adventurer stats API
+            const maxMana = (heroClass === 'Mage' || heroClass === 'Cleric') ? 50 : 0;
+
+            initialStats[tokenId] = {
+                hp: maxHp,
+                maxHp,
+                mana: maxMana,
+                maxMana,
+            };
+        });
+
+        // Track HP from combat turns - extract from result.targetHpAfter
+        const updatedStats = { ...initialStats };
+        dungeonEvents.forEach(event => {
+            if (event.combatTurns && Array.isArray(event.combatTurns)) {
+                event.combatTurns.forEach(turn => {
+                    const result = turn.result;
+                    if (result && 'targetHpAfter' in result && result.targetId) {
+                        // Find which party member this targets
+                        const targetTokenId = selectedPartyTokenIds.find(id =>
+                            id === result.targetId ||
+                            partyHeroes.find(h => h.tokenId === id)?.tokenId === result.targetId
+                        );
+                        if (targetTokenId && result.targetHpAfter !== undefined) {
+                            if (!updatedStats[targetTokenId]) {
+                                updatedStats[targetTokenId] = { hp: 100, maxHp: 100, mana: 50, maxMana: 50 };
+                            }
+                            updatedStats[targetTokenId].hp = Math.max(0, result.targetHpAfter);
+                        }
+                    }
+                    // Also check entityId for party member HP
+                    if (turn.entityId && turn.result && 'targetHpAfter' in turn.result) {
+                        const entityTokenId = selectedPartyTokenIds.find(id =>
+                            id === turn.entityId ||
+                            partyHeroes.find(h => h.tokenId === id)?.tokenId === turn.entityId
+                        );
+                        if (entityTokenId && turn.result.targetHpAfter !== undefined) {
+                            if (!updatedStats[entityTokenId]) {
+                                updatedStats[entityTokenId] = { hp: 100, maxHp: 100, mana: 50, maxMana: 50 };
+                            }
+                            // Only update if this is the entity's own HP (not target HP)
+                            // We'll track from targetHpAfter when this entity is the target
+                        }
+                    }
+                });
+            }
+        });
+
+        setPartyStats(prev => {
+            // Merge with existing stats, preserving max values
+            const merged: Record<string, { hp: number; maxHp: number; mana: number; maxMana: number }> = {};
+            selectedPartyTokenIds.forEach(tokenId => {
+                const existing = prev[tokenId] || initialStats[tokenId];
+                const updated = updatedStats[tokenId];
+                merged[tokenId] = {
+                    hp: updated?.hp ?? existing?.hp ?? 100,
+                    maxHp: existing?.maxHp ?? 100,
+                    mana: updated?.mana ?? existing?.mana ?? 50,
+                    maxMana: existing?.maxMana ?? 50,
+                };
+            });
+            return merged;
+        });
+    }, [dungeonEvents, selectedPartyTokenIds, heroMetadata, partyHeroes]);
 
     // Progressive reveal of events (1 line every 6 seconds)
     // Only show events for CURRENT level - reset when level changes
@@ -382,22 +576,12 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
             }
         }
 
-        // Only start/continue interval if we have new items to reveal
-        // Also ensure we start even if revealedEventCount is 0 (initial state)
+        // Auto-reveal events at 200ms intervals, but also allow manual fast-forward
         if (totalItems > 0 && totalItems > revealedEventCount && !revealIntervalRef.current) {
             // Log when starting the reveal interval
-            console.log(`[BattleScene] Starting reveal interval for level ${currentLevel}: ${revealedEventCount}/${totalItems} revealed`);
-            console.log(`[BattleScene] Current level data:`, {
-                level: currentLevel,
-                eventsCount: currentLevelData?.events.length || 0,
-                roomEnterCount,
-                combatTurnsCount,
-                otherEventsCount,
-                totalItems,
-                hasRevealInterval: !!revealIntervalRef.current
-            });
+            console.log(`[BattleScene] Starting auto-reveal for level ${currentLevel}: ${revealedEventCount}/${totalItems} revealed`);
 
-            // Start revealing events progressively
+            // Start revealing events progressively at 200ms intervals
             revealIntervalRef.current = setInterval(() => {
                 setRevealedEventCount(prev => {
                     // Recalculate total items for current level in case new events arrived
@@ -425,10 +609,6 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                         const nextCount = prev + 1;
                         // Save progress to ref immediately
                         revealedCountsByLevelRef.current.set(currentLevel, nextCount);
-                        // Log every 5 reveals to avoid spam
-                        if (nextCount % 5 === 0 || nextCount === 1) {
-                            console.log(`[BattleScene] Revealed ${nextCount}/${newTotalItems} events for level ${currentLevel}`);
-                        }
                         return nextCount;
                     }
                     // Stop interval when all items are revealed
@@ -440,7 +620,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                     revealedCountsByLevelRef.current.set(currentLevel, prev);
                     return prev;
                 });
-            }, 6000); // 6 seconds per item
+            }, 200); // 200ms per item - slower auto-reveal
         }
 
         return () => {
@@ -973,8 +1153,12 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         return revealedEventCount >= 1;
     }, [currentLevel, levelsProgress, revealedEventCount]);
 
+    // Get effective party from selectedPartyTokenIds or runStatus
+    const effectiveParty = selectedPartyTokenIds.length > 0 ? selectedPartyTokenIds : (runStatus?.party || []);
+
     // NOW do all conditional returns AFTER all hooks have been called
-    if (!currentRunId) {
+    // Allow showing completed runs - only show "No active run" if we truly have no run data
+    if (!effectiveRunId && (!runStatus || !runStatus.id)) {
         return (
             <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4">
                 <div className="text-4xl">⚠️</div>
@@ -993,7 +1177,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
 
     // Check for error events
     const errorEvent = dungeonEvents.find(e => e.type === 'error');
-    const hasError = errorEvent || (runStatus && (runStatus.result === 'error' || runStatus.status === 'error'));
+    const hasError = errorEvent || (runStatus && runStatus.result === 'error');
 
     // Show error state prominently if we have an error event or error status
     if (hasError && (errorEvent || !eventsLoading)) {
@@ -1046,7 +1230,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
     }
 
     // Show timeout state if we have timeout status but no events
-    if (runStatus && runStatus.status === 'timeout' && dungeonEvents.length === 0 && !eventsLoading) {
+    if (runStatus && runStatus.result === 'timeout' && dungeonEvents.length === 0 && !eventsLoading) {
         return (
             <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4 p-8">
                 <div className="text-6xl">⏱️</div>
@@ -1074,6 +1258,39 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         );
     }
 
+    // Calculate fast forward button state (reuse existing currentLevelData)
+    const shouldShowFastForward = currentLevelData ? (() => {
+        const roomEnterCount = currentLevelData.events.filter(e => e.type === 'room_enter').length;
+        const combatEvents = currentLevelData.events.filter(e => e.combatTurns && Array.isArray(e.combatTurns) && e.combatTurns.length > 0);
+        const combatTurnsCount = combatEvents.reduce((sum, e) => sum + (e.combatTurns?.length || 0), 0);
+        const eventsWithoutCombatTurns = currentLevelData.events.filter(e =>
+            e.type !== 'room_enter' && (!e.combatTurns || !Array.isArray(e.combatTurns) || e.combatTurns.length === 0)
+        );
+        const combatResultEvents = combatEvents.length;
+        const otherEventsCount = eventsWithoutCombatTurns.length + combatResultEvents;
+        const totalItems = roomEnterCount + combatTurnsCount + otherEventsCount;
+        return revealedEventCount < totalItems;
+    })() : false;
+
+    const handleFastForward = () => {
+        if (!currentLevelData) return;
+        const roomEnterCount = currentLevelData.events.filter(e => e.type === 'room_enter').length;
+        const combatEvents = currentLevelData.events.filter(e => e.combatTurns && Array.isArray(e.combatTurns) && e.combatTurns.length > 0);
+        const combatTurnsCount = combatEvents.reduce((sum, e) => sum + (e.combatTurns?.length || 0), 0);
+        const eventsWithoutCombatTurns = currentLevelData.events.filter(e =>
+            e.type !== 'room_enter' && (!e.combatTurns || !Array.isArray(e.combatTurns) || e.combatTurns.length === 0)
+        );
+        const combatResultEvents = combatEvents.length;
+        const otherEventsCount = eventsWithoutCombatTurns.length + combatResultEvents;
+        const totalItems = roomEnterCount + combatTurnsCount + otherEventsCount;
+
+        setRevealedEventCount(prev => {
+            const nextCount = Math.min(prev + 1, totalItems);
+            revealedCountsByLevelRef.current.set(currentLevel, nextCount);
+            return nextCount;
+        });
+    };
+
     return (
         <div className="w-full h-full bg-[#2a1d17] relative flex flex-col font-pixel overflow-hidden">
             {/* Top Panel - Room Scene (1/2 height) */}
@@ -1085,12 +1302,12 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                 }} />
 
                 {/* Room Title Overlay - Smaller text, cleaned up */}
-                <div className="absolute top-3 left-3 z-10">
-                    <div className="bg-[#2a1d17]/90 border-2 border-[#5c4033] rounded px-3 py-1.5">
-                        <div className="text-sm text-[#ffd700] font-bold">
+                <div className="absolute top-2 left-2 z-10">
+                    <div className="bg-[#2a1d17]/90 border-2 border-[#5c4033] rounded px-2 py-1">
+                        <div className="text-xs text-[#ffd700] font-bold">
                             {dungeonInfo?.name || 'Loading...'} - Level {currentLevel}
                         </div>
-                        <div className="text-xs text-[#8c7b63] flex items-center gap-2 mt-1">
+                        <div className="text-[10px] text-[#8c7b63] flex items-center gap-1.5 mt-0.5">
                             <span>Party: {selectedPartyTokenIds.length}</span>
                             <span>•</span>
                             <span className="text-[#22c55e]">XP: {totalXP}</span>
@@ -1100,33 +1317,125 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                     </div>
                 </div>
 
-                {/* Room Scene Content - Placeholder for animations */}
-                {/* Only show room type when first room_enter event is revealed */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                    {firstRoomEnterRevealed && (currentLevelData?.roomType === 'combat' || currentLevelData?.roomType === 'boss' || currentLevelData?.roomType === 'mid_boss') ? (
-                        <div className="text-center">
-                            <div className="text-6xl mb-4 animate-pulse">⚔️</div>
-                            <div className="text-lg text-[#eaddcf]">Combat in Progress...</div>
-                        </div>
-                    ) : firstRoomEnterRevealed && currentLevelData?.roomType === 'trap' ? (
-                        <div className="text-center">
-                            <div className="text-6xl mb-4">⚠️</div>
-                            <div className="text-lg text-[#eaddcf]">Trap Encounter</div>
-                        </div>
-                    ) : firstRoomEnterRevealed && currentLevelData?.roomType === 'treasure' ? (
-                        <div className="text-center">
-                            <div className="text-6xl mb-4">💰</div>
-                            <div className="text-lg text-[#eaddcf]">Treasure Room</div>
-                        </div>
-                    ) : firstRoomEnterRevealed && currentLevelData?.roomType === 'safe' ? (
-                        <div className="text-center">
-                            <div className="text-6xl mb-4">💤</div>
-                            <div className="text-lg text-[#eaddcf]">Safe Room - Resting</div>
+                {/* Battle Scene - Party Members Display (left side, enemies will go on right) */}
+                <div className="absolute inset-0 flex items-center justify-start p-4 pt-16">
+                    {effectiveParty.length > 0 ? (
+                        <div className="flex flex-wrap items-center justify-center gap-4 max-w-full">
+                            {effectiveParty.map((tokenId, idx) => {
+                                const hero = partyHeroes.find(h => h.tokenId === tokenId) as (HeroNFT & { name?: string; metadata?: any }) | undefined;
+
+                                // Extract hero class and colors from metadata - EXACT same as PartySelector
+                                const heroClass = (hero?.metadata?.hero?.class || 'Warrior') as HeroClass;
+                                const colors = (hero?.metadata?.hero?.colorPalette || DEFAULT_COLORS) as HeroColors;
+                                const heroName = hero?.name || `Hero #${tokenId}`;
+
+                                // Debug: Log what we're actually using for rendering
+                                console.log(`[BattleScene] Rendering hero ${tokenId}:`, {
+                                    heroClass,
+                                    hasColorPalette: !!hero?.metadata?.hero?.colorPalette,
+                                    colorsKeys: Object.keys(colors),
+                                    metadataStructure: hero?.metadata ? {
+                                        hasHero: !!hero.metadata.hero,
+                                        heroKeys: hero.metadata.hero ? Object.keys(hero.metadata.hero) : [],
+                                    } : null,
+                                });
+
+                                // Get HP/mana from tracked stats
+                                const stats = partyStats[tokenId] || { hp: 100, maxHp: 100, mana: 50, maxMana: 50 };
+                                const currentHP = stats.hp;
+                                const maxHP = stats.maxHp;
+                                const currentMana = stats.mana;
+                                const maxMana = stats.maxMana;
+
+                                return (
+                                    <div key={tokenId} className="flex flex-col items-center bg-[#2a1d17]/80 border-2 border-[#5c4033] rounded-lg p-3 min-w-[120px]">
+                                        {/* Hero Sprite/Icon - EXACT same rendering as PartySelector */}
+                                        <div className="mb-2">
+                                            <div className="transform scale-[2] origin-top">
+                                                <SpritePreview
+                                                    type={heroClass}
+                                                    colors={colors}
+                                                    showFrame={false}
+                                                    scale={1}
+                                                    isKeeper={false}
+                                                    interactive={false}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Hero Name */}
+                                        <div className="text-xs text-[#ffd700] font-bold mb-1 text-center truncate w-full">
+                                            {heroName}
+                                        </div>
+
+                                        {/* Hero Class */}
+                                        <div className="text-[10px] text-[#8c7b63] mb-2">
+                                            {heroClass}
+                                        </div>
+
+                                        {/* HP Bar */}
+                                        <div className="w-full mb-1">
+                                            <div className="text-[8px] text-[#8c7b63] mb-0.5">HP</div>
+                                            <div className="w-full h-2 bg-black/50 border border-white/10 rounded-full overflow-hidden relative">
+                                                <div
+                                                    style={{ width: `${Math.max(0, Math.min(100, (currentHP / maxHP) * 100))}%` }}
+                                                    className={`h-full absolute top-0 left-0 transition-all duration-300 ${
+                                                        currentHP / maxHP > 0.5 ? 'bg-red-600' : currentHP / maxHP > 0.25 ? 'bg-orange-500' : 'bg-red-800'
+                                                    }`}
+                                                />
+                                                <span className="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold">
+                                                    {Math.max(0, currentHP)}/{maxHP}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Mana Bar (only for mages/clerics) */}
+                                        {(heroClass === 'Mage' || heroClass === 'Cleric') && (
+                                            <div className="w-full">
+                                                <div className="text-[8px] text-[#8c7b63] mb-0.5">MP</div>
+                                                <div className="w-full h-2 bg-black/50 border border-white/10 rounded-full overflow-hidden relative">
+                                                    <div
+                                                        style={{ width: `${Math.max(0, Math.min(100, (currentMana / maxMana) * 100))}%` }}
+                                                        className="h-full bg-blue-500 absolute top-0 left-0 transition-all duration-300"
+                                                    />
+                                                    <span className="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold">
+                                                        {Math.max(0, currentMana)}/{maxMana}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="text-center">
-                            <div className="text-6xl mb-4">🚪</div>
-                            <div className="text-lg text-[#eaddcf]">Exploring...</div>
+                            {firstRoomEnterRevealed && (currentLevelData?.roomType === 'combat' || currentLevelData?.roomType === 'boss' || currentLevelData?.roomType === 'mid_boss') ? (
+                                <>
+                                    <div className="text-6xl mb-4 animate-pulse">⚔️</div>
+                                    <div className="text-lg text-[#eaddcf]">Combat in Progress...</div>
+                                </>
+                            ) : firstRoomEnterRevealed && currentLevelData?.roomType === 'trap' ? (
+                                <>
+                                    <div className="text-6xl mb-4">⚠️</div>
+                                    <div className="text-lg text-[#eaddcf]">Trap Encounter</div>
+                                </>
+                            ) : firstRoomEnterRevealed && currentLevelData?.roomType === 'treasure' ? (
+                                <>
+                                    <div className="text-6xl mb-4">💰</div>
+                                    <div className="text-lg text-[#eaddcf]">Treasure Room</div>
+                                </>
+                            ) : firstRoomEnterRevealed && currentLevelData?.roomType === 'safe' ? (
+                                <>
+                                    <div className="text-6xl mb-4">💤</div>
+                                    <div className="text-lg text-[#eaddcf]">Safe Room - Resting</div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="text-6xl mb-4">🚪</div>
+                                    <div className="text-lg text-[#eaddcf]">Exploring...</div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -1215,12 +1524,23 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                                         {eventItem.content}
                                     </React.Fragment>
                                 ))}
+
                             </>
                         )}
                     </div>
                 </PixelBox>
             </div>
 
+            {/* Floating Fast Forward Button */}
+            {shouldShowFastForward && (
+                <button
+                    onClick={handleFastForward}
+                    className="fixed bottom-20 right-4 z-50 w-14 h-14 bg-[#3e2b22] border-2 border-[#8c7b63] rounded-full flex items-center justify-center shadow-lg hover:bg-[#5c4033] transition-colors"
+                    title="Fast Forward Events"
+                >
+                    <span className="text-xl">⏩</span>
+                </button>
+            )}
         </div>
     );
 };

@@ -19,6 +19,20 @@ export interface RunStatus {
 
 export const runService = {
     /**
+     * Get active run for a wallet
+     */
+    async getActiveRun(walletAddress: string): Promise<RunStatus | null> {
+        const res = await fetch(`/api/runs?wallet=${encodeURIComponent(walletAddress)}`);
+
+        if (!res.ok) {
+            throw new Error('Failed to fetch active run');
+        }
+
+        const data = await res.json();
+        return data.activeRun || null;
+    },
+
+    /**
      * Create a new run
      */
     async createRun(params: CreateRunParams): Promise<{ id: string; status: string }> {

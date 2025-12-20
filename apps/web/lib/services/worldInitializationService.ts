@@ -1,14 +1,14 @@
 /**
  * World Initialization Service
- * 
+ *
  * Handles one-time world generation on game deploy.
  * Generates world, lore, history, and initial dungeons.
  */
 
 import { supabase } from '../supabase';
-import { WorldGenerator } from '../../contributions/world-generation-system/code/generators/world-generator';
-import { ThemedDungeonGenerator } from '../../contributions/themed-dungeon-generation/code/index';
-import type { ThemedDungeon, DungeonWorldContext } from '../../contributions/themed-dungeon-generation/code/types/dungeon-generation';
+import { WorldGenerator } from '../../game-engine/world-generation-system/code/generators/world-generator';
+import { ThemedDungeonGenerator } from '../../game-engine/themed-dungeon-generation/code/index';
+import type { ThemedDungeon, DungeonWorldContext } from '../../game-engine/themed-dungeon-generation/code/types/dungeon-generation';
 
 const WORLD_SEED = process.env.WORLD_SEED || 'innkeeper-world-v1';
 
@@ -74,11 +74,11 @@ export async function initializeWorld(): Promise<void> {
     // (Mortal races are generated before conceptual beings)
     console.log('📦 Generating world content...');
     const worldGenerator = new WorldGenerator();
-    
+
     // Generate with progress logging and timeout protection
     const startTime = Date.now();
     console.log('   Starting world generation with seed:', WORLD_SEED);
-    
+
     // Add timeout wrapper (5 minutes max - should be plenty for world generation)
     const generationPromise = worldGenerator.generateWorld({
       seed: WORLD_SEED,
@@ -86,11 +86,11 @@ export async function initializeWorld(): Promise<void> {
       depth: 'full',
       organizationDensity: 'normal', // Match the HTML tool's default 'normal' density
     });
-    
+
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('World generation timed out after 5 minutes')), 5 * 60 * 1000);
     });
-    
+
     const generatedWorld = await Promise.race([generationPromise, timeoutPromise]) as Awaited<typeof generationPromise>;
     const generationTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
@@ -104,7 +104,7 @@ export async function initializeWorld(): Promise<void> {
     console.log(`   - ${generatedWorld.organizations.length} organizations`);
     console.log(`   - ${generatedWorld.standoutMortals.length} standout mortals`);
     console.log(`   - ${generatedWorld.dungeons.length} dungeons (from world generator)`);
-    
+
     // Warn if dungeon count seems low (HTML tool typically generates 20+)
     if (generatedWorld.dungeons.length < 5) {
       console.warn(`   ⚠️  Low dungeon count (${generatedWorld.dungeons.length}). Expected 20+ with normal density.`);
@@ -250,7 +250,7 @@ export async function initializeWorld(): Promise<void> {
 /**
  * Initialize world on startup if not already initialized
  * This should be called from workers/index.ts
- * 
+ *
  * This is a non-fatal initialization - if it fails, workers will still start
  * and world can be initialized manually via the API endpoint.
  */

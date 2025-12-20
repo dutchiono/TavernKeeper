@@ -77,6 +77,7 @@ describe('runService', () => {
       const mockRun = {
         id: 'run-123',
         status: 'queued',
+        jobId: 'job-123',
       };
 
       (global.fetch as any).mockResolvedValueOnce({
@@ -90,7 +91,10 @@ describe('runService', () => {
         walletAddress: '0xwallet123',
       });
 
-      expect(result).toEqual(mockRun);
+      expect(result).toMatchObject({
+        id: 'run-123',
+        status: 'queued',
+      });
       expect(global.fetch).toHaveBeenCalledWith('/api/runs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

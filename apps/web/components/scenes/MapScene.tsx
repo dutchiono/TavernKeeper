@@ -28,7 +28,7 @@ interface DungeonIcon extends Dungeon {
 
 // Array of dungeon/adventure-themed emojis
 const DUNGEON_EMOJIS = [
-    '🗺️', '🏰', '🏛️', '⛰️', '🌋', '🏔️', '🕳️', '🕸️', 
+    '🗺️', '🏰', '🏛️', '⛰️', '🌋', '🏔️', '🕳️', '🕸️',
     '💎', '⚔️', '🛡️', '🗡️', '🏴', '👑', '💀', '👹',
     '🐉', '🦇', '🕷️', '🦂', '🔥', '❄️', '⚡', '🌊',
     '🌑', '⭐', '🔮', '📜', '🗝️', '💍', '🏺', '⚱️'
@@ -68,28 +68,28 @@ const generateNonOverlappingPositionsWithExisting = (
 ): Array<{ x: number; y: number }> => {
     const positions: Array<{ x: number; y: number }> = [...existingPositions];
     const maxAttempts = 100; // Maximum attempts to find a non-overlapping position
-    
+
     for (let i = 0; i < count; i++) {
         let attempts = 0;
         let position: { x: number; y: number } | null = null;
-        
+
         while (attempts < maxAttempts) {
             const candidate = {
                 x: 10 + Math.random() * 80, // Between 10% and 90%
                 y: 10 + Math.random() * 80,
             };
-            
+
             // Check if this position is far enough from all existing positions (including already placed ones)
             const isValid = positions.every(pos => !isTooClose(candidate, pos, minDistance));
-            
+
             if (isValid) {
                 position = candidate;
                 break;
             }
-            
+
             attempts++;
         }
-        
+
         // If we couldn't find a non-overlapping position, use a fallback grid-based position
         if (!position) {
             const totalCount = positions.length + count;
@@ -104,16 +104,16 @@ const generateNonOverlappingPositionsWithExisting = (
                 y: 10 + row * cellHeight + cellHeight / 2 + (Math.random() - 0.5) * (cellHeight * 0.6),
             };
         }
-        
+
         positions.push(position);
     }
-    
+
     // Return only the new positions (not the existing ones)
     return positions.slice(existingPositions.length);
 };
 
 export const MapScene: React.FC = () => {
-    const { selectedPartyTokenIds, setSelectedPartyTokenIds, currentRunId, setCurrentRunId, switchView } = useGameStore();
+    const { selectedPartyTokenIds, setSelectedPartyTokenIds, currentRunId, setCurrentRunId, switchView, currentView } = useGameStore();
     const { address, isConnected } = useAccount();
     const authenticated = isConnected;
 
@@ -132,14 +132,16 @@ export const MapScene: React.FC = () => {
     const { status: runStatus } = useRunStatus(currentRunId);
 
     // Clear party selection when returning to map if run is complete
+    // BUT: Don't clear if we're currently on BATTLE view - let BattleScene handle the transition
     useEffect(() => {
-        // If we have a run status and it's complete, clear the party selection
-        if (runStatus?.result && (runStatus.result === 'victory' || runStatus.result === 'defeat')) {
-            console.log(`[MapScene] Run ${currentRunId} is ${runStatus.result}, clearing party selection`);
+        // Only clear if we're on MAP view (not BATTLE view)
+        // This allows BattleScene to display the completed run and handle the transition
+        if (currentView === GameView.MAP && runStatus?.result && (runStatus.result === 'victory' || runStatus.result === 'defeat')) {
+            console.log(`[MapScene] Run ${currentRunId} is ${runStatus.result}, clearing party selection (on MAP view)`);
             setSelectedPartyTokenIds([]);
             setCurrentRunId(null);
         }
-    }, [runStatus?.result, currentRunId, setSelectedPartyTokenIds, setCurrentRunId]);
+    }, [runStatus?.result, currentRunId, currentView, setSelectedPartyTokenIds, setCurrentRunId]);
 
     // Clear party selection when map view is first loaded (if no active run)
     useEffect(() => {
@@ -157,24 +159,24 @@ export const MapScene: React.FC = () => {
                 const dungeonsRes = await fetch('/api/dungeons');
                 if (!dungeonsRes.ok) throw new Error('Failed to load dungeons');
                 const dungeonsData = await dungeonsRes.json();
-                
+
                 if (!dungeonsData.dungeons || dungeonsData.dungeons.length === 0) {
                     throw new Error('No dungeons available');
                 }
-                
+
                 // Separate dungeons with and without positions
                 const dungeonsWithPositions: Dungeon[] = [];
                 const dungeonsWithoutPositions: Dungeon[] = [];
-                
+
                 dungeonsData.dungeons.forEach((dungeon: Dungeon) => {
-                    if (dungeon.icon_x !== null && dungeon.icon_x !== undefined && 
+                    if (dungeon.icon_x !== null && dungeon.icon_x !== undefined &&
                         dungeon.icon_y !== null && dungeon.icon_y !== undefined) {
                         dungeonsWithPositions.push(dungeon);
                     } else {
                         dungeonsWithoutPositions.push(dungeon);
                     }
                 });
-                
+
                 // Generate positions only for dungeons that don't have them
                 let newPositions: Array<{ x: number; y: number }> = [];
                 if (dungeonsWithoutPositions.length > 0) {
@@ -184,7 +186,7 @@ export const MapScene: React.FC = () => {
                         dungeonsWithoutPositions.length,
                         existingPositions
                     );
-                    
+
                     // Save new positions to database
                     await Promise.all(dungeonsWithoutPositions.map(async (dungeon, index) => {
                         const pos = newPositions[index];
@@ -203,7 +205,7 @@ export const MapScene: React.FC = () => {
                         }
                     }));
                 }
-                
+
                 // Combine all dungeons with their positions
                 const allDungeons: Dungeon[] = [
                     ...dungeonsWithPositions,
@@ -213,7 +215,7 @@ export const MapScene: React.FC = () => {
                         icon_y: newPositions[index].y,
                     })),
                 ];
-                
+
                 // Create icons with positions and varied emojis (deterministic based on dungeon ID)
                 const dungeonIcons: DungeonIcon[] = allDungeons.map((dungeon: Dungeon) => ({
                     ...dungeon,
@@ -221,7 +223,7 @@ export const MapScene: React.FC = () => {
                     y: dungeon.icon_y!,
                     emoji: getDungeonEmoji(dungeon.id),
                 }));
-                
+
                 setDungeons(dungeonIcons);
             } catch (err) {
                 console.error(err);
@@ -390,7 +392,7 @@ export const MapScene: React.FC = () => {
     return (
         <div className="w-full h-full bg-[#1a120b] flex flex-col items-center py-8 relative overflow-hidden font-pixel">
             {/* Background Image Layer */}
-            <div 
+            <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
                     backgroundImage: "url('/sprites/palceholdermap.png')",
@@ -425,7 +427,7 @@ export const MapScene: React.FC = () => {
                                 title={dungeon.name}
                             >
                                 {/* Ellipse platform (miniature base perspective - circular but slightly squashed) */}
-                                <div 
+                                <div
                                     className={`
                                         w-9 h-7 rounded-full border-2 shadow-lg
                                         ${isSelected
@@ -433,7 +435,7 @@ export const MapScene: React.FC = () => {
                                             : 'bg-[#2a1d17] border-[#5c4033] hover:border-amber-700'}
                                     `}
                                 />
-                                
+
                                 {/* Icon sitting on platform */}
                                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-3xl drop-shadow-lg">
                                     {dungeon.emoji}

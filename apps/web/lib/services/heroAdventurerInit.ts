@@ -1,30 +1,30 @@
 /**
  * Hero Adventurer Initialization
- * 
+ *
  * Helper functions to initialize adventurer stats when a hero is minted or synced.
  * Also initializes starter weapon.
  */
 
 import { getHeroByTokenId } from './heroOwnership';
-import { 
+import {
   upsertAdventurer,
   getAdventurer,
   type AdventurerRecord,
   type HeroIdentifier,
   type HeroClass,
-} from '../../contributions/adventurer-tracking/code/services/adventurerService';
+} from '../../game-engine/adventurer-tracking/code/services/adventurerService';
 import {
   calculateMaxHP,
   calculateProficiencyBonus,
   calculateAbilityModifier,
   type AdventurerStats,
-} from '../../contributions/adventurer-tracking/code/types/adventurer-stats';
-import { ItemGenerator } from '../../contributions/procedural-item-generation/code/generators/item-generator';
-import { 
+} from '../../game-engine/adventurer-tracking/code/types/adventurer-stats';
+import { ItemGenerator } from '../../game-engine/procedural-item-generation/code/generators/item-generator';
+import {
   addItemToInventory,
   equipItem,
   getEquippedItems,
-} from '../../contributions/inventory-tracking/code/services/inventoryService';
+} from '../../game-engine/inventory-tracking/code/services/inventoryService';
 
 // Safe fallback: Use environment variable first, then fallback to testnet address
 // Ensure we always have a valid address - never undefined
@@ -32,12 +32,12 @@ function getHeroContractAddress(): string {
   try {
     const envAddress = process.env.NEXT_PUBLIC_HERO_CONTRACT_ADDRESS;
     const address = envAddress || '0x4Fff2Ce5144989246186462337F0eE2C086F913E'; // Testnet fallback
-    
+
     // Final safety check
     if (!address || address === '0x0000000000000000000000000000000000000000' || address === 'undefined' || typeof address !== 'string') {
       return '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
     }
-    
+
     return address;
   } catch (error) {
     console.error('[heroAdventurerInit] Error getting HERO_CONTRACT_ADDRESS:', error);
@@ -146,8 +146,8 @@ export async function initializeAdventurerStats(
   if (!classToUse || !nameToUse) {
     try {
       const hero = await getHeroByTokenId(tokenId);
-      classToUse = classToUse || hero.metadata?.hero?.class?.toLowerCase() || 
-                   hero.metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value?.toLowerCase() || 
+      classToUse = classToUse || hero.metadata?.hero?.class?.toLowerCase() ||
+                   hero.metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value?.toLowerCase() ||
                    'warrior';
       nameToUse = nameToUse || hero.name || `Hero #${tokenId}`;
     } catch (error) {
@@ -182,8 +182,8 @@ export async function initializeAdventurerStats(
   // Calculate perception (WIS modifier + proficiency if proficient)
   const perceptionBase = 10 + calculateAbilityModifier(baseStats.wisdom || 10);
   const perceptionProficient = Math.random() < 0.35; // 35% chance
-  const perception = perceptionProficient 
-    ? perceptionBase + proficiencyBonus 
+  const perception = perceptionProficient
+    ? perceptionBase + proficiencyBonus
     : perceptionBase;
 
   // Calculate attack bonuses

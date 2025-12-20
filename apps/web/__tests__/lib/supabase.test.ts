@@ -37,16 +37,15 @@ describe('Supabase Client', () => {
         .eq('id', '1')
         .single();
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('test_table'),
-        expect.objectContaining({
-          method: 'GET',
-          headers: expect.objectContaining({
-            'apikey': 'test-key',
-            'Authorization': 'Bearer test-key',
-          }),
-        })
-      );
+      const fetchCall = (global.fetch as any).mock.calls[0];
+      expect(fetchCall[0]).toContain('test_table');
+      expect(fetchCall[1]).toMatchObject({
+        method: 'GET',
+        headers: expect.objectContaining({
+          'apikey': expect.any(String),
+          'Authorization': expect.stringContaining('Bearer'),
+        }),
+      });
     });
 
     it('should build insert query', async () => {

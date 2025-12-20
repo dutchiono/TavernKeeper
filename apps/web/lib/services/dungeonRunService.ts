@@ -6,19 +6,19 @@
  */
 
 import { supabase } from '../supabase';
-import { ThemedDungeonGenerator } from '../../contributions/themed-dungeon-generation/code/index';
-import type { ThemedDungeon, GeneratedRoom, RoomType } from '../../contributions/themed-dungeon-generation/code/types/dungeon-generation';
-import { getAdventurer, getAdventurersByWallet, updateAdventurerStats, addXP, restoreAdventurer } from '../../contributions/adventurer-tracking/code/services/adventurerService';
-import type { HeroIdentifier, AdventurerRecord } from '../../contributions/adventurer-tracking/code/types/adventurer-stats';
-import { getEquippedItems, addItemToInventory } from '../../contributions/inventory-tracking/code/services/inventoryService';
-import { initializeCombat, runCombat } from '../../contributions/combat-system/code/services/combatService';
-import type { CombatResult } from '../../contributions/combat-system/code/types/combat';
-import { resolveTrap } from '../../contributions/combat-system/code/services/trapService';
-import type { TrapResolutionResult } from '../../contributions/combat-system/code/types/trap';
-import { createMonsterInstanceByName, getMonsterStatBlock } from '../../contributions/monster-stat-blocks/code/services/monsterService';
-import type { MonsterInstance } from '../../contributions/monster-stat-blocks/code/types/monster-stats';
-import { ItemGenerator } from '../../contributions/procedural-item-generation/code/generators/item-generator';
-import { scheduleEventsSequentially } from '../../contributions/timer-system/code/services/timerService';
+import { ThemedDungeonGenerator } from '../../game-engine/themed-dungeon-generation/code/index';
+import type { ThemedDungeon, GeneratedRoom, RoomType } from '../../game-engine/themed-dungeon-generation/code/types/dungeon-generation';
+import { getAdventurer, getAdventurersByWallet, updateAdventurerStats, addXP, restoreAdventurer } from '../../game-engine/adventurer-tracking/code/services/adventurerService';
+import type { HeroIdentifier, AdventurerRecord } from '../../game-engine/adventurer-tracking/code/types/adventurer-stats';
+import { getEquippedItems, addItemToInventory } from '../../game-engine/inventory-tracking/code/services/inventoryService';
+import { initializeCombat, runCombat } from '../../game-engine/combat-system/code/services/combatService';
+import type { CombatResult } from '../../game-engine/combat-system/code/types/combat';
+import { resolveTrap } from '../../game-engine/combat-system/code/services/trapService';
+import type { TrapResolutionResult } from '../../game-engine/combat-system/code/types/trap';
+import { createMonsterInstanceByName, getMonsterStatBlock } from '../../game-engine/monster-stat-blocks/code/services/monsterService';
+import type { MonsterInstance } from '../../game-engine/monster-stat-blocks/code/types/monster-stats';
+import { ItemGenerator } from '../../game-engine/procedural-item-generation/code/generators/item-generator';
+import { scheduleEventsSequentially } from '../../game-engine/timer-system/code/services/timerService';
 import { logGameEvent, persistKeyEvent } from './gameLoggingService';
 import { CONTRACT_ADDRESSES } from '../contracts/addresses';
 
@@ -27,7 +27,7 @@ import { CONTRACT_ADDRESSES } from '../contracts/addresses';
 function getHeroContractAddress(): string {
   // Hardcoded fallback address (testnet)
   const FALLBACK_ADDRESS = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
-  
+
   try {
     // Try to get from env first
     let envAddress: string | undefined;
@@ -37,7 +37,7 @@ function getHeroContractAddress(): string {
       // process.env might not be available in some contexts
       envAddress = undefined;
     }
-    
+
     // Try to get from CONTRACT_ADDRESSES (may not be loaded yet)
     let contractAddressesValue: string | undefined;
     try {
@@ -48,20 +48,20 @@ function getHeroContractAddress(): string {
       // CONTRACT_ADDRESSES might not be loaded yet, ignore
       contractAddressesValue = undefined;
     }
-    
+
     // Use env, then CONTRACT_ADDRESSES, then testnet fallback
     let address = envAddress || contractAddressesValue || FALLBACK_ADDRESS;
-    
+
     // Final safety check - if somehow still undefined or zero address, use testnet address
-    if (!address || 
-        address === '0x0000000000000000000000000000000000000000' || 
-        address === 'undefined' || 
+    if (!address ||
+        address === '0x0000000000000000000000000000000000000000' ||
+        address === 'undefined' ||
         typeof address !== 'string' ||
         address.length < 10) {
       console.warn('[DungeonRunService] HERO_CONTRACT_ADDRESS was invalid, using testnet fallback');
       address = FALLBACK_ADDRESS;
     }
-    
+
     return address;
   } catch (error) {
     console.error('[DungeonRunService] Error getting HERO_CONTRACT_ADDRESS:', error);
@@ -147,11 +147,18 @@ export async function executeDungeonRun(
   seed: string,
   walletAddress: string
 ): Promise<DungeonRunResult> {
+  // Validate party parameter
+  if (!party || !Array.isArray(party) || party.length === 0) {
+    const errorMsg = `Invalid party parameter: ${JSON.stringify(party)}. Party must be a non-empty array of token IDs.`;
+    console.error(`[DungeonRun] ${errorMsg}`);
+    throw new Error(errorMsg);
+  }
+
   // Log module-level constant for debugging
   console.log(`[DungeonRun] Module-level HERO_CONTRACT_ADDRESS: ${HERO_CONTRACT_ADDRESS}`);
   console.log(`[DungeonRun] Module-level HERO_CONTRACT_ADDRESS type: ${typeof HERO_CONTRACT_ADDRESS}`);
   console.log(`[DungeonRun] Module-level HERO_CONTRACT_ADDRESS is undefined: ${typeof HERO_CONTRACT_ADDRESS === 'undefined'}`);
-  
+
   // Validate contract address immediately at function start
   let heroContractAddress: string;
   try {
@@ -159,7 +166,7 @@ export async function executeDungeonRun(
     heroContractAddress = getHeroContractAddress();
     console.log(`[DungeonRun] getHeroContractAddress() returned: ${heroContractAddress}`);
     console.log(`[DungeonRun] Returned address type: ${typeof heroContractAddress}`);
-    
+
     if (!heroContractAddress || heroContractAddress === '0x0000000000000000000000000000000000000000' || typeof heroContractAddress !== 'string') {
       console.error(`[DungeonRun] HERO_CONTRACT_ADDRESS validation failed. Value: ${heroContractAddress}, Type: ${typeof heroContractAddress}`);
       throw new Error(`HERO_CONTRACT_ADDRESS is not properly initialized. Got: ${heroContractAddress}`);
@@ -177,7 +184,7 @@ export async function executeDungeonRun(
     heroContractAddress = '0x4Fff2Ce5144989246186462337F0eE2C086F913E';
     console.warn(`[DungeonRun] Using hardcoded fallback address: ${heroContractAddress}`);
   }
-  
+
   const events: DungeonRunResult['events'] = [];
   const runStartTime = Date.now();
   console.log(`[DungeonRun] Starting dungeon run ${runId} for dungeon ${dungeonId} with ${party.length} heroes`);
@@ -227,7 +234,7 @@ export async function executeDungeonRun(
         metadata: layout.metadata,
       };
     });
-    
+
     const dungeon: ThemedDungeon = {
       id: dungeonMap.id || dungeonId,
       name: dungeonMap.name || 'Unknown Dungeon',
@@ -243,7 +250,7 @@ export async function executeDungeonRun(
     // Removed frequent log
     const partyLoadStartTime = Date.now();
     const partyMembers: AdventurerRecord[] = [];
-    
+
     // Use the pre-validated contract address from function start
     for (const tokenId of party) {
       const heroId: HeroIdentifier = {
@@ -351,15 +358,67 @@ export async function executeDungeonRun(
     }
     console.log(`[DungeonRun] Party loaded in ${Date.now() - partyLoadStartTime}ms: ${partyMembers.map(p => `${p.name} (L${p.level})`).join(', ')}`);
 
+    // 3.5. Initialize deferred update arrays (needed for HP restoration)
+    // Accumulate all DB updates to batch at the end (FAST MODE)
+    const deferredStatUpdates: Array<{ heroId: HeroIdentifier; updates: Partial<AdventurerRecord['stats']>; reason: string }> = [];
+    const deferredXPUpdates: Array<{ heroId: HeroIdentifier; xp: number }> = [];
+
+    // 3.6. Restore all party members to full HP/mana before starting the run
+    // This ensures heroes start fresh even if they died in a previous run
+    console.log(`[DungeonRun] Restoring party to full HP/mana before starting run...`);
+    const restoreStartTime = Date.now();
+    for (const member of partyMembers) {
+      // Log before restoration for debugging
+      console.log(`[DungeonRun] Hero ${member.heroId.tokenId} (${member.name}): Before restore - HP: ${member.stats.health}/${member.stats.maxHealth}, Mana: ${member.stats.mana}/${member.stats.maxMana}`);
+
+      // Restore HP/mana in memory (don't write to DB yet - FAST MODE)
+      // Ensure maxHealth and maxMana are valid numbers
+      if (!member.stats.maxHealth || member.stats.maxHealth <= 0) {
+        console.error(`[DungeonRun] WARNING: Hero ${member.heroId.tokenId} has invalid maxHealth: ${member.stats.maxHealth}. Using default 100.`);
+        member.stats.maxHealth = 100;
+      }
+      if (member.stats.maxMana === undefined || member.stats.maxMana < 0) {
+        // Only set maxMana if it's undefined or negative (0 is valid for non-casters)
+        const defaultMana = (member.class === 'mage' || member.class === 'cleric') ? 50 : 0;
+        console.log(`[DungeonRun] Hero ${member.heroId.tokenId} maxMana was ${member.stats.maxMana}, setting to ${defaultMana}`);
+        member.stats.maxMana = defaultMana;
+      }
+
+      member.stats.health = member.stats.maxHealth;
+      member.stats.mana = member.stats.maxMana;
+
+      // Log after restoration for debugging
+      console.log(`[DungeonRun] Hero ${member.heroId.tokenId} (${member.name}): After restore - HP: ${member.stats.health}/${member.stats.maxHealth}, Mana: ${member.stats.mana}/${member.stats.maxMana}`);
+
+      // Also queue DB update for later batch write
+      deferredStatUpdates.push({
+        heroId: member.heroId,
+        updates: {
+          health: member.stats.maxHealth,
+          mana: member.stats.maxMana,
+        },
+        reason: 'run_start_restore',
+      });
+    }
+    console.log(`[DungeonRun] Party restored to full HP/mana in ${Date.now() - restoreStartTime}ms`);
+
+    // Verify all party members have HP > 0 before starting
+    const aliveAfterRestore = partyMembers.filter(m => m.stats.health > 0);
+    if (aliveAfterRestore.length === 0) {
+      console.error(`[DungeonRun] CRITICAL: All party members have 0 HP after restoration!`);
+      partyMembers.forEach(m => {
+        console.error(`[DungeonRun]   - ${m.name} (${m.heroId.tokenId}): HP=${m.stats.health}, maxHP=${m.stats.maxHealth}`);
+      });
+      throw new Error(`All party members have 0 HP after restoration. Cannot start dungeon run.`);
+    }
+    console.log(`[DungeonRun] Verified: ${aliveAfterRestore.length}/${partyMembers.length} party members have HP > 0 after restoration`);
+
     // 4. Execute level-by-level (FAST MODE: Keep everything in memory, defer DB writes)
     let currentLevel = 1;
     let totalXP = 0;
+    let runEndedInDefeat = false; // Track if run ended due to defeat (declared outside loop to persist)
     const maxLevel = Math.min(dungeon.depth, 100); // Cap at 100 levels for safety
     console.log(`[DungeonRun] Starting level-by-level execution (max ${maxLevel} levels) - FAST MODE: Deferring DB writes`);
-    
-    // Accumulate all DB updates to batch at the end
-    const deferredStatUpdates: Array<{ heroId: HeroIdentifier; updates: Partial<AdventurerRecord['stats']>; reason: string }> = [];
-    const deferredXPUpdates: Array<{ heroId: HeroIdentifier; xp: number }> = [];
 
     while (currentLevel <= maxLevel) {
       const levelStartTime = Date.now();
@@ -404,7 +463,7 @@ export async function executeDungeonRun(
         // Room not pre-generated, generate on-demand
         // Removed frequent log
         try {
-          const { RoomGenerator } = await import('../../contributions/themed-dungeon-generation/code/generators/room-generator');
+          const { RoomGenerator } = await import('../../game-engine/themed-dungeon-generation/code/generators/room-generator');
           const roomGenerator = new RoomGenerator();
           const generatedRoom = roomGenerator.generateRoom({
             seed: `${dungeonSeed}-level-${currentLevel}`,
@@ -437,6 +496,14 @@ export async function executeDungeonRun(
       const roomExecStartTime = Date.now();
       let roomResult: RoomExecutionResult;
       let partyDefeated = false;
+
+      // Validate partyMembers before executing room
+      if (!partyMembers || !Array.isArray(partyMembers) || partyMembers.length === 0) {
+        const errorMsg = `Invalid partyMembers at level ${currentLevel}: ${JSON.stringify(partyMembers)}. Party must be a non-empty array.`;
+        console.error(`[DungeonRun] ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
       try {
         roomResult = await executeRoom(
           room,
@@ -466,6 +533,7 @@ export async function executeDungeonRun(
         if (defeatEvent) {
           console.log(`[DungeonRun] Party defeated detected in room events at level ${currentLevel}. Will stop after processing this room.`);
           partyDefeated = true;
+          runEndedInDefeat = true; // Mark that run ended in defeat
         }
       } catch (roomError) {
         console.error(`[DungeonRun] Error executing room at level ${currentLevel}:`, roomError);
@@ -505,6 +573,7 @@ export async function executeDungeonRun(
         if (aliveAfterUpdate.length === 0) {
           console.log(`[DungeonRun] All party members defeated after level ${currentLevel}. Ending run.`);
           partyDefeated = true;
+          runEndedInDefeat = true; // Mark that run ended in defeat
         }
       }
 
@@ -548,7 +617,7 @@ export async function executeDungeonRun(
     // 5. FAST MODE: Batch all DB operations now that simulation is complete
     console.log(`[DungeonRun] Simulation complete! Batch processing ${deferredStatUpdates.length} stat updates and ${deferredXPUpdates.length} XP awards...`);
     const batchStartTime = Date.now();
-    
+
     // Batch update all hero stats
     if (deferredStatUpdates.length > 0) {
       console.log(`[DungeonRun] Batch updating ${deferredStatUpdates.length} hero stat updates...`);
@@ -565,7 +634,7 @@ export async function executeDungeonRun(
           updatesByHero.set(key, update);
         }
       }
-      
+
       // Execute batched updates
       const updatePromises = Array.from(updatesByHero.values()).map(update =>
         withTimeout(
@@ -600,7 +669,7 @@ export async function executeDungeonRun(
           xpByHero.set(key, { ...xpUpdate });
         }
       }
-      
+
       // Execute batched XP awards
       const xpPromises = Array.from(xpByHero.values()).map(xpUpdate =>
         withTimeout(
@@ -615,7 +684,7 @@ export async function executeDungeonRun(
       await Promise.all(xpPromises);
       console.log(`[DungeonRun] Batch XP awards completed in ${Date.now() - xpStartTime}ms`);
     }
-    
+
     console.log(`[DungeonRun] All batch DB operations completed in ${Date.now() - batchStartTime}ms`);
 
     // 6. Persist key events to database
@@ -629,7 +698,7 @@ export async function executeDungeonRun(
       // Don't fail the run if persistence fails
     }
 
-    // 7. Store all events at once with sequential timestamps (6-second intervals)
+    // 7. Store all events at once with sequential timestamps (3-second intervals)
     // All deterministic calculations are done, now store events for time-based delivery
     const scheduleStartTime = Date.now();
     const startDeliveryTime = new Date(); // Start delivering events immediately
@@ -651,7 +720,7 @@ export async function executeDungeonRun(
         const scheduledEvents = await scheduleEventsSequentially(
           eventPayloads,
           startDeliveryTime,
-          { eventIntervalSeconds: 6 }
+          { eventIntervalSeconds: 3 }
         );
         console.log(`[DungeonRun] ✅ Stored ${scheduledEvents.length} events with sequential delivery times in ${Date.now() - scheduleStartTime}ms`);
       } catch (scheduleError) {
@@ -663,9 +732,17 @@ export async function executeDungeonRun(
     }
 
     // 7. Determine final status
+    // Check if run ended in defeat (either from party_wipe event or combat_defeat)
+    const hasDefeatEvent = events.some(e => e.type === 'combat_defeat' || e.type === 'party_wipe');
     const aliveMembers = partyMembers.filter(m => m.stats.health > 0);
-    const status: 'victory' | 'defeat' = aliveMembers.length > 0 ? 'victory' : 'defeat';
+
+    // Status is defeat if: run ended in defeat OR all members are dead OR there's a defeat event
+    const status: 'victory' | 'defeat' = (runEndedInDefeat || hasDefeatEvent || aliveMembers.length === 0) ? 'defeat' : 'victory';
     const totalDuration = Date.now() - runStartTime;
+
+    if (status === 'defeat') {
+      console.log(`[DungeonRun] Run ended in defeat - runEndedInDefeat: ${runEndedInDefeat}, hasDefeatEvent: ${hasDefeatEvent}, aliveMembers: ${aliveMembers.length}`);
+    }
 
     console.log(`[DungeonRun] Dungeon run ${runId} completed: ${status}, ${currentLevel - 1} levels, ${totalXP} XP, ${events.length} events in ${totalDuration}ms`);
 
@@ -708,7 +785,7 @@ export async function executeDungeonRun(
           },
         }],
         startDeliveryTime,
-        { eventIntervalSeconds: 6 }
+        { eventIntervalSeconds: 3 }
       );
       console.log(`[DungeonRun] ✅ Scheduled error event to world_events`);
     } catch (scheduleError) {
@@ -780,6 +857,16 @@ async function executeRoom(
   events.push(roomEnterEvent);
 
   // Log room entry event
+  // Validate partyMembers before mapping
+  if (!partyMembers || !Array.isArray(partyMembers)) {
+    throw new Error(`Invalid partyMembers in executeRoom: ${JSON.stringify(partyMembers)}`);
+  }
+
+  // Safely extract party token IDs for logging
+  const partyTokenIds = Array.isArray(partyMembers)
+    ? partyMembers.map(p => p?.heroId?.tokenId).filter((id): id is string => Boolean(id))
+    : [];
+
   logGameEvent(
     {
       id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -789,7 +876,7 @@ async function executeRoom(
       actorId: 'party',
       roomId: room.room.id,
     } as any,
-    { level, roomId: room.room.id, partyMembers: partyMembers.map(p => p.heroId.tokenId) },
+    { level, roomId: room.room.id, partyMembers: partyTokenIds },
     loggingContext
   );
 

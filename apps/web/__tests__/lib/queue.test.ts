@@ -8,6 +8,7 @@ vi.mock('ioredis', () => {
       on: vi.fn(),
       connect: vi.fn(),
       quit: vi.fn(),
+      ping: vi.fn().mockResolvedValue('PONG'),
     })),
   };
 });

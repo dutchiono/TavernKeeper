@@ -4,6 +4,49 @@ import { runQueue } from '@/lib/queue';
 import { supabase } from '@/lib/supabase';
 import { dungeonStateService } from '@/lib/services/dungeonStateService';
 
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const wallet = searchParams.get('wallet');
+
+    if (!wallet) {
+      return NextResponse.json(
+        { error: 'Wallet address required' },
+        { status: 400 }
+      );
+    }
+
+    // Query for active runs (no end_time, not completed or failed)
+    const { data, error } = await supabase
+      .from('runs')
+      .select('*')
+      .eq('wallet_address', wallet)
+      .is('end_time', null)
+      .not('status', 'eq', 'completed')
+      .not('status', 'eq', 'failed')
+      .order('start_time', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Error fetching active runs:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch active runs' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      activeRun: data && data.length > 0 ? data[0] : null,
+    });
+  } catch (error) {
+    console.error('Error in GET /api/runs:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch active runs' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -117,13 +160,13 @@ export async function POST(request: NextRequest) {
       dungeonStateService.lockHeroes(run.id, checkingHeroes),
       dungeonStateService.incrementUserDailyRun(walletAddress)
     ]);
-    
+
     // Verify heroes were actually locked
     const { data: verifyLocked } = await supabase
       .from('hero_states')
       .select('token_id, status, locked_until, current_run_id')
       .in('token_id', party);
-    
+
     if (verifyLocked) {
       const notLocked = verifyLocked.filter(h => h.status !== 'dungeon' || h.current_run_id !== run.id);
       if (notLocked.length > 0) {

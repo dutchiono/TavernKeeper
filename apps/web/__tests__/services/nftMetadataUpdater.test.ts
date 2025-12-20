@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { heroMinting } from '../../../lib/services/heroMinting';
-import { metadataStorage } from '../../../lib/services/metadataStorage';
-import { rpgService } from '../../../lib/services/rpgService';
+import { heroMinting } from '@/lib/services/heroMinting';
+import { metadataStorage } from '@/lib/services/metadataStorage';
+import { rpgService } from '@/lib/services/rpgService';
+import { getContractAddress, CONTRACT_REGISTRY } from '@/lib/contracts/registry';
+import { createPublicClient } from 'viem';
 
 // Mock dependencies
-vi.mock('../../../lib/services/metadataStorage', () => ({
+vi.mock('@/lib/services/metadataStorage', () => ({
     metadataStorage: {
         upload: vi.fn(),
         uploadImageFromDataUri: vi.fn(),
@@ -12,29 +14,29 @@ vi.mock('../../../lib/services/metadataStorage', () => ({
     }
 }));
 
-vi.mock('../../../lib/services/heroMinting', () => ({
+vi.mock('@/lib/services/heroMinting', () => ({
     heroMinting: {
         generateMetadata: vi.fn(),
     }
 }));
 
-vi.mock('../../../lib/contracts/registry', () => ({
+vi.mock('@/lib/contracts/registry', () => ({
     CONTRACT_REGISTRY: {
         ADVENTURER: { abi: [] },
-        TAVERNKEEPER: { abi: [] }
+        TAVERNKEEPER: { abi: [] },
+        ERC6551_IMPLEMENTATION: { abi: [] },
     },
-    getContractAddress: vi.fn().mockReturnValue('0xcontract'),
+    getContractAddress: vi.fn(),
 }));
 
 vi.mock('viem', async () => {
     const actual = await vi.importActual('viem');
     return {
         ...actual,
-        createPublicClient: vi.fn().mockReturnValue({
-            readContract: vi.fn(),
-        }),
+        createPublicClient: vi.fn(),
         createWalletClient: vi.fn(),
         http: vi.fn(),
+        encodeFunctionData: vi.fn().mockReturnValue('0xencoded'),
     };
 });
 
@@ -42,9 +44,22 @@ describe('NFT Metadata Updater Service', () => {
     const mockWalletClient = {
         writeContract: vi.fn().mockResolvedValue('0xtxhash'),
     };
+    const mockReadContract = vi.fn();
 
     beforeEach(() => {
         vi.clearAllMocks();
+        // Mock contract addresses - return different addresses for different contracts
+        (getContractAddress as any).mockImplementation((config: any) => {
+            if (config === CONTRACT_REGISTRY.ADVENTURER) return '0xadventurer';
+            if (config === CONTRACT_REGISTRY.TAVERNKEEPER) return '0xtavernkeeper';
+            return '0xcontract';
+        });
+        // Setup createPublicClient to return our mock
+        (createPublicClient as any).mockReturnValue({
+            readContract: mockReadContract,
+        });
+        // Mock ownerOf to return the same address as caller (direct ownership)
+        mockReadContract.mockResolvedValue('0xuser');
     });
 
     afterEach(() => {
@@ -75,6 +90,8 @@ describe('NFT Metadata Updater Service', () => {
             const errorWalletClient = {
                 writeContract: vi.fn().mockRejectedValue(new Error('Transaction failed')),
             };
+            // Mock ownerOf to return the same address (direct ownership)
+            mockReadContract.mockResolvedValue('0xuser');
 
             await expect(
                 rpgService.updateHeroMetadata(
@@ -110,19 +127,16 @@ describe('NFT Metadata Updater Service', () => {
 
     describe('getTavernKeeperTokenURI', () => {
         it('should fetch tokenURI from contract', async () => {
-            const mockPublicClient = {
-                readContract: vi.fn().mockResolvedValue('ipfs://token-uri'),
-            };
-
-            // Mock createPublicClient to return our mock
-            const { createPublicClient } = await import('viem');
-            vi.mocked(createPublicClient).mockReturnValue(mockPublicClient as any);
+            // Mock contract address exists
+            (getContractAddress as any).mockReturnValue('0xtavernkeeper');
+            // Mock readContract to return tokenURI
+            mockReadContract.mockResolvedValue('ipfs://token-uri');
 
             const tokenId = '1';
             const uri = await rpgService.getTavernKeeperTokenURI(tokenId);
 
             expect(uri).toBe('ipfs://token-uri');
-            expect(mockPublicClient.readContract).toHaveBeenCalledWith(
+            expect(mockReadContract).toHaveBeenCalledWith(
                 expect.objectContaining({
                     functionName: 'tokenURI',
                     args: [BigInt(tokenId)],
@@ -131,12 +145,10 @@ describe('NFT Metadata Updater Service', () => {
         });
 
         it('should return empty string on error', async () => {
-            const mockPublicClient = {
-                readContract: vi.fn().mockRejectedValue(new Error('Contract error')),
-            };
-
-            const { createPublicClient } = await import('viem');
-            vi.mocked(createPublicClient).mockReturnValue(mockPublicClient as any);
+            // Mock contract address exists
+            (getContractAddress as any).mockReturnValue('0xtavernkeeper');
+            // Mock readContract to throw error
+            mockReadContract.mockRejectedValue(new Error('Contract error'));
 
             const uri = await rpgService.getTavernKeeperTokenURI('1');
             expect(uri).toBe('');

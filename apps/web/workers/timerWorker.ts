@@ -1,6 +1,6 @@
 /**
  * Timer Worker
- * 
+ *
  * Background process that checks for events ready to deliver and processes them.
  * Runs independently of user presence - events continue to deliver even if user isn't watching.
  */
@@ -27,7 +27,7 @@ for (const envPath of possibleEnvPaths) {
 import {
   getEventsReadyToDeliver,
   markEventsAsDelivered,
-} from '../contributions/timer-system/code/services/timerService';
+} from '../game-engine/timer-system/code/services/timerService';
 
 const CHECK_INTERVAL_MS = 1000; // Check every second
 const BATCH_SIZE = 100; // Process up to 100 events per check

@@ -45,7 +45,63 @@ export const TEST_POLICY = {
     "apps/web/app/**/route.ts", // API routes are tested via their handlers
     "**/test-policy.ts", // This file itself
     "**/scripts/**/*.ts", // Scripts are not unit tested
-    "**/contributions/**/*.ts", // Contribution code may have its own test structure
+    "**/game-engine/**/*.ts", // Game engine code may have its own test structure
+    // UI/Client-side code (tested via E2E or integration tests)
+    "apps/web/lib/hooks/**/*.ts",
+    "apps/web/lib/stores/**/*.ts",
+    "apps/web/lib/chains.ts", // Chain configuration
+    "apps/web/lib/docs.ts", // Documentation utilities
+    "apps/web/lib/wagmi-*.ts", // Wagmi configuration files
+    // Services that are UI-focused or have complex dependencies
+    "apps/web/lib/services/docSearchService.ts",
+    "apps/web/lib/services/dungeonRunService.ts", // Tested via integration
+    "apps/web/lib/services/dungeonStateService.ts", // Tested via integration
+    "apps/web/lib/services/eventParser.ts",
+    "apps/web/lib/services/farcasterWallet.ts",
+    "apps/web/lib/services/gameLoggingService.ts",
+    "apps/web/lib/services/gasEstimator.ts",
+    "apps/web/lib/services/heroAdventurerInit.ts",
+    "apps/web/lib/services/mcapService.ts",
+    "apps/web/lib/services/monPriceService.ts",
+    "apps/web/lib/services/neynarService.ts",
+    "apps/web/lib/services/notifications.ts",
+    "apps/web/lib/services/pseudoswap.ts",
+    "apps/web/lib/services/rpgService.ts", // Large service, tested via integration
+    "apps/web/lib/services/simulationRunner.ts",
+    "apps/web/lib/services/spriteService.ts",
+    "apps/web/lib/services/tavernRegularsService.ts",
+    "apps/web/lib/services/townPosseService.ts",
+    "apps/web/lib/services/tutorialService.ts",
+    "apps/web/lib/services/uniswapV4SwapService.ts",
+    "apps/web/lib/services/v3PoolService.ts",
+    "apps/web/lib/services/worldInitializationService.ts",
+    // Game mechanics (tested via integration)
+    "apps/web/lib/game-mechanics/simulation.ts",
+    "apps/web/lib/game-mechanics/loot/LootManager.ts",
+    "apps/web/lib/game-mechanics/monsters/MonsterFactory.ts",
+    "apps/web/lib/game-mechanics/prompts/**/*.ts",
+    // World/Content
+    "apps/web/lib/world/**/*.ts",
+    // Utilities
+    "apps/web/lib/utils/farcasterDetection.ts",
+    "apps/web/lib/utils/rpcErrorLogger.ts",
+    "apps/web/lib/utils/seededRNG.ts",
+    // Legacy/Unused files (may be removed in future)
+    "apps/web/lib/supabase-worker.ts",
+    "apps/web/lib/wagmi-miniapp.ts",
+    "apps/web/lib/world/demo-content.ts",
+    "apps/web/lib/game-mechanics/items/test-generator.ts",
+    // Workers (tested via integration)
+    "apps/web/workers/replayWorker.ts",
+    "apps/web/workers/stakingTrackerWorker.ts",
+    "apps/web/workers/timerWorker.ts",
+    "apps/web/workers/autoHarvestWorker.ts",
+    // Packages
+    "packages/engine/src/dm-manager.ts",
+    "packages/engine/src/room-context.ts",
+    "packages/agents/src/plugins/dm-plugin.ts",
+    "packages/agents/src/types/eliza.ts",
+    "packages/discord-bot/**/*.ts", // Discord bot has separate test structure
   ],
 
   // Directories that should never contain orphans

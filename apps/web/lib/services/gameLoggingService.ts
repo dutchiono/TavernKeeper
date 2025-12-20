@@ -1,6 +1,6 @@
 /**
  * Game Logging Service Wrapper
- * 
+ *
  * Wrapper for the game-logging-system contribution.
  * Provides simplified interface for logging dungeon run events.
  */
@@ -11,13 +11,13 @@ import {
   classifyEventImportance,
   createKeyEventEntry,
   getDetailedLogBuffer,
-} from '../../contributions/game-logging-system/code/engine/logging';
+} from '../../game-engine/game-logging-system/code/engine/logging';
 import type { GameEvent } from '@innkeeper/lib';
 import type {
   EventImportance,
   DetailedLogEntry,
   KeyEventEntry,
-} from '../../contributions/game-logging-system/code/types/logging';
+} from '../../game-engine/game-logging-system/code/types/logging';
 
 /**
  * Log a game event to detailed logs
@@ -57,7 +57,7 @@ export async function persistKeyEvent(
   importance?: EventImportance
 ): Promise<void> {
   const eventImportance = importance || classifyEventImportance(event);
-  
+
   // Only persist critical and important events
   if (eventImportance !== 'critical' && eventImportance !== 'important') {
     return;

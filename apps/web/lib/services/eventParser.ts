@@ -58,9 +58,9 @@ export function parseCombatEvent(event: RunEvent): ParsedCombatEvent | null {
     };
 }
 
-export function getEntityName(entityId: string, partyTokenIds: string[]): string {
+export function getEntityName(entityId: string, partyTokenIds?: string[]): string {
     // If it's a party member (token ID), return "Hero #X"
-    if (partyTokenIds.includes(entityId)) {
+    if (partyTokenIds && Array.isArray(partyTokenIds) && partyTokenIds.includes(entityId)) {
         return `Hero #${entityId}`;
     }
     // Otherwise, it's probably a monster

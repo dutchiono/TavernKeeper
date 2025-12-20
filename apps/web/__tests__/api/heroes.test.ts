@@ -26,9 +26,20 @@ describe('GET /api/heroes', () => {
       },
     ];
 
-    (supabaseModule.supabase.from as any) = vi.fn().mockReturnValue({
+    const mockFrom = vi.fn();
+    (supabaseModule.supabase.from as any) = mockFrom;
+
+    // First call: heroes query
+    mockFrom.mockReturnValueOnce({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({ data: mockHeroes, error: null }),
+      }),
+    });
+
+    // Second call: hero_states query
+    mockFrom.mockReturnValueOnce({
+      select: vi.fn().mockReturnValue({
+        in: vi.fn().mockResolvedValue({ data: [], error: null }),
       }),
     });
 
@@ -37,7 +48,26 @@ describe('GET /api/heroes', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toEqual(mockHeroes);
+    // Response includes merged state fields (status, lockedUntil, currentRunId)
+    expect(data).toHaveLength(2);
+    expect(data[0]).toMatchObject({
+      id: 'hero-1',
+      token_id: '123',
+      owner_address: '0xuser123',
+      name: 'Test Hero',
+      status: 'idle',
+      lockedUntil: null,
+      currentRunId: null,
+    });
+    expect(data[1]).toMatchObject({
+      id: 'hero-2',
+      token_id: '456',
+      owner_address: '0xuser123',
+      name: 'Another Hero',
+      status: 'idle',
+      lockedUntil: null,
+      currentRunId: null,
+    });
   });
 
   it('should return 400 if userId is missing', async () => {
@@ -65,7 +95,11 @@ describe('GET /api/heroes', () => {
   });
 
   it('should return empty array if no heroes found', async () => {
-    (supabaseModule.supabase.from as any) = vi.fn().mockReturnValue({
+    const mockFrom = vi.fn();
+    (supabaseModule.supabase.from as any) = mockFrom;
+
+    // First call: heroes query (returns empty)
+    mockFrom.mockReturnValueOnce({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({ data: [], error: null }),
       }),
@@ -82,16 +116,27 @@ describe('GET /api/heroes', () => {
   it('should convert userId to lowercase for query', async () => {
     const mockHeroes: any[] = [];
 
-    (supabaseModule.supabase.from as any) = vi.fn().mockReturnValue({
+    const mockFrom = vi.fn();
+    (supabaseModule.supabase.from as any) = mockFrom;
+
+    // First call: heroes query
+    mockFrom.mockReturnValueOnce({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({ data: mockHeroes, error: null }),
+      }),
+    });
+
+    // Second call: hero_states query (not called if no heroes, but mock it anyway)
+    mockFrom.mockReturnValueOnce({
+      select: vi.fn().mockReturnValue({
+        in: vi.fn().mockResolvedValue({ data: [], error: null }),
       }),
     });
 
     const request = new NextRequest('http://localhost/api/heroes?userId=0xUSER123');
     await GET(request);
 
-    const eqCall = (supabaseModule.supabase.from as any).mock.results[0].value.select().eq;
+    const eqCall = mockFrom.mock.results[0].value.select().eq;
     expect(eqCall).toHaveBeenCalledWith('owner_address', '0xuser123');
   });
 });

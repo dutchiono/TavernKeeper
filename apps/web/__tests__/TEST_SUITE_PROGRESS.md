@@ -19,13 +19,32 @@
 - `startRun` - Start dungeon run
 - `deleteParty` - Delete party
 
+### ✅ marketplace.test.ts (14 tests - ALL PASSING)
+- `listItem` - List items for sale
+- `buyItem` - Buy items from marketplace
+- `cancelListing` - Cancel listings
+- `getListings` - Get listings with filters
+- `getListing` - Get single listing
+
+### ✅ lootClaim.test.ts (12 tests - ALL PASSING)
+- `getLootClaim` - Get loot claim by ID
+- `getUnclaimedLoot` - Get unclaimed loot for run
+- `createLootClaims` - Create loot claims
+- `claimLoot` - Claim loot with transaction
+- `estimateClaimGas` - Estimate gas for claiming
+
+### ✅ inventoryTransfer.test.ts (5 tests - ALL PASSING)
+- `transferItem` - Transfer items between TBAs
+- `unequipItem` - Unequip from adventurer
+- `equipItem` - Equip to adventurer
+
 ## Next Priority Services to Test
 
-### Phase 1: Critical Services (In Progress)
+### Phase 1: Critical Services (COMPLETE ✅)
 1. ✅ `partyService.ts` - **COMPLETE** (25 tests)
-2. ⏳ `marketplace.ts` - Item trading (HIGH PRIORITY)
-3. ⏳ `lootClaim.ts` - Loot claiming (HIGH PRIORITY)
-4. ⏳ `inventoryTransfer.ts` - Item transfers (HIGH PRIORITY)
+2. ✅ `marketplace.ts` - **COMPLETE** (14 tests)
+3. ✅ `lootClaim.ts` - **COMPLETE** (12 tests)
+4. ✅ `inventoryTransfer.ts` - **COMPLETE** (5 tests)
 5. ⏳ `dungeonStateService.ts` - State management (HIGH PRIORITY)
 
 ### Phase 2: Game State & Logging

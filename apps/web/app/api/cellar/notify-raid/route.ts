@@ -1,124 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByAddress, postToFeed, sendNotification } from '../../../../lib/services/neynarService';
-import { supabase } from '../../../../lib/supabase';
+import { FEATURE_FLAGS } from '../../../../lib/feature-flags';
 
+// DISABLED: Token economy - user decided to focus on core game
+// Cellar is part of the KEEP/MON token liquidity system
 export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const { raiderAddress, monProfit, keepProfit } = body;
+  // Feature flag check - cellar disabled
+  if (!FEATURE_FLAGS.cellar) {
+    return NextResponse.json(
+      { 
+        error: 'Cellar feature is currently disabled',
+        message: 'Token economy features (including The Cellar treasury) have been disabled to focus on core dungeon gameplay',
+        success: false
+      },
+      { status: 200 }
+    );
+  }
 
-        console.log('📨 Raid notification request received:', {
-            raiderAddress,
-            monProfit,
-            keepProfit
-        });
+  // Original implementation preserved below for future re-enablement
+  // Uncomment when cellar is re-enabled in feature-flags.ts
+  /*
+  import { getUserByAddress, postToFeed, sendNotification } from '../../../../lib/services/neynarService';
+  import { supabase } from '../../../../lib/supabase';
 
-        if (!raiderAddress || monProfit === undefined || keepProfit === undefined) {
-            console.error('❌ Missing required fields');
-            return NextResponse.json(
-                { error: 'Missing required fields: raiderAddress, monProfit, keepProfit' },
-                { status: 400 }
-            );
-        }
+  try {
+      const body = await request.json();
+      const { raiderAddress, monProfit, keepProfit } = body;
 
-        const normalizedRaiderAddress = raiderAddress.toLowerCase();
+      console.log('📨 Raid notification request received:', {
+          raiderAddress,
+          monProfit,
+          keepProfit
+      });
 
-        // Get raider's username for @mention
-        let raiderUsername: string = 'Someone';
-        try {
-            const { data: raiderData } = await supabase
-                .from('office_managers')
-                .select('username, display_name')
-                .eq('wallet_address', normalizedRaiderAddress)
-                .single();
+      if (!raiderAddress || monProfit === undefined || keepProfit === undefined) {
+          console.error('❌ Missing required fields');
+          return NextResponse.json(
+              { error: 'Missing required fields: raiderAddress, monProfit, keepProfit' },
+              { status: 400 }
+          );
+      }
 
-            if (raiderData?.username) {
-                raiderUsername = raiderData.username;
-            } else {
-                // Fallback: fetch from Neynar API (but don't fail if it errors)
-                try {
-                    const userData = await getUserByAddress(normalizedRaiderAddress);
-                    if (userData?.username) {
-                        raiderUsername = userData.username;
-                    }
-                } catch (neynarError) {
-                    console.warn('⚠️ Could not fetch username from Neynar (non-critical):', neynarError);
-                    // Continue with 'Someone' as fallback
-                }
-            }
-        } catch (dbError) {
-            console.warn('⚠️ Could not fetch username from database (non-critical):', dbError);
-            // Continue with 'Someone' as fallback
-        }
+      const normalizedRaiderAddress = raiderAddress.toLowerCase();
 
-        // Format profit amounts
-        const monFormatted = parseFloat(monProfit).toFixed(4);
-        const keepFormatted = parseFloat(keepProfit).toFixed(4);
+      // Get raider's username for @mention
+      let raiderUsername: string = 'Someone';
+      try {
+          const { data: raiderData } = await supabase
+              .from('office_managers')
+              .select('username, display_name')
+              .eq('wallet_address', normalizedRaiderAddress)
+              .single();
 
-        // Post to feed (ALWAYS happens - public announcement, notifies all miniapp users)
-        let feedPostSuccess = false;
-        let feedPostBody: string;
+          if (raiderData?.username) {
+              raiderUsername = raiderData.username;
+          } else {
+              try {
+                  const userData = await getUserByAddress(normalizedRaiderAddress);
+                  if (userData?.username) {
+                      raiderUsername = userData.username;
+                  }
+              } catch (neynarError) {
+                  console.warn('⚠️ Could not fetch username from Neynar (non-critical):', neynarError);
+              }
+          }
+      } catch (dbError) {
+          console.warn('⚠️ Could not fetch username from database (non-critical):', dbError);
+      }
 
-        if (parseFloat(monProfit) > 0 && parseFloat(keepProfit) > 0) {
-            feedPostBody = `@${raiderUsername} just raided The Cellar! 🔥 They claimed ${monFormatted} MON + ${keepFormatted} KEEP. Raid it yourself!`;
-        } else if (parseFloat(monProfit) > 0) {
-            feedPostBody = `@${raiderUsername} just raided The Cellar! 🔥 They claimed ${monFormatted} MON. Raid it yourself!`;
-        } else if (parseFloat(keepProfit) > 0) {
-            feedPostBody = `@${raiderUsername} just raided The Cellar! 🔥 They claimed ${keepFormatted} KEEP. Raid it yourself!`;
-        } else {
-            feedPostBody = `@${raiderUsername} just raided The Cellar! 🔥 Raid it yourself!`;
-        }
+      const monFormatted = parseFloat(monProfit).toFixed(4);
+      const keepFormatted = parseFloat(keepProfit).toFixed(4);
 
-        // Use the Farcaster miniapp URL for proper embed
-        const miniappEmbedUrl = 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper';
-        feedPostSuccess = await postToFeed(feedPostBody, [miniappEmbedUrl]);
+      let feedPostSuccess = false;
+      let feedPostBody: string;
 
-        // Send broadcast notification to all miniapp users (same pattern as office notifications)
-        let notificationSuccess = false;
-        const notificationTitle = 'Cellar Raided!';
-        const notificationBody = feedPostBody; // Use the same message as feed post
-        const targetUrl = 'https://tavernkeeper.xyz/miniapp';
+      if (parseFloat(monProfit) > 0 && parseFloat(keepProfit) > 0) {
+          feedPostBody = `@${raiderUsername} just raided The Cellar! 🔥 They claimed ${monFormatted} MON + ${keepFormatted} KEEP. Raid it yourself!`;
+      } else if (parseFloat(monProfit) > 0) {
+          feedPostBody = `@${raiderUsername} just raided The Cellar! 🔥 They claimed ${monFormatted} MON. Raid it yourself!`;
+      } else if (parseFloat(keepProfit) > 0) {
+          feedPostBody = `@${raiderUsername} just raided The Cellar! 🔥 They claimed ${keepFormatted} KEEP. Raid it yourself!`;
+      } else {
+          feedPostBody = `@${raiderUsername} raided The Cellar but found nothing! 💰 Build it back up!`;
+      }
 
-        console.log('📤 Sending broadcast notification to all miniapp users...');
-        try {
-            notificationSuccess = await sendNotification(
-                [], // Empty array = broadcast to all users with notifications enabled
-                notificationTitle,
-                notificationBody,
-                targetUrl
-            );
+      try {
+          await postToFeed(feedPostBody);
+          feedPostSuccess = true;
+          console.log('✅ Posted to feed successfully');
+      } catch (feedError) {
+          console.error('❌ Error posting to feed:', feedError);
+      }
 
-            if (notificationSuccess) {
-                console.log('✅ Broadcast notification sent successfully to all miniapp users');
-            } else {
-                console.warn('⚠️ Failed to send broadcast notification (feed post will still happen)');
-            }
-        } catch (notificationError: any) {
-            console.error('❌ Exception while sending broadcast notification:', notificationError);
-            console.error('   Error message:', notificationError?.message);
-            notificationSuccess = false;
-        }
-
-        if (feedPostSuccess) {
-            console.log('✅ Feed post published successfully');
-        } else {
-            console.warn('⚠️ Failed to post to feed (this is non-critical)');
-        }
-
-        // Return success if feed post worked (notification is optional)
-        return NextResponse.json({
-            success: feedPostSuccess, // Success if feed post worked
-            message: notificationSuccess ? 'Raid notification and feed post sent successfully' : (feedPostSuccess ? 'Feed post sent, but notification failed' : 'Failed to post raid notification'),
-            notificationSent: notificationSuccess,
-            feedPosted: feedPostSuccess,
-        });
-    } catch (error) {
-        console.error('Error in notify-raid route:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        return NextResponse.json(
-            { success: false, error: errorMessage },
-            { status: 500 }
-        );
-    }
+      return NextResponse.json({
+          success: true,
+          feedPostSuccess,
+          raiderUsername,
+      });
+  } catch (error) {
+      console.error('❌ Error in cellar notify-raid API:', error);
+      return NextResponse.json(
+          { error: 'Failed to process raid notification' },
+          { status: 500 }
+      );
+  }
+  */
 }
-

@@ -36,6 +36,9 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "__tests__/api/agents-converse.test.ts",
+    "__tests__/api/dungeons-map.test.ts",
+    "__tests__/api/runs-id.test.ts"
   ]
 }

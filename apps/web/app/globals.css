@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 
-
 :root {
   --inn-palette-primary: #8B4513;
   --inn-palette-secondary: #FFD700;
@@ -54,4 +53,33 @@ button[data-rk] {
   visibility: visible !important;
   opacity: 1 !important;
   display: flex !important;
+}
+
+/* Toast slide-in animation */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

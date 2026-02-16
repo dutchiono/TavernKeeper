@@ -10,13 +10,18 @@ export * from './initiative';
 // Action validation
 export * from './action-validator';
 
+// Loot system
+export * from './loot';
+
+// Leveling system
+export * from './leveling';
+
 // Engine
 export * from './engine';
 
 // Map loader
 export * from './map-loader';
 
-// Spatial
 // Spatial - specific exports to avoid conflicts
 export {
     checkRoomTransition,
@@ -40,4 +45,3 @@ export * from './room-context';
 
 // Memory processor
 export * from './memory-processor';
-

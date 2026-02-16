@@ -1,8 +1,15 @@
 /**
- * Map Converter
+ * Map Converter (FIXED VERSION)
  *
  * Converts Mike's map generator format (Dungeon with multi-level structure)
  * to engine format (DungeonMap with optional multi-level support)
+ * 
+ * FIXES:
+ * 1. Auto-detects format (Mike's vs already-converted)
+ * 2. Adds missing x,y coordinates for rooms without them
+ * 3. Properly flattens multi-level structure
+ * 4. Generates spawn points if missing
+ * 5. Handles both room.spawnPoints and top-level spawnPoints
  */
 
 import type {
@@ -46,6 +53,11 @@ type MikesRoom = {
   loot?: MikesLootEntry[];
   connections: MikesRoomConnection[];
   metadata?: Record<string, unknown>;
+  // Optional coordinates that might be present
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
 };
 
 type MikesLevelConnection = {
@@ -80,13 +92,63 @@ type MikesLootEntry = {
 };
 
 /**
- * Convert Mike's Dungeon format to engine DungeonMap format
- * Preserves multi-level structure
+ * Check if input is already in DungeonMap format
  */
-export function convertDungeonToDungeonMap(mikesDungeon: MikesDungeon): DungeonMap {
+function isAlreadyDungeonMap(input: any): input is DungeonMap {
+  return (
+    input &&
+    typeof input.id === 'string' &&
+    typeof input.name === 'string' &&
+    Array.isArray(input.rooms) &&
+    Array.isArray(input.objectives) &&
+    // Check if rooms have x,y coordinates (DungeonMap format)
+    input.rooms.length > 0 &&
+    typeof input.rooms[0].x === 'number' &&
+    typeof input.rooms[0].y === 'number'
+  );
+}
+
+/**
+ * Check if input is Mike's Dungeon format
+ */
+function isMikesDungeon(input: any): input is MikesDungeon {
+  return (
+    input &&
+    typeof input.id === 'string' &&
+    typeof input.name === 'string' &&
+    Array.isArray(input.levels) &&
+    typeof input.maxDepth === 'number'
+  );
+}
+
+/**
+ * Convert Mike's Dungeon format to engine DungeonMap format
+ * Now with auto-detection and passthrough for already-converted maps
+ */
+export function convertDungeonToDungeonMap(input: unknown): DungeonMap {
+  // If already in DungeonMap format, return as-is
+  if (isAlreadyDungeonMap(input)) {
+    return input;
+  }
+
+  // If it's Mike's format, convert it
+  if (isMikesDungeon(input)) {
+    return convertMikesDungeon(input);
+  }
+
+  // Unknown format - throw error
+  throw new Error('Invalid dungeon format: must be either DungeonMap or MikesDungeon format');
+}
+
+/**
+ * Convert Mike's Dungeon to DungeonMap
+ */
+function convertMikesDungeon(mikesDungeon: MikesDungeon): DungeonMap {
   // Convert all levels
   const levels: DungeonLevel[] = mikesDungeon.levels.map((level) => {
-    const rooms = level.rooms.map((mikesRoom, index) => convertRoom(mikesRoom, level.z, index, level.rooms.length));
+    const rooms = level.rooms.map((mikesRoom, index) => 
+      convertRoom(mikesRoom, level.z, index, level.rooms.length)
+    );
 
     const levelConnections: LevelConnection[] = level.connections.map((conn) => ({
       fromZ: conn.fromZ,
@@ -115,251 +177,193 @@ export function convertDungeonToDungeonMap(mikesDungeon: MikesDungeon): DungeonM
   // Calculate map bounds
   const bounds = calculateBounds(allRooms);
 
+  // Generate spawn points
+  const spawnPoints = generateSpawnPoints(allRooms, mikesDungeon.entranceX, mikesDungeon.entranceY);
+
   return {
     id: mikesDungeon.id,
     name: mikesDungeon.name,
     seed: mikesDungeon.seed,
     rooms: allRooms,
-    width: bounds.width,
-    height: bounds.height,
-    objectives,
-    levels, // Multi-level structure
+    spawnPoints: spawnPoints,
+    bounds: bounds,
+    objectives: objectives,
+    levels,
+    metadata: {
+      type: mikesDungeon.type,
+      maxDepth: mikesDungeon.maxDepth,
+      entranceX: mikesDungeon.entranceX,
+      entranceY: mikesDungeon.entranceY,
+      ...mikesDungeon.metadata,
+    },
   };
 }
 
 /**
- * Convert Mike's Room format to engine Room format
+ * Convert Mike's Room to engine Room format
+ * FIXED: Properly generates x,y coordinates for rooms without them
  */
-function convertRoom(
-  mikesRoom: MikesRoom,
-  levelZ: number,
-  index: number,
-  totalRooms: number
-): Room {
-  // Generate position (grid layout)
-  const cols = Math.ceil(Math.sqrt(totalRooms));
-  const row = Math.floor(index / cols);
-  const col = index % cols;
-  const roomSize = 100; // Default room size
-  const spacing = 150;
+function convertRoom(mikesRoom: MikesRoom, z: number, index: number, totalRooms: number): Room {
+  // Generate grid layout if x/y not provided
+  let x: number;
+  let y: number;
+  let width: number;
+  let height: number;
 
-  const x = col * spacing;
-  const y = row * spacing;
-  const width = roomSize;
-  const height = roomSize;
+  if (mikesRoom.x !== undefined && mikesRoom.y !== undefined) {
+    // Use provided coordinates
+    x = mikesRoom.x;
+    y = mikesRoom.y;
+    width = mikesRoom.width ?? 100;
+    height = mikesRoom.height ?? 100;
+  } else {
+    // Calculate grid position
+    const gridSize = Math.ceil(Math.sqrt(totalRooms));
+    const row = Math.floor(index / gridSize);
+    const col = index % gridSize;
 
-  // Convert room type
-  const roomType = convertRoomType(mikesRoom.type);
+    const roomWidth = 120;
+    const roomHeight = 120;
+    const padding = 30;
 
-  // Convert connections (simple array of room IDs)
-  const connections = mikesRoom.connections.map((conn) => conn.targetRoomId);
-
-  // Generate spawn points
-  const spawnPoints = generateSpawnPoints(x, y, width, height, mikesRoom.type);
+    x = col * (roomWidth + padding) + 50;
+    y = row * (roomHeight + padding) + 50;
+    width = roomWidth;
+    height = roomHeight;
+  }
 
   // Convert encounters to enemies
-  const enemies = convertEncountersToEnemies(mikesRoom.encounters || []);
+  const enemies: MapEnemy[] = (mikesRoom.encounters || [])
+    .filter((enc) => enc.type === 'monster' || enc.type === 'boss')
+    .map((enc) => ({
+      id: enc.id,
+      name: enc.name,
+      type: enc.name.toLowerCase(),
+      worldContentId: enc.worldContentId,
+      metadata: enc.metadata,
+    }));
 
   // Convert loot to items
-  const items = convertLootToItems(mikesRoom.loot || []);
+  const items: MapItem[] = (mikesRoom.loot || []).map((lootEntry) => ({
+    id: lootEntry.id,
+    itemId: lootEntry.itemId,
+    name: lootEntry.name,
+    rarity: lootEntry.rarity,
+    worldContentId: lootEntry.worldContentId,
+    metadata: lootEntry.metadata,
+  }));
+
+  // Generate spawn points for this room (center of room)
+  const spawnPoints: SpawnPoint[] = [{
+    x: x + width / 2,
+    y: y + height / 2,
+    z: z || 0,
+  }];
 
   return {
     id: mikesRoom.id,
+    name: mikesRoom.name,
+    description: mikesRoom.description,
+    type: mikesRoom.type as Room['type'],
     x,
     y,
+    z: z || 0,
     width,
     height,
-    type: roomType,
-    connections,
-    spawnPoints,
-    items,
     enemies,
-    levelZ, // Set z-coordinate
+    items,
+    connections: mikesRoom.connections.map((conn) => conn.targetRoomId),
+    spawnPoints, // Each room should have spawn points
+    metadata: {
+      originalType: mikesRoom.type,
+      connectionDetails: mikesRoom.connections,
+      ...mikesRoom.metadata,
+    },
   };
 }
 
 /**
- * Convert room type from Mike's format to engine format
+ * Generate spawn points from rooms
+ * FIXED: Uses entrance coordinates or finds entrance rooms
  */
-function convertRoomType(mikesType: MikesRoom['type']): Room['type'] {
-  const typeMap: Record<MikesRoom['type'], Room['type']> = {
-    chamber: 'chamber',
-    corridor: 'corridor',
-    boss_room: 'boss',
-    treasure_room: 'chamber',
-    trap_room: 'chamber',
-    puzzle_room: 'chamber',
-    entrance: 'room',
-    exit: 'room',
-  };
-  return typeMap[mikesType] || 'chamber';
-}
-
-/**
- * Generate spawn points for a room
- */
-function generateSpawnPoints(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  roomType: MikesRoom['type']
-): SpawnPoint[] {
-  const spawnPoints: SpawnPoint[] = [];
-  const centerX = x + width / 2;
-  const centerY = y + height / 2;
-
-  // Entrance room gets spawn point at center
-  if (roomType === 'entrance') {
-    spawnPoints.push({ x: centerX, y: centerY });
-  } else {
-    // Other rooms get 1-3 spawn points
-    const count = roomType === 'boss_room' ? 1 : Math.floor(Math.random() * 3) + 1;
-    for (let i = 0; i < count; i++) {
-      const offsetX = (Math.random() - 0.5) * (width * 0.6);
-      const offsetY = (Math.random() - 0.5) * (height * 0.6);
-      spawnPoints.push({
-        x: Math.floor(centerX + offsetX),
-        y: Math.floor(centerY + offsetY),
-      });
-    }
+function generateSpawnPoints(rooms: Room[], entranceX?: number, entranceY?: number): SpawnPoint[] {
+  // If entrance coordinates provided, use them
+  if (entranceX !== undefined && entranceY !== undefined) {
+    return [{ x: entranceX, y: entranceY, z: 0 }];
   }
 
-  return spawnPoints;
-}
+  // Find entrance rooms
+  const entranceRooms = rooms.filter((r) => r.type === 'entrance');
 
-/**
- * Convert encounters to enemies with generated stats
- */
-function convertEncountersToEnemies(encounters: MikesEncounter[]): MapEnemy[] {
-  return encounters
-    .filter((enc) => enc.type === 'boss' || enc.type === 'monster')
-    .map((encounter) => {
-      const stats = generateEnemyStats(encounter.type, encounter.metadata);
-      return {
-        id: encounter.id,
-        name: encounter.name,
-        stats,
-      };
-    });
-}
-
-/**
- * Generate enemy stats based on encounter type
- */
-function generateEnemyStats(
-  type: 'boss' | 'monster' | 'trap' | 'puzzle' | 'event',
-  metadata: Record<string, unknown>
-): MapEnemy['stats'] {
-  // Base stats
-  let baseStats = {
-    str: 10,
-    dex: 10,
-    con: 10,
-    int: 10,
-    wis: 10,
-    cha: 10,
-    ac: 10,
-    hp: 10,
-    maxHp: 10,
-    attackBonus: 0,
-  };
-
-  if (type === 'boss') {
-    baseStats = {
-      str: 16,
-      dex: 12,
-      con: 14,
-      int: 8,
-      wis: 10,
-      cha: 8,
-      ac: 15,
-      hp: 50,
-      maxHp: 50,
-      attackBonus: 5,
-    };
-  } else if (type === 'monster') {
-    baseStats = {
-      str: 12,
-      dex: 14,
-      con: 12,
-      int: 6,
-      wis: 10,
-      cha: 6,
-      ac: 12,
-      hp: 20,
-      maxHp: 20,
-      attackBonus: 3,
-    };
+  if (entranceRooms.length > 0) {
+    return entranceRooms.map((room) => ({
+      x: room.x + room.width / 2,
+      y: room.y + room.height / 2,
+      z: room.z || 0,
+    }));
   }
 
-  // Override with metadata if provided
-  if (metadata.stats && typeof metadata.stats === 'object') {
-    baseStats = { ...baseStats, ...(metadata.stats as Partial<typeof baseStats>) };
+  // Fallback: use first room
+  if (rooms.length > 0) {
+    const firstRoom = rooms[0];
+    return [
+      {
+        x: firstRoom.x + firstRoom.width / 2,
+        y: firstRoom.y + firstRoom.height / 2,
+        z: firstRoom.z || 0,
+      },
+    ];
   }
 
-  return baseStats;
+  // Fallback: default position
+  return [{ x: 100, y: 100, z: 0 }];
 }
 
 /**
- * Convert loot entries to items
- */
-function convertLootToItems(loot: MikesLootEntry[]): MapItem[] {
-  return loot.map((lootEntry) => {
-    // Determine item type from rarity or name
-    let itemType: MapItem['type'] = 'misc';
-    if (lootEntry.name.toLowerCase().includes('weapon') || lootEntry.name.toLowerCase().includes('sword')) {
-      itemType = 'weapon';
-    } else if (lootEntry.name.toLowerCase().includes('armor') || lootEntry.name.toLowerCase().includes('shield')) {
-      itemType = 'armor';
-    } else if (lootEntry.name.toLowerCase().includes('potion') || lootEntry.name.toLowerCase().includes('consumable')) {
-      itemType = 'consumable';
-    }
-
-    return {
-      id: lootEntry.itemId || lootEntry.id,
-      name: lootEntry.name,
-      type: itemType,
-    };
-  });
-}
-
-/**
- * Generate objectives from dungeon encounters
+ * Generate objectives from level data
  */
 function generateObjectives(levels: MikesDungeonLevel[]): DungeonObjective[] {
   const objectives: DungeonObjective[] = [];
 
-  // Find boss encounters
-  for (const level of levels) {
-    for (const room of level.rooms) {
-      if (room.encounters) {
-        for (const encounter of room.encounters) {
-          if (encounter.type === 'boss') {
-            objectives.push({
-              type: 'defeat_boss',
-              target: encounter.id,
-            });
-          }
-        }
-      }
+  // Add a boss objective if there are any boss encounters
+  const hasBoss = levels.some((level) =>
+    level.rooms.some(
+      (room) =>
+        room.encounters?.some((enc) => enc.type === 'boss') ||
+        room.type === 'boss_room'
+    )
+  );
 
-      // Check for treasure rooms
-      if (room.type === 'treasure_room' && room.loot && room.loot.length > 0) {
-        const firstTreasure = room.loot[0];
-        objectives.push({
-          type: 'retrieve_item',
-          target: firstTreasure.itemId || firstTreasure.id,
-        });
-      }
-    }
+  if (hasBoss) {
+    objectives.push({
+      id: 'defeat-boss',
+      type: 'defeat_enemy',
+      description: 'Defeat the dungeon boss',
+      target: 'boss',
+    });
   }
 
-  // Default objective if none found
+  // Add a treasure objective if there are treasure rooms
+  const hasTreasure = levels.some((level) =>
+    level.rooms.some((room) => room.type === 'treasure_room')
+  );
+
+  if (hasTreasure) {
+    objectives.push({
+      id: 'collect-treasure',
+      type: 'collect_item',
+      description: 'Collect treasure from the treasure room',
+      target: 'treasure',
+    });
+  }
+
+  // Fallback: explore objective
   if (objectives.length === 0) {
     objectives.push({
-      type: 'survive',
-      target: 'party',
+      id: 'explore-dungeon',
+      type: 'explore',
+      description: 'Explore the dungeon',
+      target: 'explore',
     });
   }
 
@@ -367,27 +371,17 @@ function generateObjectives(levels: MikesDungeonLevel[]): DungeonObjective[] {
 }
 
 /**
- * Calculate map bounds from room positions
+ * Calculate map bounds from rooms
  */
-function calculateBounds(rooms: Room[]): { width: number; height: number } {
+function calculateBounds(rooms: Room[]) {
   if (rooms.length === 0) {
-    return { width: 400, height: 300 };
+    return { minX: 0, maxX: 500, minY: 0, maxY: 500 };
   }
 
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
+  const minX = Math.min(...rooms.map((r) => r.x));
+  const maxX = Math.max(...rooms.map((r) => r.x + r.width));
+  const minY = Math.min(...rooms.map((r) => r.y));
+  const maxY = Math.max(...rooms.map((r) => r.y + r.height));
 
-  for (const room of rooms) {
-    minX = Math.min(minX, room.x);
-    minY = Math.min(minY, room.y);
-    maxX = Math.max(maxX, room.x + room.width);
-    maxY = Math.max(maxY, room.y + room.height);
-  }
-
-  return {
-    width: Math.max(400, maxX - minX + 100), // Add padding
-    height: Math.max(300, maxY - minY + 100),
-  };
+  return { minX, maxX, minY, maxY };
 }

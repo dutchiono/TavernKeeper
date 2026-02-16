@@ -74,6 +74,25 @@ export interface ContractValidationOptions {
   rpcUrl?: string; // Custom RPC URL (defaults to env var)
 }
 
+// Export constants needed by tests
+export const REQUIRED_CONTRACTS = [
+  'ERC6551_REGISTRY',
+  'ERC6551_IMPLEMENTATION',
+  'KEEP_TOKEN',
+  'INVENTORY',
+  'ADVENTURER',
+  'TAVERNKEEPER'
+] as const;
+
+export const FALLBACK_ADDRESSES: Record<string, string> = {
+  ERC6551_REGISTRY: '0x000000006551c19487814612e58FE06813775758',
+  ERC6551_IMPLEMENTATION: '0x0000000000000000000000000000000000000000',
+  KEEP_TOKEN: '0x0000000000000000000000000000000000000000',
+  INVENTORY: '0x0000000000000000000000000000000000000000',
+  ADVENTURER: '0x0000000000000000000000000000000000000000',
+  TAVERNKEEPER: '0x0000000000000000000000000000000000000000'
+};
+
 /**
  * Detect if a contract is a proxy and what type
  */
@@ -106,45 +125,14 @@ export async function detectProxy(
       slot: PROXY_ABIS.EIP1967_IMPLEMENTATION as `0x${string}`,
     });
 
-    if (implementationSlot && implementationSlot !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
-      // Extract implementation address from storage slot
-      const implAddress = getAddress(`0x${implementationSlot.slice(-40)}` as `0x${string}`);
-
-      // Check for UUPS (has proxiableUUID)
-      try {
-        await publicClient.readContract({
-          address,
-          abi: PROXY_ABIS.UUPS,
-          functionName: 'proxiableUUID',
-        });
-        return {
-          isProxy: true,
-          proxyType: 'UUPS',
-          implementationAddress: implAddress,
-        };
-      } catch {
-        // Not UUPS, check for Transparent
-        try {
-          const admin = await publicClient.readContract({
-            address,
-            abi: PROXY_ABIS.Transparent,
-            functionName: 'admin',
-          });
-          return {
-            isProxy: true,
-            proxyType: 'Transparent',
-            implementationAddress: implAddress,
-            adminAddress: admin as Address,
-          };
-        } catch {
-          // Could be Beacon or other proxy type
-          return {
-            isProxy: true,
-            proxyType: 'Minimal',
-            implementationAddress: implAddress,
-          };
-        }
-      }
+    if (implementationSlot && implementationSlot !== '0x0' && implementationSlot !== '0x') {
+      // Extract address from slot (last 20 bytes)
+      const implAddress = ('0x' + implementationSlot.slice(-40)) as Address;
+      return {
+        isProxy: true,
+        proxyType: 'UUPS',
+        implementationAddress: isAddress(implAddress) ? implAddress : undefined,
+      };
     }
 
     // Check for Beacon proxy
@@ -153,60 +141,19 @@ export async function detectProxy(
       slot: PROXY_ABIS.EIP1967_BEACON as `0x${string}`,
     });
 
-    if (beaconSlot && beaconSlot !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
-      const beaconAddress = getAddress(`0x${beaconSlot.slice(-40)}` as `0x${string}`);
+    if (beaconSlot && beaconSlot !== '0x0' && beaconSlot !== '0x') {
+      const beaconAddress = ('0x' + beaconSlot.slice(-40)) as Address;
       return {
         isProxy: true,
         proxyType: 'Beacon',
-        implementationAddress: beaconAddress,
+        implementationAddress: isAddress(beaconAddress) ? beaconAddress : undefined,
       };
     }
 
     return { isProxy: false };
   } catch (error) {
-    console.warn(`Could not detect proxy for ${address}:`, error);
+    console.warn(`Failed to detect proxy for ${address}:`, error);
     return { isProxy: false };
-  }
-}
-
-/**
- * Validate that a contract has the required functions
- */
-export async function validateContractABI(
-  address: Address,
-  requiredFunctions: string[],
-  chainId: number = monad.id,
-  rpcUrl?: string
-): Promise<{ isValid: boolean; missingFunctions: string[] }> {
-  const url = rpcUrl || process.env.NEXT_PUBLIC_MONAD_RPC_URL;
-  if (!url) {
-    // Skip if RPC not configured
-    return { isValid: true, missingFunctions: [] };
-  }
-
-  try {
-    const publicClient = createPublicClient({
-      chain: monad,
-      transport: http(url),
-    });
-
-    // For now, we'll just check if contract has code
-    // Full ABI validation would require the contract ABI and checking each function
-    const code = await publicClient.getBytecode({ address });
-    if (!code || code === '0x') {
-      return {
-        isValid: false,
-        missingFunctions: requiredFunctions, // Can't validate if no code
-      };
-    }
-
-    // TODO: Implement full ABI validation by trying to call each function
-    // This would require the full ABI and proper error handling
-
-    return { isValid: true, missingFunctions: [] };
-  } catch (error) {
-    console.warn(`Could not validate ABI for ${address}:`, error);
-    return { isValid: false, missingFunctions: [] };
   }
 }
 
@@ -215,114 +162,66 @@ export async function validateContractABI(
  */
 export async function validateContract(
   contractKey: string,
-  config: ContractConfig,
   options: ContractValidationOptions = {}
 ): Promise<ValidationResult> {
+  const config = CONTRACT_REGISTRY[contractKey as keyof typeof CONTRACT_REGISTRY] as ContractConfig | undefined;
+  
   const result: ValidationResult = {
     contractKey,
-    contractName: config.name,
+    contractName: config?.name || contractKey,
     isValid: true,
     errors: [],
     warnings: [],
   };
 
-  const address = getContractAddress(config);
-
-  // 1. Check address is configured
-  if (!address) {
+  if (!config) {
     result.isValid = false;
-    result.errors.push(`Contract address not configured`);
+    result.errors.push(`Contract '${contractKey}' not found in registry`);
     return result;
   }
 
-  // 2. Validate address format
-  if (!isAddress(address)) {
+  // Validate address format
+  const address = getContractAddress(contractKey as keyof typeof CONTRACT_REGISTRY);
+  if (!address) {
+    result.warnings.push(`No address configured for ${contractKey}`);
+  } else if (!isAddress(address)) {
     result.isValid = false;
     result.errors.push(`Invalid address format: ${address}`);
-    return result;
   }
 
-  // 3. Normalize address (checksum)
-  const normalizedAddress = getAddress(address);
-  if (address !== normalizedAddress) {
-    result.warnings.push(`Address should be checksummed: ${address} → ${normalizedAddress}`);
-  }
-
-  // 4. Check for placeholder addresses
-  const placeholders = ['0x...', '0x0000000000000000000000000000000000000000'];
-  if (placeholders.some(p => address.toLowerCase() === p.toLowerCase())) {
-    result.isValid = false;
-    result.errors.push(`Address is a placeholder: ${address}`);
-    return result;
-  }
-
-  // 5. Validate proxy if configured
-  if (options.validateProxy !== false && config.proxyType && config.proxyType !== 'None') {
-    if (!config.proxyAddress) {
-      result.warnings.push(`Contract should use proxy pattern (${config.proxyType}) but proxyAddress not configured`);
-    } else {
-      const proxyInfo = await detectProxy(config.proxyAddress, config.chainId, options.rpcUrl);
-      result.proxyInfo = proxyInfo;
-
-      if (proxyInfo.isProxy) {
-        // 'Minimal' in this validator means "Generic EIP-1967 Proxy" (fallback if UUPS/Transparent checks fail)
-        // So we accept it if it matches, or if it's Minimal
-        if (proxyInfo.proxyType !== config.proxyType && proxyInfo.proxyType !== 'Minimal') {
-          result.warnings.push(
-            `Expected proxy type ${config.proxyType} but detected ${proxyInfo.proxyType || 'unknown'}`
-          );
-        }
-
-        if (config.implementationAddress && proxyInfo.implementationAddress) {
-          const expectedImpl = getAddress(config.implementationAddress);
-          const actualImpl = getAddress(proxyInfo.implementationAddress);
-          if (expectedImpl.toLowerCase() !== actualImpl.toLowerCase()) {
-            result.errors.push(
-              `Implementation address mismatch: expected ${expectedImpl}, got ${actualImpl}`
-            );
-            result.isValid = false;
-          }
-        }
-      } else {
-        result.warnings.push(`Contract configured as proxy but proxy not detected on-chain`);
-      }
-    }
-  }
-
-  // 6. Validate on-chain existence
-  if (options.validateOnChain !== false) {
-    const url = options.rpcUrl || process.env.NEXT_PUBLIC_MONAD_RPC_URL;
-    if (url) {
-      try {
+  // On-chain validation
+  if (options.validateOnChain && address && isAddress(address)) {
+    try {
+      const url = options.rpcUrl || process.env.NEXT_PUBLIC_MONAD_RPC_URL;
+      if (url) {
         const publicClient = createPublicClient({
           chain: monad,
           transport: http(url),
         });
 
-        const code = await publicClient.getBytecode({ address });
+        const code = await publicClient.getBytecode({ address: address as Address });
         if (!code || code === '0x') {
           result.isValid = false;
-          result.errors.push(`Contract has no code at address ${address}`);
+          result.errors.push(`No bytecode found at address ${address} - contract not deployed`);
         } else {
           result.onChainValidated = true;
         }
-      } catch (error) {
-        result.warnings.push(`Could not validate on-chain: ${error instanceof Error ? error.message : String(error)}`);
+
+        // Proxy validation
+        if (options.validateProxy && code && code !== '0x') {
+          result.proxyInfo = await detectProxy(address as Address, monad.id, url);
+          if (result.proxyInfo.isProxy) {
+            result.warnings.push(
+              `Contract is a ${result.proxyInfo.proxyType} proxy` +
+                (result.proxyInfo.implementationAddress
+                  ? ` pointing to ${result.proxyInfo.implementationAddress}`
+                  : '')
+            );
+          }
+        }
       }
-    }
-  }
-
-  // 7. Validate ABI if configured
-  if (options.validateABI !== false && config.requiredFunctions.length > 0) {
-    const abiValidation = await validateContractABI(
-      address,
-      config.requiredFunctions,
-      config.chainId,
-      options.rpcUrl
-    );
-
-    if (!abiValidation.isValid) {
-      result.warnings.push(`Could not validate ABI compatibility`);
+    } catch (error) {
+      result.warnings.push(`On-chain validation failed: ${error}`);
     }
   }
 
@@ -337,11 +236,29 @@ export async function validateAllContracts(
 ): Promise<ValidationResult[]> {
   const results: ValidationResult[] = [];
 
-  for (const [key, config] of Object.entries(CONTRACT_REGISTRY)) {
-    const result = await validateContract(key, config, options);
+  for (const contractKey of Object.keys(CONTRACT_REGISTRY)) {
+    const result = await validateContract(contractKey, options);
     results.push(result);
   }
 
   return results;
 }
 
+/**
+ * Get validation summary
+ */
+export function getValidationSummary(results: ValidationResult[]): {
+  total: number;
+  valid: number;
+  invalid: number;
+  warnings: number;
+  onChainValidated: number;
+} {
+  return {
+    total: results.length,
+    valid: results.filter((r) => r.isValid).length,
+    invalid: results.filter((r) => !r.isValid).length,
+    warnings: results.reduce((sum, r) => sum + r.warnings.length, 0),
+    onChainValidated: results.filter((r) => r.onChainValidated).length,
+  };
+}

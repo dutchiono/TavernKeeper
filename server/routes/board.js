@@ -3,7 +3,34 @@ const router = express.Router();
 const { db } = require('../db');
 const OpenAI = require('openai');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
+});
+
+// GET /board — dashboard aggregation for the main page
+router.get('/', (req, res) => {
+  const queue = db.prepare(`
+    SELECT a.id, a.name, a.class, a.epithet FROM agents a
+    LEFT JOIN party_members pm ON pm.agent_id = a.id
+    WHERE pm.agent_id IS NULL AND a.class IS NOT NULL
+    ORDER BY a.created_at ASC LIMIT 4
+  `).all();
+  const recent_runs = db.prepare(`
+    SELECT dr.id, dr.outcome, dr.ended_at,
+           GROUP_CONCAT(a.name, ', ') as party_names
+    FROM dungeon_runs dr
+    JOIN party_members pm ON pm.party_id = dr.party_id
+    JOIN agents a ON a.id = pm.agent_id
+    WHERE dr.status != 'active'
+    GROUP BY dr.id
+    ORDER BY dr.ended_at DESC LIMIT 5
+  `).all();
+  const hall_of_fame = db.prepare(
+    'SELECT * FROM agents WHERE runs_completed > 0 ORDER BY xp DESC LIMIT 10'
+  ).all();
+  res.json({ queue, recent_runs, hall_of_fame, spots_remaining: 4 - queue.length });
+});
 
 // GET /board/posts?type=legend&page=1
 router.get('/posts', (req, res) => {
@@ -68,7 +95,7 @@ async function generateLegend(run, party) {
   if (!narration) return;
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gemini-2.0-flash',
       messages: [{
         role: 'system',
         content: 'You are a bard at a tavern writing dramatic 2-paragraph legends about dungeon runs. Write in epic fantasy prose. Start with "The legend of..." and end with a moral or epitaph.'

@@ -1,5 +1,8 @@
 const OpenAI = require('openai');
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
+});
 
 const DM_SYSTEM = `You are the Dungeon Master for the Sunken Shield dungeon, an ancient cursed ruin beneath a tavern.
 Narrate turn-based combat with grit and flair. Keep each narration under 100 words.
@@ -14,7 +17,7 @@ Enemy: ${enemyName} (${enemyHpRemaining} HP remaining)
 Room: ${roomDescription}
 Narrate this action in 2-4 sentences.`;
   const response = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gemini-2.0-flash',
     messages: [{ role: 'system', content: DM_SYSTEM }, { role: 'user', content: prompt }],
     max_tokens: 150
   });
@@ -30,7 +33,7 @@ ${isBoss ? 'This is the BOSS chamber.' : 'This is an encounter room.'}
 Enemies present: ${enemyStr}.
 Describe the room and enemies in 3 sentences. Set the tension.`;
   const response = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gemini-2.0-flash',
     messages: [{ role: 'system', content: DM_SYSTEM }, { role: 'user', content: prompt }],
     max_tokens: 150
   });
@@ -43,7 +46,7 @@ async function narrateOutcome(outcome, party, roomsCleared) {
     ? `The party ${partyStr} defeated the dungeon after clearing ${roomsCleared} rooms. Narrate their triumphant return in 3 sentences.`
     : `The party ${partyStr} was wiped out after reaching room ${roomsCleared}. Narrate their defeat with grim respect in 3 sentences.`;
   const response = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gemini-2.0-flash',
     messages: [{ role: 'system', content: DM_SYSTEM }, { role: 'user', content: prompt }],
     max_tokens: 150
   });

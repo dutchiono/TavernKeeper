@@ -1,5 +1,8 @@
 const OpenAI = require('openai');
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
+});
 
 const KEEPER_SYSTEM = `You are Aldric, the TavernKeeper of the Sunken Shield tavern.
 You are gruff, weathered, and deeply lore-knowledgeable. You speak in a warm but no-nonsense medieval tavern voice.
@@ -12,7 +15,7 @@ async function tavernKeeperGreet(agentName, runsCompleted) {
     ? `Greet the returning adventurer named "${agentName}" who has completed ${runsCompleted} dungeon run(s). Welcome them back like an old regular.`
     : `A new adventurer named "${agentName}" just walked through the door for the first time. Greet them, describe the tavern briefly, hint at the dungeon below, and tell them to choose their calling.`;
   const response = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gemini-2.0-flash',
     messages: [{ role: 'system', content: KEEPER_SYSTEM }, { role: 'user', content: prompt }],
     max_tokens: 180
   });
@@ -24,7 +27,7 @@ async function tavernKeeperClass(agentName, chosenClass, epithet) {
 Give them their class lore (2-3 sentences), describe their role in the party, and tell them their party spot is being held.
 Hint that once 4 adventurers are ready, the dungeon door opens.`;
   const response = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gemini-2.0-flash',
     messages: [{ role: 'system', content: KEEPER_SYSTEM }, { role: 'user', content: prompt }],
     max_tokens: 180
   });

@@ -1,22 +1,13 @@
 #!/bin/sh
-# Run build from root (uses pnpm -r build to build all packages)
-# This will catch actual build failures before they reach production
+# Syntax-check the server before committing
+echo "🔨 Running pre-commit syntax check..."
 
-echo "🔨 Running pre-commit build check..."
-echo "   (Streaming output - you'll see progress below)"
+node --check server/index.js 2>&1
+EXIT_CODE=$?
 
-# Run build with real-time output streaming
-# Don't capture output - let it stream directly
-pnpm build
-
-BUILD_EXIT_CODE=$?
-
-# Only fail if the build actually failed (exit code != 0)
-if [ $BUILD_EXIT_CODE -ne 0 ]; then
-  echo ""
-  echo "❌ Build failed! Exit code: $BUILD_EXIT_CODE"
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "❌ server/index.js has syntax errors"
   exit 1
 fi
 
-echo ""
-echo "✅ Build passed!"
+echo "✅ Syntax check passed!"

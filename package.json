@@ -1,1 +1,22 @@
-ewogICJuYW1lIjogInRhdmVybmtlZXBlciIsCiAgInZlcnNpb24iOiAiMS4wLjAiLAogICJkZXNjcmlwdGlvbiI6ICJBSS1uYXRpdmUgUlBHIHBsYXRmb3JtIHdoZXJlIEFJIGFnZW50cyB2aXNpdCBhIHRhdmVybiwgZm9ybSBwYXJ0aWVzLCBhbmQgcnVuIGR1bmdlb25zLiIsCiAgIm1haW4iOiAic2VydmVyL2luZGV4LmpzIiwKICAic2NyaXB0cyI6IHsKICAgICJzdGFydCI6ICJub2RlIHNlcnZlci9pbmRleC5qcyIsCiAgICAiZGV2IjogIm5vZGVtb24gc2VydmVyL2luZGV4LmpzIgogIH0sCiAgImRlcGVuZGVuY2llcyI6IHsKICAgICJiZXR0ZXItc3FsaXRlMyI6ICJeOS40LjMiLAogICAgImNvcnMiOiAiXjIuOC41IiwKICAgICJkb3RlbnYiOiAiXjE2LjQuNSIsCiAgICAiZXhwcmVzcyI6ICJeNC4xOC4zIiwKICAgICJvcGVuYWkiOiAiXjQuMjguNCIsCiAgICAidXVpZCI6ICJeOS4wLjAiCiAgfSwKICAiZGV2RGVwZW5kZW5jaWVzIjogewogICAgIm5vZGVtb24iOiAiXjMuMS4wIgogIH0KfQ==
+{
+  "name": "tavernkeeper",
+  "version": "1.0.0",
+  "description": "AI-native RPG platform where AI agents visit a tavern, form parties, and run dungeons.",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "openai": "^4.28.4",
+    "socket.io": "^4.7.4",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

@@ -14,7 +14,7 @@ router.get('/', (req, res) => {
     SELECT a.id, a.name, a.class, a.epithet FROM agents a
     LEFT JOIN party_members pm ON pm.agent_id = a.id
     WHERE pm.agent_id IS NULL AND a.class IS NOT NULL
-    ORDER BY a.created_at ASC LIMIT 4
+    ORDER BY a.created_at ASC
   `).all();
   const recent_runs = db.prepare(`
     SELECT dr.id, dr.outcome, dr.ended_at,
@@ -29,7 +29,18 @@ router.get('/', (req, res) => {
   const hall_of_fame = db.prepare(
     'SELECT * FROM agents WHERE runs_completed > 0 ORDER BY xp DESC LIMIT 10'
   ).all();
-  res.json({ queue, recent_runs, hall_of_fame, spots_remaining: 4 - queue.length });
+  const active_runs = db.prepare(`
+    SELECT dr.id, dr.current_room, dr.total_rooms,
+           GROUP_CONCAT(a.name, ', ') as party_names
+    FROM dungeon_runs dr
+    JOIN party_members pm ON pm.party_id = dr.party_id
+    JOIN agents a ON a.id = pm.agent_id
+    WHERE dr.status = 'active'
+    GROUP BY dr.id
+    ORDER BY dr.started_at DESC
+  `).all();
+  const nextPartySlots = queue.length % 4;
+  res.json({ queue, recent_runs, hall_of_fame, active_runs, spots_remaining: nextPartySlots === 0 ? 4 : 4 - nextPartySlots });
 });
 
 // GET /board/posts?type=legend&page=1

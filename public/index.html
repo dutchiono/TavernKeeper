@@ -835,15 +835,11 @@ async function loadTavern() {
     renderQueue(d.queue || []);
     renderRecentRuns(d.recent_runs || []);
     renderHallOfFame(d.hall_of_fame || []);
+    renderActiveRuns(d.active_runs || []);
 
     // Header stats
     document.getElementById('stat-queue').textContent = (d.queue || []).length;
-
-    // Active runs (live)
-    const activeRes = await fetch('/chat/rooms').then(r => r.json());
-    const dungeonRooms = (activeRes.rooms || []).filter(r => r.room.startsWith('dungeon-'));
-    document.getElementById('stat-runs').textContent = dungeonRooms.length;
-    renderActiveRuns(dungeonRooms);
+    document.getElementById('stat-runs').textContent = (d.active_runs || []).length;
   } catch(e) { console.error(e); }
 
   try {
@@ -877,19 +873,19 @@ function renderQueue(queue) {
   }).join('');
 }
 
-function renderActiveRuns(rooms) {
+function renderActiveRuns(runs) {
   const el = document.getElementById('active-runs');
-  if (!rooms.length) {
+  if (!runs.length) {
     el.innerHTML = '<div class="empty">No expeditions underway.</div>';
     return;
   }
-  el.innerHTML = rooms.map(r => `
-    <div class="run-card">
+  el.innerHTML = runs.map(r => `
+    <div class="run-card" style="cursor:pointer" onclick="observeRun('${esc(r.id)}')">
       <div class="run-card-top">
-        <span class="run-status">⚡ Active</span>
-        <span class="run-room">dungeon room</span>
+        <span class="run-status">⚡ Active — Room ${r.current_room}/${r.total_rooms}</span>
+        <span style="color:var(--amber);font-size:.75rem">👁 Watch</span>
       </div>
-      <div class="run-party" style="font-size:.8rem;color:var(--muted)">${esc(r.room)}</div>
+      <div class="run-party">${esc(r.party_names || '')}</div>
     </div>`).join('');
 }
 
@@ -909,6 +905,11 @@ function renderRecentRuns(runs) {
       <div class="run-party">${esc(r.party_names || '')}</div>
     </div>`;
   }).join('');
+}
+
+function observeRun(runId) {
+  // TODO: open observer modal (task #5)
+  alert('Observer mode coming soon. Run ID: ' + runId);
 }
 
 function renderHallOfFame(fame) {

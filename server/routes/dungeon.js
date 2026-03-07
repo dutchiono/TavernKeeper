@@ -1,1 +1,46 @@
-Y29uc3QgZXhwcmVzcyA9IHJlcXVpcmUoJ2V4cHJlc3MnKTsKY29uc3Qgcm91dGVyID0gZXhwcmVzcy5Sb3V0ZXIoKTsKY29uc3QgeyBkYiB9ID0gcmVxdWlyZSgnLi4vZGInKTsKY29uc3QgeyBwcm9jZXNzQWN0aW9uIH0gPSByZXF1aXJlKCcuLi9lbmdpbmUvZHVuZ2VvbicpOwoKLy8gR0VUIC9kdW5nZW9uL3N0YXRlLzpydW5faWQKcm91dGVyLmdldCgnL3N0YXRlLzpydW5faWQnLCAocmVxLCByZXMpID0+IHsKICBjb25zdCBydW4gPSBkYi5wcmVwYXJlKCdTRUxFQ1QgKiBGUk9NIGR1bmdlb25fcnVucyBXSEVSRSBpZCA9ID8nKS5nZXQocmVxLnBhcmFtcy5ydW5faWQpOwogIGlmICghcnVuKSByZXR1cm4gcmVzLnN0YXR1cyg0MDQpLmpzb24oeyBlcnJvcjogJ1J1biBub3QgZm91bmQnIH0pOwoKICBjb25zdCBtZW1iZXJzID0gZGIucHJlcGFyZShgCiAgICBTRUxFQ1QgYS5pZCwgYS5uYW1lLCBhLmNsYXNzLCBhLmVwaXRoZXQsIGEuaHAsIGEubWF4X2hwCiAgICBGUk9NIGFnZW50cyBhIEpPSU4gcGFydHlfbWVtYmVycyBwbSBPTiBwbS5hZ2VudF9pZCA9IGEuaWQKICAgIFdIRVJFIHBtLnBhcnR5X2lkID0gPwogIGApLmFsbChydW4ucGFydHlfaWQpOwoKICBjb25zdCBsb2cgPSBKU09OLnBhcnNlKHJ1bi5sb2cpOwogIGNvbnN0IGxhc3RFbnRyeSA9IGxvZy5maWx0ZXIoZSA9PiBlLnR5cGUgIT09ICdzdGF0ZScpLnNsaWNlKC0xKVswXSB8fCBudWxsOwoKICByZXMuanNvbih7CiAgICBydW5faWQ6IHJ1bi5pZCwgc3RhdHVzOiBydW4uc3RhdHVzLCBjdXJyZW50X3Jvb206IHJ1bi5jdXJyZW50X3Jvb20sCiAgICB0b3RhbF9yb29tczogcnVuLnRvdGFsX3Jvb21zLCBwYXJ0eTogbWVtYmVycywgbGFzdF9uYXJyYXRpb246IGxhc3RFbnRyeSwgb3V0Y29tZTogcnVuLm91dGNvbWUKICB9KTsKfSk7CgovLyBQT1NUIC9kdW5nZW9uL2FjdGlvbgpyb3V0ZXIucG9zdCgnL2FjdGlvbicsIGFzeW5jIChyZXEsIHJlcykgPT4gewogIGNvbnN0IHsgcnVuX2lkLCBhZ2VudF9pZCwgYWN0aW9uLCBmbGF2b3JfdGV4dCB9ID0gcmVxLmJvZHk7CiAgaWYgKCFydW5faWQgfHwgIWFnZW50X2lkIHx8ICFhY3Rpb24pCiAgICByZXR1cm4gcmVzLnN0YXR1cyg0MDApLmpzb24oeyBlcnJvcjogJ3J1bl9pZCwgYWdlbnRfaWQsIGFuZCBhY3Rpb24gcmVxdWlyZWQnIH0pOwoKICBjb25zdCBydW4gPSBkYi5wcmVwYXJlKCdTRUxFQ1QgKiBGUk9NIGR1bmdlb25fcnVucyBXSEVSRSBpZCA9ID8nKS5nZXQocnVuX2lkKTsKICBpZiAoIXJ1bikgcmV0dXJuIHJlcy5zdGF0dXMoNDA0KS5qc29uKHsgZXJyb3I6ICdSdW4gbm90IGZvdW5kJyB9KTsKICBpZiAocnVuLnN0YXR1cyAhPT0gJ2FjdGl2ZScpIHJldHVybiByZXMuc3RhdHVzKDQwMCkuanNvbih7IGVycm9yOiAnUnVuIGlzIG5vdCBhY3RpdmUnIH0pOwoKICBjb25zdCByZXN1bHQgPSBhd2FpdCBwcm9jZXNzQWN0aW9uKHsgcnVuLCBhZ2VudF9pZCwgYWN0aW9uLCBmbGF2b3JfdGV4dCB9KTsKICByZXMuanNvbihyZXN1bHQpOwp9KTsKCi8vIFBPU1QgL2R1bmdlb24vZGVicmllZgpyb3V0ZXIucG9zdCgnL2RlYnJpZWYnLCAocmVxLCByZXMpID0+IHsKICBjb25zdCB7IGFnZW50X2lkIH0gPSByZXEuYm9keTsKICBpZiAoIWFnZW50X2lkKSByZXR1cm4gcmVzLnN0YXR1cyg0MDApLmpzb24oeyBlcnJvcjogJ2FnZW50X2lkIHJlcXVpcmVkJyB9KTsKCiAgY29uc3QgYWdlbnQgPSBkYi5wcmVwYXJlKCdTRUxFQ1QgKiBGUk9NIGFnZW50cyBXSEVSRSBpZCA9ID8nKS5nZXQoYWdlbnRfaWQpOwogIGlmICghYWdlbnQpIHJldHVybiByZXMuc3RhdHVzKDQwNCkuanNvbih7IGVycm9yOiAnQWdlbnQgbm90IGZvdW5kJyB9KTsKCiAgY29uc3QgcmVjZW50UnVuID0gZGIucHJlcGFyZShgCiAgICBTRUxFQ1QgZHIuKiBGUk9NIGR1bmdlb25fcnVucyBkcgogICAgSk9JTiBwYXJ0eV9tZW1iZXJzIHBtIE9OIHBtLnBhcnR5X2lkID0gZHIucGFydHlfaWQKICAgIFdIRVJFIHBtLmFnZW50X2lkID0gPyBBTkQgZHIuc3RhdHVzICE9ICdhY3RpdmUnCiAgICBPUkRFUiBCWSBkci5lbmRlZF9hdCBERVNDIExJTUlUIDEKICBgKS5nZXQoYWdlbnRfaWQpOwoKICBpZiAoIXJlY2VudFJ1bikgcmV0dXJuIHJlcy5qc29uKHsgbWVzc2FnZTogJ05vIGNvbXBsZXRlZCBydW5zIGZvdW5kLicsIGFnZW50IH0pOwoKICBjb25zdCBsb2cgPSBKU09OLnBhcnNlKHJlY2VudFJ1bi5sb2cpOwogIGNvbnN0IGFnZW50QWN0aW9ucyA9IGxvZy5maWx0ZXIoZSA9PiBlLnR5cGUgPT09ICdhY3Rpb24nICYmIGUuYWdlbnRfaWQgPT09IGFnZW50X2lkKTsKCiAgcmVzLmpzb24oewogICAgYWdlbnQsCiAgICBsYXN0X3J1bjogewogICAgICBvdXRjb21lOiByZWNlbnRSdW4ub3V0Y29tZSwKICAgICAgcm9vbXNfY2xlYXJlZDogcmVjZW50UnVuLmN1cnJlbnRfcm9vbSAtIDEsCiAgICAgIHlvdXJfYWN0aW9uczogYWdlbnRBY3Rpb25zLmxlbmd0aCwKICAgICAgaGlnaGxpZ2h0czogYWdlbnRBY3Rpb25zLnNsaWNlKC0zKQogICAgfQogIH0pOwp9KTsKCm1vZHVsZS5leHBvcnRzID0gcm91dGVyOw==
+const express = require('express');
+const router = express.Router();
+const { db } = require('../db');
+const { processAction } = require('../engine/dungeon');
+
+router.get('/state/:run_id', (req, res) => {
+  const run = db.prepare('SELECT * FROM dungeon_runs WHERE id = ?').get(req.params.run_id);
+  if (!run) return res.status(404).json({ error: 'Run not found' });
+  const members = db.prepare(`
+    SELECT a.id, a.name, a.class, a.epithet, a.hp, a.max_hp
+    FROM agents a JOIN party_members pm ON pm.agent_id = a.id WHERE pm.party_id = ?
+  `).all(run.party_id);
+  const log = JSON.parse(run.log);
+  const lastEntry = log.filter(e => e.type !== 'state').slice(-1)[0] || null;
+  res.json({ run_id: run.id, status: run.status, current_room: run.current_room,
+    total_rooms: run.total_rooms, party: members, last_narration: lastEntry, outcome: run.outcome });
+});
+
+router.post('/action', async (req, res) => {
+  const { run_id, agent_id, action, flavor_text } = req.body;
+  if (!run_id || !agent_id || !action) return res.status(400).json({ error: 'run_id, agent_id, and action required' });
+  const run = db.prepare('SELECT * FROM dungeon_runs WHERE id = ?').get(run_id);
+  if (!run) return res.status(404).json({ error: 'Run not found' });
+  if (run.status !== 'active') return res.status(400).json({ error: 'Run is not active' });
+  const result = await processAction({ run, agent_id, action, flavor_text });
+  res.json(result);
+});
+
+router.post('/debrief', (req, res) => {
+  const { agent_id } = req.body;
+  if (!agent_id) return res.status(400).json({ error: 'agent_id required' });
+  const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(agent_id);
+  if (!agent) return res.status(404).json({ error: 'Agent not found' });
+  const recentRun = db.prepare(`
+    SELECT dr.* FROM dungeon_runs dr
+    JOIN party_members pm ON pm.party_id = dr.party_id
+    WHERE pm.agent_id = ? AND dr.status != 'active'
+    ORDER BY dr.ended_at DESC LIMIT 1
+  `).get(agent_id);
+  if (!recentRun) return res.json({ message: 'No completed runs found.', agent });
+  const log = JSON.parse(recentRun.log);
+  const agentActions = log.filter(e => e.type === 'action' && e.agent_id === agent_id);
+  res.json({ agent, last_run: { outcome: recentRun.outcome, rooms_cleared: recentRun.current_room - 1, your_actions: agentActions.length, highlights: agentActions.slice(-3) } });
+});
+
+module.exports = router;

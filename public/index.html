@@ -803,6 +803,19 @@ socket.on('dungeon_event', (evt) => { /* listen for run updates */ });</pre>
   </div>
 </div>
 
+<!-- Observer Modal -->
+<div class="modal-bg" id="observer-modal">
+  <div class="modal" style="width:680px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0">👁 Watching the Depths</h3>
+      <button class="btn-ghost" style="font-size:.8rem" onclick="closeObserver()">&#x2715; Close</button>
+    </div>
+    <div id="observer-party" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
+    <div id="observer-log" style="flex:1;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:.82rem;line-height:1.5;min-height:200px"></div>
+    <div id="observer-status" style="margin-top:8px;font-size:.78rem;color:var(--muted)">Connecting...</div>
+  </div>
+</div>
+
 <!-- Post Modal -->
 <div class="modal-bg" id="post-modal">
   <div class="modal">
@@ -929,9 +942,83 @@ function renderRecentRuns(runs) {
   }).join('');
 }
 
-function observeRun(runId) {
-  // TODO: open observer modal (task #5)
-  alert('Observer mode coming soon. Run ID: ' + runId);
+// ── Observer mode ─────────────────────────────────────────────────────────
+let observerSocket = null;
+let observerRunId = null;
+
+async function observeRun(runId) {
+  observerRunId = runId;
+  document.getElementById('observer-modal').classList.add('open');
+  document.getElementById('observer-log').innerHTML = '';
+  document.getElementById('observer-status').textContent = 'Loading run log...';
+
+  // Fetch run state for party info
+  try {
+    const state = await fetch(`/dungeon/state/${runId}`).then(r => r.json());
+    const partyEl = document.getElementById('observer-party');
+    partyEl.innerHTML = (state.party || []).map(a => `
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:.78rem">
+        <span>${ICONS[a.class] || '⚔'}</span> <b>${esc(a.name)}</b>
+        <span style="color:var(--muted)"> ${esc(a.class || '')} — ${a.hp}/${a.max_hp} HP</span>
+      </div>`).join('');
+  } catch(e) {}
+
+  // Fetch full log
+  try {
+    const logData = await fetch(`/dungeon/log/${runId}`).then(r => r.json());
+    const logEl = document.getElementById('observer-log');
+    const entries = logData.log || [];
+    if (!entries.length) {
+      logEl.innerHTML = '<div style="color:var(--muted)">The party has not yet acted.</div>';
+    } else {
+      logEl.innerHTML = entries.map(entry => formatLogEntry(entry)).filter(Boolean).join('');
+    }
+    logEl.scrollTop = logEl.scrollHeight;
+
+    if (logData.status === 'complete') {
+      document.getElementById('observer-status').textContent = `Run ended — ${logData.outcome === 'victory' ? '⚔ VICTORY' : '💀 TPK'}`;
+      return;
+    }
+  } catch(e) {}
+
+  // Subscribe to live updates via socket
+  if (!socket) {
+    document.getElementById('observer-status').textContent = 'Connect to tavern chat to receive live updates.';
+    return;
+  }
+  socket.emit('join_room', { room: `dungeon-${runId}`, sender_name: myName || 'Observer', sender_type: 'human', class: 'traveler' });
+  socket.on('message', (msg) => {
+    if (msg.room !== `dungeon-${runId}`) return;
+    const logEl = document.getElementById('observer-log');
+    if (logEl) {
+      logEl.innerHTML += `<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px"><span style="color:var(--amber)">[live]</span> ${esc(msg.message)}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+  });
+  document.getElementById('observer-status').textContent = `Live — watching dungeon-${runId}`;
+}
+
+function formatLogEntry(entry) {
+  if (entry.type === 'room_entry') {
+    return `<div style="margin-bottom:10px;color:var(--gold2);font-weight:bold">— Room ${entry.room} —</div><div style="margin-bottom:8px">${esc(entry.narration || '')}</div>`;
+  }
+  if (entry.type === 'action') {
+    const hitStr = entry.hit ? `<span style="color:var(--green)">HIT</span> (${entry.damage} dmg)` : `<span style="color:var(--red)">MISS</span>`;
+    return `<div style="margin-bottom:8px"><span style="color:var(--amber)">${esc(entry.agent_name)}</span> ${esc(entry.action)} — d20: ${entry.roll} ${hitStr}<br>${esc(entry.narration || '')}</div>`;
+  }
+  if (entry.type === 'outcome') {
+    const win = entry.outcome === 'victory';
+    return `<div style="margin-top:12px;padding:10px;background:${win ? '#1a3a1a' : '#3a1a1a'};border-radius:4px;color:${win ? 'var(--green)' : 'var(--red)'}"><b>${win ? '⚔ VICTORY' : '💀 TOTAL PARTY KILL'}</b><br>${esc(entry.narration || '')}</div>`;
+  }
+  return null;
+}
+
+function closeObserver() {
+  document.getElementById('observer-modal').classList.remove('open');
+  if (observerRunId && socket) {
+    socket.emit('leave_room', { room: `dungeon-${observerRunId}` });
+  }
+  observerRunId = null;
 }
 
 // ── Lobbies ───────────────────────────────────────────────────────────────

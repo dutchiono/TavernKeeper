@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── CSS Variables ────────────────────────────────────── */
+/* ─── CSS Variables ─────────────────────────────────────────────────────────── */
 :root {
   --tavern-bg:       #0e0905;
   --tavern-panel:    #1c1108;
@@ -18,7 +18,7 @@
   --ink:             #2c1810;
 }
 
-/* ─── Base ─────────────────────────────────────────── */
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
 html { scroll-behavior: smooth; }
 
 body {
@@ -37,7 +37,7 @@ body {
 .font-pixel   { font-family: 'Press Start 2P', monospace; }
 .font-fell    { font-family: 'IM Fell English', Georgia, serif; }
 
-/* ─── Scrollbars ────────────────────────────────────── */
+/* ─── Scrollbars ────────────────────────────────────────────────────────────── */
 .scrollbar-none       { scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
@@ -46,7 +46,7 @@ body {
 .scrollbar-thumb-tavern::-webkit-scrollbar-thumb { background: var(--tavern-border); border-radius: 2px; }
 .scrollbar-track-transparent::-webkit-scrollbar-track { background: transparent; }
 
-/* ─── Keyframe Animations ─────────────────────────────── */
+/* ─── Keyframe Animations ───────────────────────────────────────────────────── */
 
 /* Candle flicker — subtle brightness + opacity pulse */
 @keyframes candle-flicker {
@@ -108,7 +108,7 @@ body {
   to   { opacity: 1; clip-path: inset(0 0% 0 0); }
 }
 
-/* ─── Animation Utility Classes ──────────────────────────── */
+/* ─── Animation Utility Classes ─────────────────────────────────────────────── */
 .animate-candle-flicker  { animation: candle-flicker 3s ease-in-out infinite; }
 .animate-ember-glow      { animation: ember-glow 2.5s ease-in-out infinite; }
 .animate-pulse-subtle    { animation: pulse-subtle 2s ease-in-out infinite; }
@@ -126,7 +126,7 @@ body {
   animation: gold-shimmer 4s linear infinite;
 }
 
-/* ─── Component Styles ────────────────────────────────── */
+/* ─── Component Styles ──────────────────────────────────────────────────────── */
 
 /* Tavern header glow */
 .tavern-header-glow {
@@ -184,7 +184,7 @@ body {
 .wax-seal-red  { background: radial-gradient(circle at 40% 35%, #ef4444, #991b1b); }
 .wax-seal-gold { background: radial-gradient(circle at 40% 35%, #fbbf24, #92400e); }
 
-/* ─── Smoke Particles ──────────────────────────────────── */
+/* ─── Smoke Particles ────────────────────────────────────────────────────────── */
 .smoke-container {
   position: relative;
   overflow: visible;
@@ -204,7 +204,7 @@ body {
 .smoke-particle:nth-child(4) { left: 70%; animation: smoke-drift 3.2s ease-out infinite 0.4s; }
 .smoke-particle:nth-child(5) { left: 85%; animation: smoke-drift 2.6s ease-out infinite 1.8s; }
 
-/* ─── Hover Micro-interactions ────────────────────────────── */
+/* ─── Hover Micro-interactions ──────────────────────────────────────────────── */
 
 /* Button press */
 .btn-tavern {
@@ -236,13 +236,13 @@ body {
 }
 .link-swipe:hover::after { width: 100%; }
 
-/* ─── HP Bar Colors ──────────────────────────────────── */
+/* ─── HP Bar Colors ──────────────────────────────────────────────────────────── */
 .hp-high   { background: linear-gradient(90deg, #16a34a, #22c55e); }
 .hp-mid    { background: linear-gradient(90deg, #ca8a04, #eab308); }
 .hp-low    { background: linear-gradient(90deg, #dc2626, #ef4444); }
 .hp-dead   { background: #374151; }
 
-/* ─── Live Ticker ───────────────────────────────────── */
+/* ─── Live Ticker ────────────────────────────────────────────────────────────── */
 .ticker-track {
   display: flex;
   width: max-content;
@@ -250,7 +250,7 @@ body {
 }
 .ticker-track:hover { animation-play-state: paused; }
 
-/* ─── Tailwind Extensions ────────────────────────────── */
+/* ─── Tailwind Extensions ───────────────────────────────────────────────────── */
 @layer utilities {
   .text-balance { text-wrap: balance; }
   .line-clamp-2 { -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }

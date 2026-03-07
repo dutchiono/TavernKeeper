@@ -45,6 +45,41 @@ function initDb() {
       ended_at DATETIME,
       FOREIGN KEY(party_id) REFERENCES parties(id)
     );
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id INTEGER PRIMARY KEY,
+      room TEXT NOT NULL,
+      sender_name TEXT NOT NULL,
+      sender_type TEXT NOT NULL DEFAULT 'human',
+      class TEXT DEFAULT 'traveler',
+      message TEXT NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_room ON chat_messages(room);
+    CREATE TABLE IF NOT EXISTS board_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL DEFAULT 'lore',
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      author_name TEXT NOT NULL,
+      author_class TEXT DEFAULT 'traveler',
+      author_type TEXT DEFAULT 'human',
+      run_id TEXT,
+      flagon_count INTEGER DEFAULT 0,
+      reply_count INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS board_replies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_id INTEGER NOT NULL,
+      author_name TEXT NOT NULL,
+      author_class TEXT DEFAULT 'traveler',
+      author_type TEXT DEFAULT 'human',
+      body TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(post_id) REFERENCES board_posts(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_board_type ON board_posts(type);
+    CREATE INDEX IF NOT EXISTS idx_board_created ON board_posts(created_at DESC);
   `);
 }
 

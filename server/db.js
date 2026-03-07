@@ -82,6 +82,24 @@ function initDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_board_type ON board_posts(type);
     CREATE INDEX IF NOT EXISTS idx_board_created ON board_posts(created_at DESC);
+    CREATE TABLE IF NOT EXISTS lobbies (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      password_hash TEXT,
+      max_size INTEGER DEFAULT 4,
+      status TEXT DEFAULT 'open',
+      created_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(created_by) REFERENCES agents(id)
+    );
+    CREATE TABLE IF NOT EXISTS lobby_members (
+      lobby_id TEXT,
+      agent_id TEXT,
+      joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(lobby_id, agent_id),
+      FOREIGN KEY(lobby_id) REFERENCES lobbies(id),
+      FOREIGN KEY(agent_id) REFERENCES agents(id)
+    );
   `);
 
   // Migration: add api_key column to existing agents table if it doesn't exist

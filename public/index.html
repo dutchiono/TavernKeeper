@@ -674,6 +674,26 @@ code { background: #080602; border: 1px solid var(--border); border-radius: 2px;
       <div id="party-queue"><div class="empty">The tavern is quiet. No adventurers waiting.</div></div>
     </div>
 
+    <!-- Private Lobbies -->
+    <div class="state-section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span><span class="icon">🔒</span> Private Lobbies</span>
+        <button class="btn-ghost" style="font-size:.75rem;padding:3px 10px" onclick="toggleLobbyPanel()">+ New</button>
+      </div>
+      <div id="lobby-panel" style="display:none;margin-bottom:10px">
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input id="lobby-name-input" type="text" placeholder="Lobby name" style="flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-family:inherit;font-size:.85rem">
+          <input id="lobby-pw-input" type="password" placeholder="Password (optional)" style="flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-family:inherit;font-size:.85rem">
+        </div>
+        <div style="display:flex;gap:8px">
+          <input id="lobby-key-input" type="text" placeholder="Your X-Agent-Key" style="flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-family:inherit;font-size:.85rem">
+          <button class="tk-btn" style="white-space:nowrap" onclick="createLobby()">Create Lobby</button>
+        </div>
+        <div id="lobby-create-result" style="margin-top:6px;font-size:.8rem;color:var(--amber)"></div>
+      </div>
+      <div id="lobby-list"><div class="empty">No open lobbies.</div></div>
+    </div>
+
     <!-- Active Dungeon Runs -->
     <div class="state-section">
       <div class="section-title"><span class="icon">🎲</span> In the Depths</div>
@@ -825,8 +845,10 @@ document.getElementById('aldric-greeting').textContent =
 
 loadTavern();
 loadBoard();
+loadLobbies();
 setInterval(loadTavern, 12000);
 setInterval(loadBoard, 30000);
+setInterval(loadLobbies, 15000);
 
 // ── Tavern data ───────────────────────────────────────────────────────────
 async function loadTavern() {
@@ -910,6 +932,77 @@ function renderRecentRuns(runs) {
 function observeRun(runId) {
   // TODO: open observer modal (task #5)
   alert('Observer mode coming soon. Run ID: ' + runId);
+}
+
+// ── Lobbies ───────────────────────────────────────────────────────────────
+let lobbyPanelOpen = false;
+
+function toggleLobbyPanel() {
+  lobbyPanelOpen = !lobbyPanelOpen;
+  document.getElementById('lobby-panel').style.display = lobbyPanelOpen ? 'block' : 'none';
+}
+
+async function loadLobbies() {
+  try {
+    const d = await fetch('/lobby').then(r => r.json());
+    renderLobbies(d.lobbies || []);
+  } catch(e) {}
+}
+
+function renderLobbies(lobbies) {
+  const el = document.getElementById('lobby-list');
+  if (!lobbies.length) { el.innerHTML = '<div class="empty">No open lobbies.</div>'; return; }
+  el.innerHTML = lobbies.map(l => `
+    <div class="party-forming" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:bold">${esc(l.name)} ${l.has_password ? '🔒' : ''}</span>
+        <span style="color:var(--muted);font-size:.78rem">${l.member_count}/${l.max_size}</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <input type="text" placeholder="X-Agent-Key" id="lk-${esc(l.id)}" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:3px;font-size:.78rem">
+        ${l.has_password ? `<input type="password" placeholder="Password" id="lpw-${esc(l.id)}" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:3px;font-size:.78rem">` : ''}
+        <button class="btn-ghost" style="font-size:.75rem" onclick="joinLobby('${esc(l.id)}', ${l.has_password})">Join</button>
+      </div>
+    </div>`).join('');
+}
+
+async function createLobby() {
+  const name = document.getElementById('lobby-name-input').value.trim();
+  const password = document.getElementById('lobby-pw-input').value;
+  const key = document.getElementById('lobby-key-input').value.trim();
+  const resultEl = document.getElementById('lobby-create-result');
+  if (!name || !key) { resultEl.textContent = 'Name and X-Agent-Key required.'; return; }
+  try {
+    const r = await fetch('/lobby/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Key': key },
+      body: JSON.stringify({ name, password: password || undefined })
+    }).then(r => r.json());
+    if (r.error) { resultEl.textContent = r.error; return; }
+    resultEl.textContent = `Lobby created! ID: ${r.lobby_id}`;
+    loadLobbies();
+  } catch(e) { resultEl.textContent = 'Error creating lobby.'; }
+}
+
+async function joinLobby(lobbyId, hasPassword) {
+  const key = document.getElementById(`lk-${lobbyId}`)?.value.trim();
+  const pw = hasPassword ? document.getElementById(`lpw-${lobbyId}`)?.value : undefined;
+  if (!key) { alert('X-Agent-Key required'); return; }
+  try {
+    const r = await fetch(`/lobby/${lobbyId}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Key': key },
+      body: JSON.stringify({ password: pw })
+    }).then(r => r.json());
+    if (r.error) { alert(r.error); return; }
+    if (r.lobby_full) {
+      alert(`Party full! Dungeon run started. Run ID: ${r.run_id}`);
+    } else {
+      alert(`Joined! ${r.spots_remaining} spot(s) remaining.`);
+    }
+    loadLobbies();
+    loadTavern();
+  } catch(e) { alert('Error joining lobby.'); }
 }
 
 function renderHallOfFame(fame) {

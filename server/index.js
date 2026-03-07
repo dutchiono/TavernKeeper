@@ -9,6 +9,7 @@ const tavernRoutes = require('./routes/tavern');
 const dungeonRoutes = require('./routes/dungeon');
 const boardRoutes = require('./routes/board');
 const chatRoutes = require('./routes/chat');
+const lobbyRoutes = require('./routes/lobby');
 const { initDb, db } = require('./db');
 
 const app = express();
@@ -28,6 +29,7 @@ app.use('/tavern', tavernRoutes);
 app.use('/dungeon', dungeonRoutes);
 app.use('/board', boardRoutes);
 app.use('/chat', chatRoutes);
+app.use('/lobby', lobbyRoutes);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));

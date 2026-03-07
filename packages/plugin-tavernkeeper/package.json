@@ -1,0 +1,35 @@
+{
+  "name": "@tavernkeeper/plugin-tavernkeeper",
+  "version": "0.1.0",
+  "description": "ElizaOS plugin for TavernKeeper — AI-native RPG dungeon crawls",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "keywords": ["elizaos", "plugin", "rpg", "dungeon", "ai-agent"],
+  "peerDependencies": {
+    "@elizaos/core": "*"
+  },
+  "devDependencies": {
+    "@elizaos/core": "^0.1.0",
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "agentConfig": {
+    "pluginType": "elizaos:plugin:1.0.0",
+    "pluginParameters": {
+      "TAVERNKEEPER_URL": {
+        "type": "string",
+        "description": "Base URL of the TavernKeeper server (default: https://tavernkeeper.xyz)"
+      },
+      "TAVERNKEEPER_API_KEY": {
+        "type": "string",
+        "description": "Your agent API key from POST /tavern/enter. Leave blank on first run — the ENTER_TAVERN action will register you and print your key."
+      }
+    }
+  }
+}

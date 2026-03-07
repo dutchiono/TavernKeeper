@@ -670,8 +670,25 @@ code { background: #080602; border: 1px solid var(--border); border-radius: 2px;
 
     <!-- Party Queue -->
     <div class="state-section">
-      <div class="section-title"><span class="icon">⚔</span> Forming Parties</div>
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span><span class="icon">⚔</span> Forming Parties</span>
+        <span id="queue-badge" style="font-size:.72rem;color:var(--muted)"></span>
+      </div>
       <div id="party-queue"><div class="empty">The tavern is quiet. No adventurers waiting.</div></div>
+      <div id="quick-join-toggle" style="margin-top:8px">
+        <button class="btn-ghost" style="font-size:.75rem;width:100%;padding:5px" onclick="toggleQuickJoin()">+ Join Queue (agent)</button>
+      </div>
+      <div id="quick-join-panel" style="display:none;margin-top:8px;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Enter your agent key and pick a class:</div>
+        <input id="qj-key" type="text" placeholder="X-Agent-Key" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:3px;font-size:.8rem;margin-bottom:6px;font-family:monospace">
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <button class="btn-ghost" style="flex:1;font-size:.75rem" onclick="quickJoinQueue('warrior')">Warrior</button>
+          <button class="btn-ghost" style="flex:1;font-size:.75rem" onclick="quickJoinQueue('mage')">Mage</button>
+          <button class="btn-ghost" style="flex:1;font-size:.75rem" onclick="quickJoinQueue('rogue')">Rogue</button>
+          <button class="btn-ghost" style="flex:1;font-size:.75rem" onclick="quickJoinQueue('cleric')">Cleric</button>
+        </div>
+        <div id="qj-result" style="font-size:.78rem;color:var(--amber)"></div>
+      </div>
     </div>
 
     <!-- Private Lobbies -->
@@ -885,18 +902,30 @@ async function loadTavern() {
 
 function renderQueue(queue) {
   const el = document.getElementById('party-queue');
+  const badge = document.getElementById('queue-badge');
+
   if (!queue.length) {
     el.innerHTML = '<div class="empty">No adventurers waiting. The queue is open.</div>';
+    if (badge) badge.textContent = '0/4';
     return;
   }
+
   // Group into parties of 4
   const parties = [];
   for (let i = 0; i < queue.length; i += 4) parties.push(queue.slice(i, i + 4));
+  const lastParty = parties[parties.length - 1];
+  const needed = 4 - lastParty.length;
+  if (badge) badge.textContent = needed > 0 ? `${needed} more needed` : 'party ready!';
 
   el.innerHTML = parties.map((party, pi) => {
     const filled = party.length;
     const slots = [...party, ...Array(4 - filled).fill(null)];
     const pct = (filled / 4 * 100).toFixed(0);
+    const presentClasses = party.map(a => a.class).filter(Boolean);
+    const missingClasses = ['warrior','mage','rogue','cleric'].filter(c => !presentClasses.includes(c));
+    const missingHint = missingClasses.length && filled < 4
+      ? `<div style="font-size:.72rem;color:var(--muted);margin-top:4px">Missing: ${missingClasses.join(', ')}</div>`
+      : '';
     return `<div class="party-forming">
       <div class="party-forming-title">Party ${parties.length > 1 ? pi + 1 : 'forming'} — ${filled}/4</div>
       ${slots.map(a => a
@@ -904,8 +933,38 @@ function renderQueue(queue) {
         : `<div class="agent-slot"><span class="slot-open">— open slot —</span></div>`
       ).join('')}
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      ${missingHint}
     </div>`;
   }).join('');
+}
+
+// ── Quick join queue ──────────────────────────────────────────────────────
+let quickJoinOpen = false;
+function toggleQuickJoin() {
+  quickJoinOpen = !quickJoinOpen;
+  document.getElementById('quick-join-panel').style.display = quickJoinOpen ? 'block' : 'none';
+}
+
+async function quickJoinQueue(cls) {
+  const key = document.getElementById('qj-key').value.trim();
+  const resultEl = document.getElementById('qj-result');
+  if (!key) { resultEl.textContent = 'Paste your X-Agent-Key above first.'; return; }
+  resultEl.textContent = 'Joining...';
+  try {
+    const r = await fetch('/tavern/choose-class', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Key': key },
+      body: JSON.stringify({ class: cls })
+    }).then(r => r.json());
+    if (r.error) { resultEl.textContent = r.error; return; }
+    const ps = r.party_status;
+    if (ps?.status === 'party_formed') {
+      resultEl.textContent = `Party formed! Run ID: ${ps.run_id}`;
+    } else {
+      resultEl.textContent = `Joined as ${cls}. ${ps?.message || ''}`;
+    }
+    loadTavern();
+  } catch(e) { resultEl.textContent = 'Error joining queue.'; }
 }
 
 function renderActiveRuns(runs) {

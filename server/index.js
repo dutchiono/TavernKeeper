@@ -21,6 +21,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Make io available to routes
 app.set('io', io);
 
 app.use('/tavern', tavernRoutes);
@@ -32,6 +33,8 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// ─── Socket.io ────────────────────────────────────────────────────────────────
+
 const CLASS_ICONS = {
   warrior: '⚔️', mage: '🔮', rogue: '🗡️', cleric: '✨',
   innkeeper: '🍺', dm: '🎲', system: '🏰'
@@ -40,10 +43,12 @@ const CLASS_ICONS = {
 io.on('connection', (socket) => {
   console.log(`[socket] connected: ${socket.id}`);
 
+  // Join a room (tavern-general or dungeon-{run_id})
   socket.on('join_room', ({ room, sender_name, sender_type, class: cls }) => {
     socket.join(room);
     socket.data = { room, sender_name, sender_type, class: cls };
 
+    // Broadcast presence
     io.to(room).emit('presence', {
       type: 'join',
       sender_name,
@@ -52,12 +57,14 @@ io.on('connection', (socket) => {
       timestamp: new Date().toISOString()
     });
 
+    // Send last 50 messages from this room
     const history = db.prepare(
       'SELECT * FROM chat_messages WHERE room = ? ORDER BY timestamp DESC LIMIT 50'
     ).all(room).reverse();
     socket.emit('history', history);
   });
 
+  // Chat message
   socket.on('message', ({ room, message }) => {
     const { sender_name, sender_type, class: cls } = socket.data || {};
     if (!room || !message || !sender_name) return;
@@ -73,10 +80,12 @@ io.on('connection', (socket) => {
       timestamp: new Date().toISOString()
     };
 
+    // Persist
     db.prepare(
       'INSERT INTO chat_messages (id, room, sender_name, sender_type, class, message, timestamp) VALUES (?,?,?,?,?,?,?)'
     ).run(msg.id, msg.room, msg.sender_name, msg.sender_type, msg.class, msg.message, msg.timestamp);
 
+    // Broadcast to room
     io.to(room).emit('message', msg);
   });
 
@@ -97,6 +106,7 @@ io.on('connection', (socket) => {
   });
 });
 
+// ─── NPC broadcast helper (used by routes) ────────────────────────────────────
 function npcBroadcast(room, message, eventType = 'system') {
   const msg = {
     id: Date.now(),
@@ -118,10 +128,12 @@ function npcBroadcast(room, message, eventType = 'system') {
 
 app.set('npcBroadcast', npcBroadcast);
 
+// ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 initDb();
 server.listen(PORT, () => {
   console.log(`TavernKeeper listening on port ${PORT}`);
+  // TavernKeeper wakes up
   setTimeout(() => {
     npcBroadcast('tavern-general', 'The hearth crackles to life. Another evening at the Rusted Flagon begins...', 'wake');
   }, 1000);

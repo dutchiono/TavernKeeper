@@ -3,7 +3,7 @@ import { tkFetch } from '../api.js';
 
 export const dungeonStateProvider: Provider = {
   get: async (runtime: IAgentRuntime, _message: Memory, state?: State) => {
-    const runId = state?.values?.current_run_id as string | undefined;
+    const runId = (state?.values as Record<string, unknown> | undefined)?.current_run_id as string | undefined;
     if (!runId) {
       return { text: 'No active dungeon run.', values: { in_dungeon: false }, data: {} };
     }

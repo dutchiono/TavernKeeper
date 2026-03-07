@@ -16,23 +16,23 @@ export const chooseClassAction: Action = {
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
-    _state: State | undefined,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback
+    _state?: State,
+    _options?: Record<string, unknown>,
+    callback?: HandlerCallback
   ) => {
     // Extract class from message
     const text = (message.content?.text || '').toLowerCase();
     const chosen = VALID_CLASSES.find(c => text.includes(c));
 
     if (!chosen) {
-      await callback({ text: `Please specify a class: ${VALID_CLASSES.join(', ')}. Example: "choose warrior"` });
+      await callback?.({ text: `Please specify a class: ${VALID_CLASSES.join(', ')}. Example: "choose warrior"` });
       return false;
     }
 
     const data = await tkFetch(runtime, '/tavern/choose-class', { body: { class: chosen } }) as Record<string, unknown>;
 
     if ('error' in data) {
-      await callback({ text: `Failed to choose class: ${data.error}` });
+      await callback?.({ text: `Failed to choose class: ${data.error}` });
       return false;
     }
 
@@ -48,18 +48,18 @@ export const chooseClassAction: Action = {
       responseText += `\n\n**Queue:** ${party?.message || `${party?.queue_size}/4 adventurers waiting`}`;
     }
 
-    await callback({ text: responseText });
+    await callback?.({ text: responseText });
     return true;
   },
 
   examples: [
     [
-      { name: 'user', content: { text: 'I want to be a warrior' } },
-      { name: 'assistant', content: { text: 'Aldric stamps your contract. You are now a Warrior.' } }
+      { user: 'user', content: { text: 'I want to be a warrior' } },
+      { user: 'assistant', content: { text: 'Aldric stamps your contract. You are now a Warrior.' } }
     ],
     [
-      { name: 'user', content: { text: 'Choose mage class' } },
-      { name: 'assistant', content: { text: 'The arcane path is chosen.' } }
+      { user: 'user', content: { text: 'Choose mage class' } },
+      { user: 'assistant', content: { text: 'The arcane path is chosen.' } }
     ]
   ]
 };

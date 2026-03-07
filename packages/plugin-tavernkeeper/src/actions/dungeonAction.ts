@@ -15,9 +15,9 @@ export const dungeonActionAction: Action = {
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
-    state: State | undefined,
-    options: Record<string, unknown>,
-    callback: HandlerCallback
+    state?: State,
+    options?: Record<string, unknown>,
+    callback?: HandlerCallback
   ) => {
     const text = (message.content?.text || '').toLowerCase();
 
@@ -26,11 +26,11 @@ export const dungeonActionAction: Action = {
 
     // Extract run_id from options, state, or message
     const runId = (options?.run_id as string)
-      || (state?.values?.current_run_id as string)
+      || ((state?.values as Record<string, unknown> | undefined)?.current_run_id as string)
       || extractRunId(text);
 
     if (!runId) {
-      await callback({ text: 'I need a run_id to take dungeon actions. Check your party status with CHECK_PARTY or look at your last CHOOSE_CLASS response.' });
+      await callback?.({ text: 'I need a run_id to take dungeon actions. Check your party status with CHECK_PARTY or look at your last CHOOSE_CLASS response.' });
       return false;
     }
 
@@ -41,7 +41,7 @@ export const dungeonActionAction: Action = {
     }) as Record<string, unknown>;
 
     if ('error' in data) {
-      await callback({ text: `Dungeon action failed: ${data.error}` });
+      await callback?.({ text: `Dungeon action failed: ${data.error}` });
       return false;
     }
 
@@ -75,18 +75,18 @@ export const dungeonActionAction: Action = {
       if (data.xp_earned) responseText += `\n+${data.xp_earned} XP, +${data.gold_earned} gold`;
     }
 
-    await callback({ text: responseText });
+    await callback?.({ text: responseText });
     return true;
   },
 
   examples: [
     [
-      { name: 'user', content: { text: 'Attack the enemy in run abc-123' } },
-      { name: 'assistant', content: { text: 'You raise your sword and strike!' } }
+      { user: 'user', content: { text: 'Attack the enemy in run abc-123' } },
+      { user: 'assistant', content: { text: 'You raise your sword and strike!' } }
     ],
     [
-      { name: 'user', content: { text: 'Cast a spell' } },
-      { name: 'assistant', content: { text: 'Arcane energy crackles at your fingertips...' } }
+      { user: 'user', content: { text: 'Cast a spell' } },
+      { user: 'assistant', content: { text: 'Arcane energy crackles at your fingertips...' } }
     ]
   ]
 };

@@ -11,9 +11,9 @@ export const postToBoardAction: Action = {
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
-    _state: State | undefined,
-    options: Record<string, unknown>,
-    callback: HandlerCallback
+    _state?: State,
+    options?: Record<string, unknown>,
+    callback?: HandlerCallback
   ) => {
     const text = message.content?.text || '';
     const postType = detectPostType(text);
@@ -36,19 +36,19 @@ export const postToBoardAction: Action = {
     }) as Record<string, unknown>;
 
     if ('error' in data) {
-      await callback({ text: `Failed to post to board: ${data.error}` });
+      await callback?.({ text: `Failed to post to board: ${data.error}` });
       return false;
     }
 
     const post = data.post as Record<string, unknown>;
-    await callback({ text: `✅ Posted to the notice board!\nType: **${post.type}** | Title: **${post.title}** | ID: ${post.id}` });
+    await callback?.({ text: `✅ Posted to the notice board!\nType: **${post.type}** | Title: **${post.title}** | ID: ${post.id}` });
     return true;
   },
 
   examples: [
     [
-      { name: 'user', content: { text: 'Post a bounty on the dungeon boss' } },
-      { name: 'assistant', content: { text: 'Posted to the notice board! Type: bounty' } }
+      { user: 'user', content: { text: 'Post a bounty on the dungeon boss' } },
+      { user: 'assistant', content: { text: 'Posted to the notice board! Type: bounty' } }
     ]
   ]
 };

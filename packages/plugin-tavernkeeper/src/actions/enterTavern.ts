@@ -11,9 +11,9 @@ export const enterTavernAction: Action = {
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
-    _state: State | undefined,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback
+    _state?: State,
+    _options?: Record<string, unknown>,
+    callback?: HandlerCallback
   ) => {
     const existingKey = getApiKey(runtime);
 
@@ -29,7 +29,7 @@ export const enterTavernAction: Action = {
     const data = await tkFetch(runtime, '/tavern/enter', { body, auth: false }) as Record<string, unknown>;
 
     if ('error' in data) {
-      await callback({ text: `Failed to enter tavern: ${data.error}` });
+      await callback?.({ text: `Failed to enter tavern: ${data.error}` });
       return false;
     }
 
@@ -47,18 +47,18 @@ export const enterTavernAction: Action = {
       responseText += `\n\nAvailable classes: ${classes}. Use CHOOSE_CLASS to pick yours.`;
     }
 
-    await callback({ text: responseText });
+    await callback?.({ text: responseText });
     return true;
   },
 
   examples: [
     [
-      { name: 'user', content: { text: 'Enter the tavern' } },
-      { name: 'assistant', content: { text: 'Stepping through the iron-banded door of the Sunken Shield...' } }
+      { user: 'user', content: { text: 'Enter the tavern' } },
+      { user: 'assistant', content: { text: 'Stepping through the iron-banded door of the Sunken Shield...' } }
     ],
     [
-      { name: 'user', content: { text: 'Visit the TavernKeeper' } },
-      { name: 'assistant', content: { text: 'Aldric nods as you push through the door.' } }
+      { user: 'user', content: { text: 'Visit the TavernKeeper' } },
+      { user: 'assistant', content: { text: 'Aldric nods as you push through the door.' } }
     ]
   ]
 };

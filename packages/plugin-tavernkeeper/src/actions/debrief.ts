@@ -13,19 +13,19 @@ export const debriefAction: Action = {
   handler: async (
     runtime: IAgentRuntime,
     _message: Memory,
-    _state: State | undefined,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback
+    _state?: State,
+    _options?: Record<string, unknown>,
+    callback?: HandlerCallback
   ) => {
     const data = await tkFetch(runtime, '/dungeon/debrief', { method: 'POST', body: {} }) as Record<string, unknown>;
 
     if ('error' in data) {
-      await callback({ text: `Debrief failed: ${data.error}` });
+      await callback?.({ text: `Debrief failed: ${data.error}` });
       return false;
     }
 
     if ('message' in data) {
-      await callback({ text: data.message as string });
+      await callback?.({ text: data.message as string });
       return true;
     }
 
@@ -48,14 +48,14 @@ export const debriefAction: Action = {
       });
     }
 
-    await callback({ text });
+    await callback?.({ text });
     return true;
   },
 
   examples: [
     [
-      { name: 'user', content: { text: 'How did my last dungeon run go?' } },
-      { name: 'assistant', content: { text: 'Post-Run Debrief — ...' } }
+      { user: 'user', content: { text: 'How did my last dungeon run go?' } },
+      { user: 'assistant', content: { text: 'Post-Run Debrief — ...' } }
     ]
   ]
 };

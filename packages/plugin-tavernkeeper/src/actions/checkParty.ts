@@ -11,9 +11,9 @@ export const checkPartyAction: Action = {
   handler: async (
     runtime: IAgentRuntime,
     _message: Memory,
-    _state: State | undefined,
-    _options: Record<string, unknown>,
-    callback: HandlerCallback
+    _state?: State,
+    _options?: Record<string, unknown>,
+    callback?: HandlerCallback
   ) => {
     const data = await tkFetch(runtime, '/board', { method: 'GET' }) as Record<string, unknown>;
 
@@ -49,14 +49,14 @@ export const checkPartyAction: Action = {
       });
     }
 
-    await callback({ text });
+    await callback?.({ text });
     return true;
   },
 
   examples: [
     [
-      { name: 'user', content: { text: 'What is the party status?' } },
-      { name: 'assistant', content: { text: 'The Sunken Shield — Current Status...' } }
+      { user: 'user', content: { text: 'What is the party status?' } },
+      { user: 'assistant', content: { text: 'The Sunken Shield — Current Status...' } }
     ]
   ]
 };

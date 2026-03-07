@@ -1,6 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 
 const DATA_DIR = path.join(__dirname, '../data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
@@ -12,6 +13,7 @@ function initDb() {
     CREATE TABLE IF NOT EXISTS agents (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      api_key TEXT UNIQUE,
       class TEXT,
       epithet TEXT,
       hp INTEGER DEFAULT 100,
@@ -81,6 +83,34 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_board_type ON board_posts(type);
     CREATE INDEX IF NOT EXISTS idx_board_created ON board_posts(created_at DESC);
   `);
+
+  // Migration: add api_key column to existing agents table if it doesn't exist
+  // Note: SQLite ALTER TABLE ADD COLUMN cannot include UNIQUE — add index separately
+  try {
+    db.exec('ALTER TABLE agents ADD COLUMN api_key TEXT');
+    console.log('[db] Added api_key column to agents table');
+  } catch (e) {
+    // Column already exists — no action needed
+  }
+  try {
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_api_key ON agents(api_key)');
+  } catch (e) {
+    // Index already exists — no action needed
+  }
+
+  // Backfill: assign api_keys to any existing agents that don't have one
+  const unkeyed = db.prepare('SELECT id FROM agents WHERE api_key IS NULL').all();
+  if (unkeyed.length) {
+    const assign = db.prepare('UPDATE agents SET api_key = ? WHERE id = ?');
+    const backfill = db.transaction(() => {
+      for (const agent of unkeyed) {
+        const key = uuidv4();
+        assign.run(key, agent.id);
+        console.log(`[db] Backfilled api_key for agent ${agent.id}: ${key}`);
+      }
+    });
+    backfill();
+  }
 }
 
 module.exports = { db, initDb };

@@ -14,24 +14,36 @@ async function tavernKeeperGreet(agentName, runsCompleted) {
   const prompt = isVeteran
     ? `Greet the returning adventurer named "${agentName}" who has completed ${runsCompleted} dungeon run(s). Welcome them back like an old regular.`
     : `A new adventurer named "${agentName}" just walked through the door for the first time. Greet them, describe the tavern briefly, hint at the dungeon below, and tell them to choose their calling.`;
-  const response = await client.chat.completions.create({
-    model: 'gemini-2.0-flash',
-    messages: [{ role: 'system', content: KEEPER_SYSTEM }, { role: 'user', content: prompt }],
-    max_tokens: 180
-  });
-  return response.choices[0].message.content;
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gemini-2.0-flash',
+      messages: [{ role: 'system', content: KEEPER_SYSTEM }, { role: 'user', content: prompt }],
+      max_tokens: 180
+    });
+    return response.choices[0].message.content;
+  } catch (e) {
+    console.error('[tavernkeeper] greet failed:', e.message);
+    return isVeteran
+      ? `Aldric nods as you push through the door. "Back again, ${agentName}. Sit down, I'll pour you something dark." He says nothing more — his eyes drift toward the dungeon stairs.`
+      : `Aldric eyes you from behind the bar. "First time here, ${agentName}? Welcome to the Sunken Shield. Dungeon's below. Pick your calling and wait — four makes a party." He slides you a tankard.`;
+  }
 }
 
 async function tavernKeeperClass(agentName, chosenClass, epithet) {
   const prompt = `The adventurer "${agentName}" has chosen the ${chosenClass} class and earned the epithet "${epithet}".
 Give them their class lore (2-3 sentences), describe their role in the party, and tell them their party spot is being held.
 Hint that once 4 adventurers are ready, the dungeon door opens.`;
-  const response = await client.chat.completions.create({
-    model: 'gemini-2.0-flash',
-    messages: [{ role: 'system', content: KEEPER_SYSTEM }, { role: 'user', content: prompt }],
-    max_tokens: 180
-  });
-  return response.choices[0].message.content;
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gemini-2.0-flash',
+      messages: [{ role: 'system', content: KEEPER_SYSTEM }, { role: 'user', content: prompt }],
+      max_tokens: 180
+    });
+    return response.choices[0].message.content;
+  } catch (e) {
+    console.error('[tavernkeeper] class failed:', e.message);
+    return `Aldric stamps your contract. "${agentName} ${epithet}, ${chosenClass} — your mark is set." He pins a notice to the board. "Three more and the door opens. Sit tight."`;
+  }
 }
 
 module.exports = { tavernKeeperGreet, tavernKeeperClass };

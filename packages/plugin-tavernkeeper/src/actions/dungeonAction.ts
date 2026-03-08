@@ -1,97 +1,104 @@
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from '@elizaos/core';
-import { tkFetch } from '../api.js';
+import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import { tkFetch } from "../api.js";
 
-const VALID_ACTIONS = ['attack', 'spell', 'skill', 'heal'];
+const RUN_ID_CACHE_KEY = "tavernkeeper:current_run_id";
 
-export const dungeonActionAction: Action = {
-  name: 'DUNGEON_ACTION',
-  description: 'Take a combat action in the active dungeon run. Actions: attack, spell, skill, heal (cleric only). Requires a run_id — get it from CHOOSE_CLASS response or CHECK_PARTY.',
-  similes: ['ATTACK', 'CAST_SPELL', 'USE_SKILL', 'HEAL_PARTY', 'FIGHT', 'COMBAT_ACTION'],
-
-  validate: async (runtime: IAgentRuntime, _message: Memory) => {
-    return !!runtime.getSetting('TAVERNKEEPER_API_KEY');
-  },
-
-  handler: async (
-    runtime: IAgentRuntime,
-    message: Memory,
-    state?: State,
-    options?: Record<string, unknown>,
-    callback?: HandlerCallback
-  ) => {
-    const text = (message.content?.text || '').toLowerCase();
-
-    // Extract action type
-    const actionType = VALID_ACTIONS.find(a => text.includes(a)) || 'attack';
-
-    // Extract run_id from options, state, or message
-    const runId = (options?.run_id as string)
-      || ((state?.values as Record<string, unknown> | undefined)?.current_run_id as string)
-      || extractRunId(text);
-
-    if (!runId) {
-      await callback?.({ text: 'I need a run_id to take dungeon actions. Check your party status with CHECK_PARTY or look at your last CHOOSE_CLASS response.' });
-      return false;
-    }
-
-    const flavorText = message.content?.text || undefined;
-
-    const data = await tkFetch(runtime, '/dungeon/action', {
-      body: { run_id: runId, action: actionType, flavor_text: flavorText }
-    }) as Record<string, unknown>;
-
-    if ('error' in data) {
-      await callback?.({ text: `Dungeon action failed: ${data.error}` });
-      return false;
-    }
-
-    let responseText = (data.narration as string) || `You ${actionType}!`;
-
-    const roll = data.roll as number;
-    const hit = data.hit as boolean;
-    const damage = data.damage as number;
-    responseText += `\n\n🎲 d20: **${roll}** — ${hit ? `HIT (${damage} damage)` : 'MISS'}`;
-
-    // Enemy counters
-    const counters = data.enemy_actions as Array<{ enemy: string; hit: boolean; damage: number }>;
-    if (counters?.length) {
-      const hits = counters.filter(c => c.hit);
-      if (hits.length) {
-        responseText += `\nEnemies strike back: ${hits.map(c => `${c.enemy} (${c.damage} dmg)`).join(', ')}`;
-      }
-    }
-
-    if (data.your_hp !== undefined) {
-      responseText += `\nYour HP: **${data.your_hp}/${data.your_max_hp}**`;
-    }
-
-    if (data.room_cleared) {
-      responseText += '\n\n🚪 **Room cleared!** The party advances.';
-    }
-
-    if (data.dungeon_complete) {
-      const win = data.outcome === 'victory';
-      responseText += `\n\n${win ? '⚔ **VICTORY!**' : '💀 **TOTAL PARTY KILL**'}\n${data.outcome_narration || ''}`;
-      if (data.xp_earned) responseText += `\n+${data.xp_earned} XP, +${data.gold_earned} gold`;
-    }
-
-    await callback?.({ text: responseText });
-    return true;
-  },
-
-  examples: [
-    [
-      { user: 'user', content: { text: 'Attack the enemy in run abc-123' } },
-      { user: 'assistant', content: { text: 'You raise your sword and strike!' } }
-    ],
-    [
-      { user: 'user', content: { text: 'Cast a spell' } },
-      { user: 'assistant', content: { text: 'Arcane energy crackles at your fingertips...' } }
-    ]
-  ]
-};
-
+/**
+ * Extract run_id only from an explicit "run_id:XXXX" token in text.
+ * Never fall back to greedy word matching.
+ */
 function extractRunId(text: string): string | null {
-  const match = text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-  return match ? match[0] : null;
+    const m = text.match(/run_id[:\s]+([a-z0-9_-]{4,64})/i);
+    return m ? m[1] : null;
 }
+
+export const dungeonAction: Action = {
+    name: "DUNGEON_ACTION",
+    description:
+        "Perform an action inside an active dungeon run (attack, cast spell, use item, flee). " +
+        "Only valid while in an active run.",
+    similes: ["ATTACK", "CAST_SPELL", "USE_ITEM", "FLEE_DUNGEON", "FIGHT", "DUNGEON_MOVE"],
+
+    validate: async (runtime: IAgentRuntime, _message: Memory) => {
+        // Valid if we have an api_key (env or cache) and a cached run_id
+        const key =
+            runtime.getSetting("TAVERNKEEPER_API_KEY") ||
+            (await runtime.getCache<string>("tavernkeeper:api_key"));
+        const runId = await runtime.getCache<string>(RUN_ID_CACHE_KEY);
+        return !!(key && runId);
+    },
+
+    handler: async (
+        runtime: IAgentRuntime,
+        message: Memory,
+        _state?: State,
+        _options?: Record<string, unknown>,
+        callback?: HandlerCallback
+    ) => {
+        // Resolve run_id from cache first, then message text as last resort
+        let runId = await runtime.getCache<string>(RUN_ID_CACHE_KEY);
+        if (!runId) {
+            runId = extractRunId(message.content.text ?? "");
+        }
+        if (!runId) {
+            await callback?.({ text: "No active dungeon run found. Join a party first." });
+            return false;
+        }
+
+        const text = message.content.text ?? "";
+        // Parse action from message: "attack the goblin", "cast fireball", "use potion", "flee"
+        const actionMatch = text.match(
+            /\b(attack|cast|use|flee|defend|inspect|loot)\b[\s]*(.*)/i
+        );
+        const actionType = actionMatch ? actionMatch[1].toLowerCase() : "attack";
+        const target = actionMatch ? actionMatch[2].trim() : "";
+
+        const data = await tkFetch(runtime, `/dungeon/action`, {
+            body: { run_id: runId, action: actionType, target },
+        }) as Record<string, unknown>;
+
+        if ("error" in data) {
+            await callback?.({ text: `Action failed: ${data.error}` });
+            return false;
+        }
+
+        // Persist run_id in case it wasn't cached yet
+        await runtime.setCache(RUN_ID_CACHE_KEY, runId);
+
+        const narrative = (data.narrative as string) || (data.message as string) || "You act.";
+        const hp = data.actor_hp !== undefined ? `\n\nYour HP: **${data.actor_hp}**` : "";
+        const roomStatus =
+            data.room_complete
+                ? "\n\n*The room is cleared! Moving to the next chamber...*"
+                : "";
+        const runOver = data.run_complete
+            ? "\n\n**The dungeon run is complete!** Use DEBRIEF to see results."
+            : "";
+
+        await callback?.({ text: `${narrative}${hp}${roomStatus}${runOver}` });
+        return true;
+    },
+
+    examples: [
+        [
+            { user: "{{user1}}", content: { text: "attack the skeleton" } },
+            {
+                user: "{{agent}}",
+                content: {
+                    text: "You swing your blade at the skeleton, dealing 14 damage!",
+                    action: "DUNGEON_ACTION",
+                },
+            },
+        ],
+        [
+            { user: "{{user1}}", content: { text: "cast fireball" } },
+            {
+                user: "{{agent}}",
+                content: {
+                    text: "Flames erupt from your hands, scorching all enemies in the room!",
+                    action: "DUNGEON_ACTION",
+                },
+            },
+        ],
+    ],
+};

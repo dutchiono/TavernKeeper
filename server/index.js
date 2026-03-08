@@ -9,8 +9,8 @@ const tavernRoutes = require('./routes/tavern');
 const dungeonRoutes = require('./routes/dungeon');
 const boardRoutes = require('./routes/board');
 const chatRoutes = require('./routes/chat');
-const lobbyRoutes = require('./routes/lobby');
-const { initDb, db } = require('./db');
+const dungeonEngine = require('./engine/dungeon');
+const db = require('./db');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,18 +29,39 @@ app.use('/tavern', tavernRoutes);
 app.use('/dungeon', dungeonRoutes);
 app.use('/board', boardRoutes);
 app.use('/chat', chatRoutes);
-app.use('/lobby', lobbyRoutes);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// ─── Socket.io ────────────────────────────────────────────────────────────────
+// ┌── Socket.io ──────────────────────────────────────────────────────────────────
 
 const CLASS_ICONS = {
-  warrior: '⚔️', mage: '🔮', rogue: '🗡️', cleric: '✨',
-  innkeeper: '🍺', dm: '🎲', system: '🏰'
+  warrior: 'W', mage: 'M', rogue: 'R', cleric: 'C',
+  innkeeper: 'I', dm: 'D', system: 'S'
 };
+
+// ── Turn-lock helper (mirrors the REST route lock logic) ──────────────────────
+const LOCK_TTL_MS = 5000;
+
+function acquireSocketLock(run_id) {
+  const now = Date.now();
+  const existing = db.prepare('SELECT locked_at FROM dungeon_locks WHERE run_id = ?').get(run_id);
+  if (existing) {
+    const age = now - new Date(existing.locked_at).getTime();
+    if (age < LOCK_TTL_MS) return false; // locked by another action
+    db.prepare('DELETE FROM dungeon_locks WHERE run_id = ?').run(run_id);
+  }
+  db.prepare('INSERT OR REPLACE INTO dungeon_locks (run_id, locked_at) VALUES (?, ?)')
+    .run(run_id, new Date().toISOString());
+  return true;
+}
+
+function releaseSocketLock(run_id) {
+  db.prepare('DELETE FROM dungeon_locks WHERE run_id = ?').run(run_id);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 io.on('connection', (socket) => {
   console.log(`[socket] connected: ${socket.id}`);
@@ -77,7 +98,7 @@ io.on('connection', (socket) => {
       sender_name,
       sender_type: sender_type || 'human',
       class: cls || 'traveler',
-      icon: CLASS_ICONS[cls] || CLASS_ICONS[sender_type] || '👤',
+      icon: CLASS_ICONS[cls] || CLASS_ICONS[sender_type] || '?',
       message: message.slice(0, 500),
       timestamp: new Date().toISOString()
     };
@@ -88,57 +109,79 @@ io.on('connection', (socket) => {
     ).run(msg.id, msg.room, msg.sender_name, msg.sender_type, msg.class, msg.message, msg.timestamp);
 
     // Broadcast to room
-    io.to(room).emit('message', msg);
+    io.to(msg.room).emit('message', msg);
   });
 
-  socket.on('leave_room', ({ room }) => {
-    socket.leave(room);
-    if (socket.data?.sender_name) {
-      io.to(room).emit('presence', {
-        type: 'leave',
-        sender_name: socket.data.sender_name,
-        room,
-        timestamp: new Date().toISOString()
+  // ── dungeon_action via WebSocket — FIX: apply turn lock before processing ──
+  socket.on('dungeon_action', async ({ run_id, action, target, api_key }) => {
+    if (!run_id || !api_key) {
+      socket.emit('dungeon_error', { error: 'run_id and api_key required' });
+      return;
+    }
+
+    // Auth check
+    const agent = db.prepare('SELECT * FROM agents WHERE api_key = ?').get(api_key);
+    if (!agent) {
+      socket.emit('dungeon_error', { error: 'Invalid API key' });
+      return;
+    }
+
+    // Dead agent gate
+    if (agent.hp <= 0) {
+      socket.emit('dungeon_error', { error: 'Your hero has fallen. You may only observe.' });
+      return;
+    }
+
+    // Turn lock — same 5-second TTL as the REST route
+    const locked = acquireSocketLock(run_id);
+    if (!locked) {
+      socket.emit('dungeon_error', { error: 'Another action is already in progress. Wait your turn.' });
+      return;
+    }
+
+    try {
+      const result = await dungeonEngine.processAction({
+        run_id,
+        actor_id: agent.id,
+        action: action || 'attack',
+        target: target || ''
       });
+
+      // Broadcast result to the dungeon room so all party members see it
+      io.to(`dungeon-${run_id}`).emit('dungeon_result', result);
+
+      // If run complete, notify tavern-general too
+      if (result.run_complete) {
+        io.to('tavern-general').emit('run_complete', {
+          run_id,
+          outcome: result.outcome,
+          message: `A dungeon run has ended: ${result.outcome}`
+        });
+      }
+    } catch (err) {
+      console.error('[socket] dungeon_action error:', err);
+      socket.emit('dungeon_error', { error: 'Internal server error during action' });
+    } finally {
+      releaseSocketLock(run_id);
     }
   });
 
   socket.on('disconnect', () => {
-    console.log(`[socket] disconnected: ${socket.id}`);
+    if (socket.data?.room) {
+      io.to(socket.data.room).emit('presence', {
+        type: 'leave',
+        sender_name: socket.data.sender_name,
+        sender_type: socket.data.sender_type,
+        room: socket.data.room,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 });
 
-// ─── NPC broadcast helper (used by routes) ────────────────────────────────────
-function npcBroadcast(room, message, eventType = 'system') {
-  const msg = {
-    id: Date.now(),
-    room,
-    sender_name: 'TavernKeeper',
-    sender_type: 'npc',
-    class: 'innkeeper',
-    icon: CLASS_ICONS.innkeeper,
-    message,
-    event_type: eventType,
-    timestamp: new Date().toISOString()
-  };
-  db.prepare(
-    'INSERT INTO chat_messages (id, room, sender_name, sender_type, class, message, timestamp) VALUES (?,?,?,?,?,?,?)'
-  ).run(msg.id, msg.room, msg.sender_name, msg.sender_type, msg.class, msg.message, msg.timestamp);
-  io.to(room).emit('message', msg);
-  io.to('tavern-general').emit('dungeon_event', msg);
-}
+// ┌── Start ────────────────────────────────────────────────────────────────────
 
-app.set('npcBroadcast', npcBroadcast);
-
-// ─── Start ────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3001;
-initDb();
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`TavernKeeper listening on port ${PORT}`);
-  // TavernKeeper wakes up
-  setTimeout(() => {
-    npcBroadcast('tavern-general', 'The hearth crackles to life. Another evening at the Rusted Flagon begins...', 'wake');
-  }, 1000);
+  console.log(`TavernKeeper running on :${PORT}`);
 });
-
-module.exports = { io, npcBroadcast };

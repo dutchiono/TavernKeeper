@@ -1,62 +1,67 @@
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from '@elizaos/core';
-import { tkFetch } from '../api.js';
+import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import { tkFetch } from "../api.js";
 
 export const checkPartyAction: Action = {
-  name: 'CHECK_PARTY',
-  description: 'Check the current party queue and active dungeon runs at the TavernKeeper tavern.',
-  similes: ['PARTY_STATUS', 'QUEUE_STATUS', 'CHECK_QUEUE', 'TAVERN_STATUS'],
+    name: "CHECK_PARTY",
+    description:
+        "Check the current party queue — who is waiting in the tavern and whether a run has started.",
+    similes: ["PARTY_STATUS", "WHO_IS_QUEUED", "QUEUE_STATUS", "CHECK_QUEUE", "PARTY_INFO"],
 
-  validate: async (_runtime: IAgentRuntime, _message: Memory) => true,
+    validate: async (_runtime: IAgentRuntime, _message: Memory) => true,
 
-  handler: async (
-    runtime: IAgentRuntime,
-    _message: Memory,
-    _state?: State,
-    _options?: Record<string, unknown>,
-    callback?: HandlerCallback
-  ) => {
-    const data = await tkFetch(runtime, '/board', { method: 'GET' }) as Record<string, unknown>;
+    handler: async (
+        runtime: IAgentRuntime,
+        message: Memory,
+        _state?: State,
+        _options?: Record<string, unknown>,
+        callback?: HandlerCallback
+    ) => {
+        // FIX: use /tavern/party (party queue), NOT /board (notice board)
+        const data = await tkFetch(runtime, "/tavern/party", { auth: false }) as Record<string, unknown>;
 
-    const queue = data.queue as Array<{ name: string; class: string; epithet: string }> || [];
-    const activeRuns = data.active_runs as Array<{ id: string; party_names: string; current_room: number; total_rooms: number }> || [];
-    const hallOfFame = data.hall_of_fame as Array<{ name: string; xp: number; runs_completed: number }> || [];
+        if ("error" in data) {
+            await callback?.({ text: `Could not check party: ${data.error}` });
+            return false;
+        }
 
-    let text = '**The Sunken Shield — Current Status**\n\n';
+        const queue = (data.queue as Array<Record<string, unknown>>) ?? [];
+        const activeRun = data.active_run as Record<string, unknown> | null;
 
-    if (queue.length) {
-      text += `⚔ **Forming parties** (${queue.length} waiting):\n`;
-      queue.forEach(a => {
-        text += `  • ${a.name} the ${a.class || '?'} ${a.epithet || ''}\n`;
-      });
-    } else {
-      text += '⚔ No adventurers in queue.\n';
-    }
-    text += `Spots remaining in next party: ${data.spots_remaining}\n\n`;
+        if (activeRun) {
+            const members = (activeRun.party as Array<Record<string, unknown>>) ?? [];
+            const list = members
+                .map((m) => `- **${m.name}** (${m.class}) — ${m.hp} HP`)
+                .join("\n");
+            await callback?.({
+                text: `**Active Dungeon Run** (ID: \`${activeRun.run_id}\`)\n\n${list}`,
+            });
+            return true;
+        }
 
-    if (activeRuns.length) {
-      text += `🎲 **Active dungeon runs** (${activeRuns.length}):\n`;
-      activeRuns.forEach(r => {
-        text += `  • Run \`${r.id}\` — ${r.party_names} — Room ${r.current_room}/${r.total_rooms}\n`;
-      });
-    } else {
-      text += '🎲 No active dungeon runs.\n';
-    }
+        if (queue.length === 0) {
+            await callback?.({ text: "The tavern is quiet. No adventurers are queued yet." });
+            return true;
+        }
 
-    if (hallOfFame.length) {
-      text += `\n🏆 **Hall of Fame** (top ${hallOfFame.length}):\n`;
-      hallOfFame.slice(0, 5).forEach((a, i) => {
-        text += `  ${i + 1}. ${a.name} — ${a.xp} XP (${a.runs_completed} runs)\n`;
-      });
-    }
+        const list = queue
+            .map((a, i) => `${i + 1}. **${a.name}** (${a.class || "no class"})`)
+            .join("\n");
+        await callback?.({
+            text: `**Party Queue** (${queue.length} waiting):\n\n${list}\n\nThe party sets off when 4 adventurers are ready (or after 2 minutes with 2+).`,
+        });
+        return true;
+    },
 
-    await callback?.({ text });
-    return true;
-  },
-
-  examples: [
-    [
-      { user: 'user', content: { text: 'What is the party status?' } },
-      { user: 'assistant', content: { text: 'The Sunken Shield — Current Status...' } }
-    ]
-  ]
+    examples: [
+        [
+            { user: "{{user1}}", content: { text: "who is in the party?" } },
+            {
+                user: "{{agent}}",
+                content: {
+                    text: "Party Queue (2 waiting):\n1. Grimwald (Warrior)\n2. Lyra (Mage)",
+                    action: "CHECK_PARTY",
+                },
+            },
+        ],
+    ],
 };

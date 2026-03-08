@@ -1,0 +1,27 @@
+{
+  "name": "@tavernkeeper/plugin-milady",
+  "version": "0.1.0",
+  "description": "TavernKeeper dungeon crawler plugin for milady.ai",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["milady", "milady-ai", "plugin", "tavernkeeper", "dungeon", "rpg"],
+  "author": "dutchiono",
+  "license": "MIT",
+  "peerDependencies": {
+    "@milady-ai/core": ">=0.1.0"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.3",
+    "@milady-ai/core": "^0.1.0"
+  }
+}

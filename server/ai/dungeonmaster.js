@@ -1,75 +1,76 @@
+/**
+ * server/ai/dungeonmaster.js
+ * OpenAI-powered DM narration for dungeon events.
+ */
+
 const OpenAI = require('openai');
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
-});
+const path   = require('path');
+const fs     = require('fs');
 
-const DM_SYSTEM = `You are the Dungeon Master for the Sunken Shield dungeon, an ancient cursed ruin beneath a tavern.
-Narrate turn-based combat with grit and flair. Keep each narration under 100 words.
-If the roll is a natural 20, make it legendary. If natural 1, make it painful but survivable.`;
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-async function narrateAction({ agentName, agentClass, action, roll, hit, damage, enemyName, enemyHpRemaining, roomDescription }) {
-  const prompt = `Agent: ${agentName} (${agentClass})
-Action: ${action}
-D20 Roll: ${roll} - ${hit ? 'HIT' : 'MISS'}
-${hit ? `Damage dealt: ${damage}` : ''}
-Enemy: ${enemyName} (${enemyHpRemaining} HP remaining)
-Room: ${roomDescription}
-Narrate this action in 2-4 sentences.`;
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gemini-2.0-flash',
-      messages: [{ role: 'system', content: DM_SYSTEM }, { role: 'user', content: prompt }],
-      max_tokens: 150
-    });
-    return response.choices[0].message.content;
-  } catch (e) {
-    console.error('[dungeonmaster] narrateAction failed:', e.message);
-    return hit
-      ? `${agentName} strikes! The ${enemyName} takes ${damage} damage and staggers back (${enemyHpRemaining} HP remaining).`
-      : `${agentName} swings but the ${enemyName} sidesteps the blow. The battle rages on.`;
-  }
+const DM_PERSONA = fs.existsSync(path.join(__dirname, '../../prompts/dungeonmaster.md'))
+  ? fs.readFileSync(path.join(__dirname, '../../prompts/dungeonmaster.md'), 'utf8')
+  : `You are the TavernKeeper Dungeon Master. Narrate dungeon events in vivid, dark-fantasy prose.
+Keep narrations to 2-3 sentences. Be dramatic but concise. Reference the hero's name and class.
+Never break character. Use second-person for room entries, third-person for actions.`;
+
+async function chat(messages, maxTokens = 180) {
+  const res = await openai.chat.completions.create({
+    model:       'gpt-4o-mini',
+    max_tokens:  maxTokens,
+    temperature: 0.85,
+    messages,
+  });
+  return res.choices[0].message.content.trim();
 }
 
-async function narrateRoomEntry(roomNumber, totalRooms, enemies, party) {
-  const partyStr = party.map(a => `${a.name} the ${a.class}`).join(', ');
-  const enemyStr = enemies.map(e => e.name).join(' and ');
-  const isBoss = roomNumber === totalRooms;
-  const prompt = `The party (${partyStr}) enters room ${roomNumber} of ${totalRooms}.
-${isBoss ? 'This is the BOSS chamber.' : 'This is an encounter room.'}
-Enemies present: ${enemyStr}.
-Describe the room and enemies in 3 sentences. Set the tension.`;
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gemini-2.0-flash',
-      messages: [{ role: 'system', content: DM_SYSTEM }, { role: 'user', content: prompt }],
-      max_tokens: 150
-    });
-    return response.choices[0].message.content;
-  } catch (e) {
-    console.error('[dungeonmaster] narrateRoomEntry failed:', e.message);
-    return `Room ${roomNumber} of ${totalRooms}. ${enemyStr} ${isBoss ? 'stands between you and victory' : 'block the passage'}. The air is thick with danger.`;
-  }
+async function narrateRoomEntry(runId, room, roomNum, totalRooms) {
+  const isBoss    = room.is_boss;
+  const enemyList = room.enemies.map(e => e.name).join(', ');
+  const eventNote = room.event ? `This room also has a ${room.event} event waiting.` : '';
+
+  return chat([
+    { role: 'system', content: DM_PERSONA },
+    {
+      role: 'user',
+      content: `Room ${roomNum} of ${totalRooms}. Description: "${room.desc}". Enemies present: ${enemyList}. ${isBoss ? 'THIS IS THE BOSS ROOM.' : ''} ${eventNote}
+Narrate the party entering this room. 2-3 sentences, second-person plural ("You step into...").`,
+    },
+  ]);
 }
 
-async function narrateOutcome(outcome, party, roomsCleared) {
-  const partyStr = party.map(a => `${a.name} the ${a.class} (${a.hp}/${a.max_hp} HP)`).join(', ');
-  const prompt = outcome === 'victory'
-    ? `The party ${partyStr} defeated the dungeon after clearing ${roomsCleared} rooms. Narrate their triumphant return in 3 sentences.`
-    : `The party ${partyStr} was wiped out after reaching room ${roomsCleared}. Narrate their defeat with grim respect in 3 sentences.`;
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gemini-2.0-flash',
-      messages: [{ role: 'system', content: DM_SYSTEM }, { role: 'user', content: prompt }],
-      max_tokens: 150
-    });
-    return response.choices[0].message.content;
-  } catch (e) {
-    console.error('[dungeonmaster] narrateOutcome failed:', e.message);
-    return outcome === 'victory'
-      ? `After ${roomsCleared} grueling rooms, the party emerges battered but triumphant. They limp back to the tavern, their legend carved into the dungeon walls.`
-      : `Room ${roomsCleared} claimed them all. Their names will be spoken in the tavern for a while, then forgotten, as adventurers are.`;
-  }
+async function narrateAction(runId, actor, action, flavorText, logEntry, room) {
+  const dmgDealt    = Object.values(logEntry.damage_to_enemies || {}).reduce((a, b) => a + b, 0);
+  const dmgReceived = Object.values(logEntry.damage_to_party   || {}).reduce((a, b) => a + b, 0);
+  const healDone    = Object.values(logEntry.heals             || {}).reduce((a, b) => a + b, 0);
+  const aliveCount  = room.enemies.filter(e => e.hp > 0).length;
+  const eventNote   = logEntry.room_event ? `A ${logEntry.room_event} event triggered: ${JSON.stringify(logEntry.room_event_result)}.` : '';
+
+  return chat([
+    { role: 'system', content: DM_PERSONA },
+    {
+      role: 'user',
+      content: `Hero: ${actor.name} the ${actor.class}. Action: ${action}. ${flavorText ? `Flavor: "${flavorText}".` : ''}
+Damage dealt: ${dmgDealt}. Damage received: ${dmgReceived}. Healing done: ${healDone}.
+Enemies still alive in room: ${aliveCount}. ${eventNote}
+Narrate this action in 2 sentences, third-person.`,
+    },
+  ]);
 }
 
-module.exports = { narrateAction, narrateRoomEntry, narrateOutcome };
+async function narrateOutcome(runId, outcome, log) {
+  const actions = log.filter(e => e.type === 'action').slice(-5);
+  const summary = actions.map(a => `${a.agent_name} used ${a.action}`).join('; ');
+
+  return chat([
+    { role: 'system', content: DM_PERSONA },
+    {
+      role: 'user',
+      content: `The dungeon run ended in ${outcome.toUpperCase()}. Final actions: ${summary}.
+Write a 3-sentence closing narration. ${outcome === 'victory' ? 'Triumphant, epic tone.' : 'Somber, tragic tone.'}`,
+    },
+  ], 220);
+}
+
+module.exports = { narrateRoomEntry, narrateAction, narrateOutcome };

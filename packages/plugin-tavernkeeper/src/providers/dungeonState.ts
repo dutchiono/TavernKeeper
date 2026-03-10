@@ -19,8 +19,22 @@ export const dungeonStateProvider: Provider = {
       const partyStr = party.map(a => `${a.name} (${a.class}, ${a.hp}/${a.max_hp} HP)`).join(', ');
       const lastNarration = (data.last_narration as Record<string, unknown>)?.narration as string;
 
+      // Fetch wager context
+      let wagerText = '';
+      try {
+        const wager = await tkFetch(runtime, `/wager/status/${runId}`, { method: 'GET' }) as Record<string, unknown>;
+        if (wager && !('error' in wager)) {
+          const fee = wager.entry_fee as number;
+          const payout = wager.potential_payout as number;
+          const pool = wager.jackpot_pool as number;
+          if (fee > 0) {
+            wagerText = ` | Wager: ${fee}g entry | Potential payout: ${payout}g | Jackpot pool: ${pool}g (3% chance)`;
+          }
+        }
+      } catch { /* wager fetch failed silently */ }
+
       return {
-        text: `Active dungeon run ${runId}: Room ${data.current_room}/${data.total_rooms}. Party: ${partyStr}.${lastNarration ? ` Last action: ${lastNarration}` : ''}`,
+        text: `Active dungeon run ${runId}: Room ${data.current_room}/${data.total_rooms}. Party: ${partyStr}.${lastNarration ? ` Last action: ${lastNarration}` : ''}${wagerText}`,
         values: {
           in_dungeon: true,
           run_id: runId,

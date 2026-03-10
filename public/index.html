@@ -575,6 +575,28 @@ code { background: #080602; border: 1px solid var(--border); border-radius: 2px;
 /* ── Empty states ── */
 .empty { color: var(--dim); font-style: italic; font-size: .85rem; text-align: center; padding: 20px 0; }
 
+/* ── Wager Panel ─────────────────────────────────────────────────── */
+.wager-panel { background: rgba(201,168,76,0.08); border: 1px solid var(--gold); border-radius: 6px; padding: 10px 12px; margin-top: 8px; font-size: .82rem; }
+.wager-panel .wager-title { color: var(--gold2); font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.wager-fee-btns { display: flex; gap: 6px; margin-bottom: 8px; }
+.wager-fee-btn { flex: 1; padding: 4px 0; border-radius: 4px; border: 1px solid var(--gold); background: transparent; color: var(--gold2); cursor: pointer; font-size: .8rem; transition: background .15s; }
+.wager-fee-btn.active { background: var(--gold); color: #1a1209; font-weight: 700; }
+.wager-fee-btn:disabled { opacity: .4; cursor: not-allowed; }
+.wager-member { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px solid rgba(201,168,76,0.12); font-size: .78rem; }
+.wager-member:last-child { border-bottom: none; }
+.wager-member .broke { color: #e05555; }
+.wager-payout { margin-top: 8px; color: var(--gold2); display: flex; justify-content: space-between; }
+.wager-jackpot { margin-top: 4px; font-size: .75rem; color: var(--muted); }
+.wager-result-modal { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.wager-result-box { background: #1c1410; border: 2px solid var(--gold); border-radius: 10px; padding: 28px 32px; max-width: 380px; width: 90%; text-align: center; }
+.wager-result-box.victory { border-color: #4caf50; }
+.wager-result-box.defeat { border-color: #e05555; }
+.wager-result-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+.wager-result-box.victory .wager-result-title { color: #4caf50; }
+.wager-result-box.defeat .wager-result-title { color: #e05555; }
+.wager-jackpot-banner { margin-top: 12px; padding: 8px; background: rgba(201,168,76,0.15); border-radius: 6px; color: var(--gold2); font-weight: 600; font-size: 1.05rem; }
+.wager-result-close { margin-top: 18px; padding: 7px 24px; border-radius: 5px; border: 1px solid var(--gold); background: transparent; color: var(--gold2); cursor: pointer; font-size: .9rem; }
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .tavern-body { grid-template-columns: 1fr; }
@@ -868,6 +890,8 @@ const GREETINGS = [
 let socket = null;
 let myName = null;
 let boardFilter = 'all';
+let selectedFee = 50;
+let jackpotPool = 0;
 
 // ── Boot ─────────────────────────────────────────────────────────────────
 document.getElementById('aldric-greeting').textContent =
@@ -876,9 +900,11 @@ document.getElementById('aldric-greeting').textContent =
 loadTavern();
 loadBoard();
 loadLobbies();
+loadJackpot();
 setInterval(loadTavern, 12000);
 setInterval(loadBoard, 30000);
 setInterval(loadLobbies, 15000);
+setInterval(loadJackpot, 30000);
 
 // ── Tavern data ───────────────────────────────────────────────────────────
 async function loadTavern() {
@@ -929,11 +955,22 @@ function renderQueue(queue) {
     return `<div class="party-forming">
       <div class="party-forming-title">Party ${parties.length > 1 ? pi + 1 : 'forming'} — ${filled}/4</div>
       ${slots.map(a => a
-        ? `<div class="agent-slot"><span class="class-badge">${esc(a.class || '?')}</span><span>${esc(a.name)}${a.epithet ? ` <span style="color:var(--muted);font-size:.78rem">${esc(a.epithet)}</span>` : ''}</span></div>`
+        ? `<div class="agent-slot"><span class="class-badge">${esc(a.class || '?')}</span><span>${esc(a.name)}${a.epithet ? ` <span style="color:var(--muted);font-size:.78rem">${esc(a.epithet)}</span>` : ''}</span><span style="color:var(--gold);font-size:.75rem;margin-left:auto">${a.gold !== undefined ? a.gold + 'g' : ''}</span></div>`
         : `<div class="agent-slot"><span class="slot-open">— open slot —</span></div>`
       ).join('')}
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
       ${missingHint}
+      <div class="wager-panel">
+        <div class="wager-title"><span>Place Your Wager</span><span style="font-size:.75rem;color:var(--muted)">Jackpot: ${jackpotPool}g</span></div>
+        <div class="wager-fee-btns">
+          <button class="wager-fee-btn ${selectedFee===10?'active':''}" onclick="setFee(10)">10g <span style="font-size:.7rem;opacity:.7">1.7x</span></button>
+          <button class="wager-fee-btn ${selectedFee===50?'active':''}" onclick="setFee(50)">50g <span style="font-size:.7rem;opacity:.7">1.8x</span></button>
+          <button class="wager-fee-btn ${selectedFee===100?'active':''}" onclick="setFee(100)">100g <span style="font-size:.7rem;opacity:.7">2.0x</span></button>
+        </div>
+        ${party.map(a => `<div class="wager-member"><span>${esc(a.name)}</span><span class="${(a.gold||0) < selectedFee ? 'broke' : ''}">${(a.gold||0) < selectedFee ? 'Broke (' + (a.gold||0) + 'g)' : (a.gold||0) + 'g'}</span></div>`).join('')}
+        <div class="wager-payout"><span>Potential payout</span><span>${Math.floor(selectedFee * [1.7,1.8,2.0][[10,50,100].indexOf(selectedFee)])}g each</span></div>
+        <div class="wager-jackpot">3% chance to win half the jackpot pool (${jackpotPool}g)</div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -997,6 +1034,7 @@ function renderRecentRuns(runs) {
         <span style="color:var(--dim);font-size:.75rem">${timeAgo(r.ended_at)}</span>
       </div>
       <div class="run-party">${esc(r.party_names || '')}</div>
+      <button class="btn-ghost" style="font-size:.72rem;margin-top:4px" onclick="fetchWagerResult('${r.id}')">View Wager Result</button>
     </div>`;
   }).join('');
 }
@@ -1292,8 +1330,55 @@ async function submitPost() {
   } catch(e) { console.error(e); }
 }
 
-// ── Tabs ─────────────────────────────────────────────────────────────────
-// (no tabs — everything is one page now)
+// ── Wager functions ───────────────────────────────────────────────────────
+function setFee(fee) {
+  selectedFee = fee;
+  loadTavern();
+}
+
+async function loadJackpot() {
+  try {
+    // Fetch jackpot from a known active run, or fallback to 0
+    const d = await fetch('/board').then(r => r.json());
+    const run = (d.active_runs || [])[0];
+    if (run && run.run_id) {
+      const w = await fetch(`/wager/status/${run.run_id}`).then(r => r.json());
+      jackpotPool = w.jackpot_pool || 0;
+    }
+  } catch(e) {}
+}
+
+function showWagerResult({ outcome, goldChange, payout, jackpot }) {
+  const existing = document.getElementById('wager-result-modal');
+  if (existing) existing.remove();
+  const won = outcome === 'victory';
+  const jackpotBanner = jackpot?.triggered
+    ? `<div class="wager-jackpot-banner">JACKPOT! +${jackpot.share}g</div>`
+    : '';
+  const html = `<div class="wager-result-modal" id="wager-result-modal">
+    <div class="wager-result-box ${won ? 'victory' : 'defeat'}">
+      <div class="wager-result-title">${won ? 'VICTORY' : 'DEFEAT'}</div>
+      <div style="font-size:1.1rem;margin-bottom:6px">${won ? '+' + (payout - Math.abs(goldChange - payout)) + 'g profit' : '-' + Math.abs(goldChange) + 'g lost'}</div>
+      ${jackpotBanner}
+      <button class="wager-result-close" onclick="document.getElementById('wager-result-modal').remove()">Close</button>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function fetchWagerResult(run_id) {
+  try {
+    const w = await fetch(`/wager/status/${run_id}`).then(r => r.json());
+    if (!w.wagers || !w.wagers.length) { alert('No wager on this run.'); return; }
+    const myWager = w.wagers[0];
+    showWagerResult({
+      outcome: myWager.status === 'won' ? 'victory' : 'defeat',
+      goldChange: myWager.status === 'won' ? myWager.payout - myWager.amount : -myWager.amount,
+      payout: myWager.payout,
+      jackpot: null
+    });
+  } catch(e) { alert('Could not load wager result.'); }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function esc(s) {

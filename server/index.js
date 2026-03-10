@@ -29,6 +29,7 @@ app.use('/tavern', tavernRoutes);
 app.use('/dungeon', dungeonRoutes);
 app.use('/board', boardRoutes);
 app.use('/chat', chatRoutes);
+app.use('/wager', require('./routes/wager'));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));

@@ -12,8 +12,10 @@ outbids you. The sitting sheriff is the sole minter of **$NOTT**.
 |---|---|
 | `SheriffsOffice.sol` | The mechanic: Dutch auction, fee split, emission |
 | `NottToken.sol` | $NOTT — ERC20, minted only by the office |
+| `Coffers.sol` | Treasury — holds both sides of the pair |
 
-Both UUPS-upgradeable, matching the `@innkeeper/contracts` house style.
+The office and token are UUPS-upgradeable, matching the `@innkeeper/contracts` house
+style. `Coffers` deliberately is not — see [Liquidity](#liquidity).
 
 ## Theme mapping
 
@@ -81,12 +83,12 @@ launch window, with nothing to do but sell into the pool.
 
 ## Divergences from the Monad original
 
-Seven deliberate changes, marked `FIX-1..7` in the source.
+Eight deliberate changes, marked `FIX-1..8` in the source.
 
 | | Fix |
 |---|---|
 | Correctness | FIX-2 double-mint · FIX-3 CEI · **FIX-6 payout griefing brick** |
-| Economic | FIX-1 denomination · FIX-4 curve · FIX-5 activity-gated emission |
+| Economic | FIX-1 denomination · FIX-4 curve · FIX-5 activity-gated emission · FIX-8 emission split |
 | Fairness | FIX-7 no deployer premine |
 
 **FIX-1 — price denomination.** `MIN_INIT_PRICE = 1 ether` meant 1 MON. Robinhood Chain's
@@ -130,12 +132,12 @@ then accrued from deployment until the first takeover — a stealth premine prop
 how long launch took. The office now starts **vacant**: nothing accrues until someone
 actually buys it, and the vacant office's 70% share routes to the Coffers.
 
-**FIX-8 � emission split, to make liquidity possible at all.** Removing the premine
+**FIX-8 — emission split, to make liquidity possible at all.** Removing the premine
 (FIX-7) created a bootstrapping deadlock nobody had noticed: with minting gated to the
 office and no premine, **the protocol owned zero NOTT and could never seed a pool.** The
 Coffers accumulated ETH with nothing to pair against, and buying NOTT requires a pool to
 already exist. 10% of every mint now routes to the Coffers, so the treasury accrues both
-sides of the pair organically � liquidity without a premine, and without asking anyone to
+sides of the pair organically — liquidity without a premine, and without asking anyone to
 trust a genesis allocation.
 
 Also: `NottToken.mint()` **clamps** to `MAX_SUPPLY` rather than reverting. `KeepTokenV2`
@@ -191,7 +193,7 @@ sides of the pair build up on their own. No premine, no genesis allocation.
 Two deliberate constraints on that contract:
 
 **Not upgradeable.** The office and token stay upgradeable because their logic may need
-fixing. The vault holding the money does not � an upgrade hook on a treasury means the
+fixing. The vault holding the money does not — an upgrade hook on a treasury means the
 owner can rewrite withdrawal logic after users have committed capital, which is the shape
 of a rug.
 
@@ -203,11 +205,11 @@ chosen by whoever is actually watching the mempool.
 
 `receive()` is deliberately empty. `SheriffsOffice` pays the levy with a 30k gas stipend,
 so bookkeeping on receipt would risk the send failing and the levy escrowing to `credits[]`
-instead � the treasury would read empty while everything looked fine. There is a test
+instead — the treasury would read empty while everything looked fine. There is a test
 asserting the levy arrives directly and `totalCredits` stays zero.
 
 Uniswap V2/V3/V4 and UniswapX are live on Robinhood Chain. Deployment addresses are
-**not hardcoded** � the docs surface them from a live registry rather than a static page,
+**not hardcoded** � the docs surface them from a live registry rather than a static page,
 and an unverified router address baked into a treasury is not something to guess at.
 Confirm them on-chain, then approve from the multisig.
 

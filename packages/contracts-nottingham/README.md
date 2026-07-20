@@ -38,6 +38,7 @@ theme is the accurate name for what the contract already did.
 | Floor price | `0.0001 ETH` |
 | Price reset | 2Ã— last paid |
 | Sale split | **70% deposed sheriff / 25% Coffers / 5% dev** |
+| Emission split | **90% sheriff / 10% Coffers** |
 | Base emission | **0.5 NOTT/sec, halving every 365 days** |
 | Within-reign decay | **100% â†’ 50% â†’ 25% â†’ 12.5% â†’ 10% floor, per epoch held** |
 | Tail | 0.01 NOTT/sec |
@@ -129,6 +130,14 @@ then accrued from deployment until the first takeover â€” a stealth premine prop
 how long launch took. The office now starts **vacant**: nothing accrues until someone
 actually buys it, and the vacant office's 70% share routes to the Coffers.
 
+**FIX-8 — emission split, to make liquidity possible at all.** Removing the premine
+(FIX-7) created a bootstrapping deadlock nobody had noticed: with minting gated to the
+office and no premine, **the protocol owned zero NOTT and could never seed a pool.** The
+Coffers accumulated ETH with nothing to pair against, and buying NOTT requires a pool to
+already exist. 10% of every mint now routes to the Coffers, so the treasury accrues both
+sides of the pair organically — liquidity without a premine, and without asking anyone to
+trust a genesis allocation.
+
 Also: `NottToken.mint()` **clamps** to `MAX_SUPPLY` rather than reverting. `KeepTokenV2`
 reverts, which would brick `takeOffice()` permanently at the cap â€” freezing the office
 with no way to depose the sitting sheriff.
@@ -174,6 +183,34 @@ reserves* rather than LP pairs â€” that sidesteps all three hazards (a rebase or
 affects a reserve balance, not a pool ratio) while keeping the "hot stocks get picked"
 signal. Whitelist, per-reign cap, and minimum hold time to bound governance capture.
 
+## Liquidity
+
+The Coffers accrue **ETH** (25% of every sale) and **NOTT** (10% of every mint), so both
+sides of the pair build up on their own. No premine, no genesis allocation.
+
+Two deliberate constraints on that contract:
+
+**Not upgradeable.** The office and token stay upgradeable because their logic may need
+fixing. The vault holding the money does not — an upgrade hook on a treasury means the
+owner can rewrite withdrawal logic after users have committed capital, which is the shape
+of a rug.
+
+**Not an autonomous zap.** A contract that buys NOTT and LPs on a schedule is
+sandwichable on every single fire: the trade is public, the size is derivable from the
+balance, and the timing is predictable. Instead `approveSpender()` lets an owner multisig
+approve a position manager and execute the add directly, with slippage and tick bounds
+chosen by whoever is actually watching the mempool.
+
+`receive()` is deliberately empty. `SheriffsOffice` pays the levy with a 30k gas stipend,
+so bookkeeping on receipt would risk the send failing and the levy escrowing to `credits[]`
+instead — the treasury would read empty while everything looked fine. There is a test
+asserting the levy arrives directly and `totalCredits` stays zero.
+
+Uniswap V2/V3/V4 and UniswapX are live on Robinhood Chain. Deployment addresses are
+**not hardcoded** — the docs surface them from a live registry rather than a static page,
+and an unverified router address baked into a treasury is not something to guess at.
+Confirm them on-chain, then approve from the multisig.
+
 ## Deploy
 
 ```bash
@@ -205,8 +242,9 @@ everywhere. Mainnet must be opted into explicitly.
 
 ## Not yet built
 
-- **Protocol-owned liquidity zap.** The Coffers accumulate ETH but nothing converts it
-  into LP yet. `CellarZapV4` in `@innkeeper/contracts` is the working pattern.
+- **Verified Uniswap addresses + a fork test** for the LP path. The manual multisig route
+  works today; an integration test against a forked Robinhood Chain would be the gate for
+  automating any of it.
 - **NOTT burn sink.** Would need a phase-in so genesis isn't blocked by nobody holding
   NOTT yet.
 - **Sheriff-directed treasury reserves.** See findings above.

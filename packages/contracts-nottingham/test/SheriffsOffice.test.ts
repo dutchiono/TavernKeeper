@@ -22,6 +22,14 @@ function weightedSeconds(x: number): bigint {
     return w + remainder * decayMultiplier(epoch);
 }
 
+// Emission is split 90% sheriff / 10% Coffers.
+function toCoffers(owed: bigint): bigint {
+    return (owed * 1000n) / 10000n;
+}
+function toSheriff(owed: bigint): bigint {
+    return owed - toCoffers(owed);
+}
+
 // NOTT accrued between two offsets into a reign.
 function accrued(fromSec: number, toSec: number, dps: bigint = INITIAL_DPS): bigint {
     return ((weightedSeconds(toSec) - weightedSeconds(fromSec)) * dps) / ONE;
@@ -175,7 +183,7 @@ describe("SheriffsOffice", () => {
             await time.setNextBlockTimestamp(start + 3600);
             await take(office, bob, ethers.parseEther("1"));
 
-            expect(await token.balanceOf(alice.address)).to.equal(accrued(0, 3600));
+            expect(await token.balanceOf(alice.address)).to.equal(toSheriff(accrued(0, 3600)));
         });
 
         it("lets the sitting sheriff claim mid-reign", async () => {
@@ -187,7 +195,7 @@ describe("SheriffsOffice", () => {
             await time.setNextBlockTimestamp(start + 1800);
             await office.connect(alice).claimRewards();
 
-            expect(await token.balanceOf(alice.address)).to.equal(accrued(0, 1800));
+            expect(await token.balanceOf(alice.address)).to.equal(toSheriff(accrued(0, 1800)));
         });
 
         it("blocks non-sheriffs from claiming", async () => {
@@ -212,13 +220,15 @@ describe("SheriffsOffice", () => {
             // Claim halfway through.
             await time.setNextBlockTimestamp(start + 1800);
             await office.connect(alice).claimRewards();
-            expect(await token.balanceOf(alice.address)).to.equal(accrued(0, 1800));
+            expect(await token.balanceOf(alice.address)).to.equal(toSheriff(accrued(0, 1800)));
 
             // Deposed at the hour: only the unclaimed second half is owed.
             await time.setNextBlockTimestamp(start + 3600);
             await take(office, bob, ethers.parseEther("1"));
 
-            expect(await token.balanceOf(alice.address)).to.equal(accrued(0, 3600));
+            expect(await token.balanceOf(alice.address)).to.equal(
+                toSheriff(accrued(0, 1800)) + toSheriff(accrued(1800, 3600))
+            );
         });
 
         it("does not carry a previous sheriff's claim time into a new reign", async () => {
@@ -238,7 +248,7 @@ describe("SheriffsOffice", () => {
             await ethers.provider.send("evm_mine", []);
 
             // Bob accrues from his own start, not from Alice's stale lastClaimTime.
-            expect(await office.pendingRewards()).to.equal(accrued(0, 600));
+            expect(await office.pendingRewards()).to.equal(accrued(0, 600));  // gross, pre-split
             expect(await token.balanceOf(bob.address)).to.equal(0n);
         });
     });
@@ -338,6 +348,50 @@ describe("SheriffsOffice", () => {
         });
     });
 
+    describe("emission split (FIX-8)", () => {
+        it("routes 10% of every mint to the Coffers", async () => {
+            const { office, token, alice, bob, treasury } = await deploy();
+
+            await take(office, alice, MIN_PRICE);
+            const start = await time.latest();
+
+            await time.setNextBlockTimestamp(start + 3600);
+            await take(office, bob, ethers.parseEther("1"));
+
+            const owed = accrued(0, 3600);
+            expect(await token.balanceOf(alice.address)).to.equal(toSheriff(owed));
+            expect(await token.balanceOf(treasury.address)).to.equal(toCoffers(owed));
+            expect(await token.totalSupply()).to.equal(owed);
+        });
+
+        it("accrues both sides of the pair to the treasury", async () => {
+            const { office, token, alice, bob, treasury } = await deploy();
+
+            const ethBefore = await ethers.provider.getBalance(treasury.address);
+            await take(office, alice, MIN_PRICE);
+            await time.increase(3600);
+            await take(office, bob, ethers.parseEther("1"));
+
+            // Treasury holds ETH from the levy AND NOTT from emission - enough to seed
+            // a pool without any premine.
+            expect(await ethers.provider.getBalance(treasury.address)).to.be.greaterThan(ethBefore);
+            expect(await token.balanceOf(treasury.address)).to.be.greaterThan(0n);
+        });
+
+        it("splits on mid-reign claims too", async () => {
+            const { office, token, alice, treasury } = await deploy();
+
+            await take(office, alice, MIN_PRICE);
+            const start = await time.latest();
+
+            await time.setNextBlockTimestamp(start + 1800);
+            await office.connect(alice).claimRewards();
+
+            const owed = accrued(0, 1800);
+            expect(await token.balanceOf(treasury.address)).to.equal(toCoffers(owed));
+        });
+    });
+
     describe("within-reign decay", () => {
         it("halves accrual each epoch held uncontested", async () => {
             const { office, alice } = await deploy();
@@ -402,7 +456,11 @@ describe("SheriffsOffice", () => {
                 await office.connect(alice).claimRewards();
             }
 
-            expect(await token.balanceOf(alice.address)).to.equal(accrued(0, 3 * EPOCH));
+            const legs = [0, 1, 2].reduce(
+                (acc, e) => acc + toSheriff(accrued(e * EPOCH, (e + 1) * EPOCH)),
+                0n
+            );
+            expect(await token.balanceOf(alice.address)).to.equal(legs);
         });
     });
 

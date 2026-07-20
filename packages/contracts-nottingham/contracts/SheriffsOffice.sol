@@ -77,6 +77,10 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     // the deposed share stays high enough that buying in remains positive-sum.
     uint256 public constant COFFERS_BPS = 2_500;
     uint256 public constant DEV_BPS = 500;
+
+    /// @notice Share of every mint routed to the Coffers, so the protocol accrues NOTT
+    ///         alongside ETH and can seed liquidity without a premine.
+    uint256 public constant EMISSION_COFFERS_BPS = 1_000; // 10%
     uint256 public constant DIVISOR = 10_000;
     uint256 public constant PRECISION = 1e18;
 
@@ -137,6 +141,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     event FundsWithdrawn(address indexed to, uint256 amount);
     event PayoutCredited(address indexed to, uint256 amount);
     event CreditsWithdrawn(address indexed to, uint256 amount);
+    event EmissionToCoffers(address indexed treasury, uint256 amount);
 
     error Reentrancy();
     error Expired();
@@ -231,6 +236,29 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         w += remainder * _decayMultiplier(epoch);
     }
 
+    /**
+     * @notice Mints accrued NOTT, routing a slice to the Coffers.
+     * @dev FIX-8: with no premine (FIX-7) and minting gated to the office, the protocol
+     *      owned zero NOTT and could never seed a pool - the Coffers accumulated ETH with
+     *      nothing to pair it against, and buying NOTT requires a pool to already exist.
+     *      Routing a slice of every mint to the Coffers means the treasury accrues *both*
+     *      sides of the pair organically, so liquidity can be seeded without a premine.
+     */
+    function _mintAccrued(address sheriff, uint256 owed) private {
+        if (owed == 0) return;
+
+        uint256 toCoffers = (owed * EMISSION_COFFERS_BPS) / DIVISOR;
+        uint256 toSheriff = owed - toCoffers;
+
+        INottToken(token).mint(sheriff, toSheriff);
+        emit RewardsClaimed(sheriff, toSheriff);
+
+        if (toCoffers > 0) {
+            INottToken(token).mint(treasury, toCoffers);
+            emit EmissionToCoffers(treasury, toCoffers);
+        }
+    }
+
     /// @notice NOTT owed to the sitting sheriff for the unclaimed part of the current reign.
     function _accrued(Slot0 memory s) private view returns (uint256) {
         if (s.sheriff == address(0)) return 0; // vacant office accrues to nobody
@@ -287,8 +315,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         // Settle the outgoing sheriff's mining before the seat changes hands.
         uint256 owed = _accrued(s);
         if (owed > 0 && s.sheriff != address(0)) {
-            INottToken(token).mint(s.sheriff, owed);
-            emit RewardsClaimed(s.sheriff, owed);
+            _mintAccrued(s.sheriff, owed);
         }
 
         // FIX-3: the original paid out the fee split and the deposed sheriff *before*
@@ -381,8 +408,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         if (owed == 0) revert NothingAccrued();
 
         lastClaimTime = uint40(block.timestamp);
-        INottToken(token).mint(msg.sender, owed);
-        emit RewardsClaimed(msg.sender, owed);
+        _mintAccrued(msg.sender, owed);
     }
 
     // --- Views ---

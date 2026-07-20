@@ -7,6 +7,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 interface INottToken {
     function mint(address to, uint256 amount) external;
+    function burnFrom(address from, uint256 amount) external;
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
 }
 
 /**
@@ -15,20 +18,25 @@ interface INottToken {
  *
  * A descending Dutch auction over a one-hour epoch. Whoever holds the office is the
  * sole minter of $NOTT, accruing until deposed. Taking the office pays out the sitting
- * sheriff and resets the asking price to 2x what was paid, which then decays linearly
+ * sheriff and resets the asking price to 1.3x what was paid, which then decays linearly
  * back to the floor.
  *
  * Accrual is not flat: it halves each epoch a sheriff holds uncontested, resting at 10%
  * of the base rate. Emission therefore tracks how contested the office is rather than
- * how much time has passed, so a quiet market does not dilute holders.
+ * how much time has passed, so a quiet market does not dilute holders. Taking the office
+ * also burns NOTT, so supply responds to demand in both directions.
  *
  * Descends from TavernKeeper's "The Office" (itself a donut-miner port), extracted away
- * from the ERC721 and retargeted at Robinhood Chain. Seven deliberate divergences from
- * that lineage are marked FIX-1 .. FIX-7 below:
+ * from the ERC721 and retargeted at Robinhood Chain. Ten deliberate divergences from that
+ * lineage are marked FIX-1 .. FIX-10 below:
  *
  *   Correctness  FIX-2 (double-mint), FIX-3 (CEI), FIX-6 (payout griefing brick)
- *   Economic     FIX-1 (denomination), FIX-4 (curve), FIX-5 (activity-gated emission)
+ *   Economic     FIX-1 (denomination), FIX-4 (curve), FIX-5 (activity-gated emission),
+ *                FIX-8 (emission split), FIX-9 (price multiplier), FIX-10 (burn sink)
  *   Fairness     FIX-7 (no deployer premine)
+ *
+ * FIX-9 is the one that matters most: the Monad deployment was not exploited, it was
+ * unbalanced, and NEW_PRICE_MULTIPLIER is the parameter that unbalanced it.
  */
 contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct Slot0 {
@@ -145,6 +153,38 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 public constant DECAY_FLOOR = 1e17;       // 10% of base rate, perpetual
     uint256 private constant DECAY_HEAD_SUM = 1.875e18; // sum of multipliers over epochs 0..3
 
+    // --- Burn sink ---
+    /**
+     * @dev FIX-10: the token was mint-only, so nothing ever removed supply and NOTT had no
+     *      job beyond being sold. Taking the office now also burns NOTT, which gives the
+     *      token a use, creates structural buy pressure on the pool, and makes supply
+     *      respond to demand in both directions.
+     *
+     *      The requirement is denominated in `dps * EPOCH_PERIOD` - one epoch of emission
+     *      at the current base rate - so it tracks the schedule automatically and needs no
+     *      price oracle. That denomination produces an exact equilibrium: a sheriff deposed
+     *      after a full epoch earns dps*EPOCH, and the taker burns dps*EPOCH.
+     *
+     *        turnover     emitted/hr   burned/hr     net/hr
+     *          5 min           1,800      21,600    -19,800
+     *         30 min           1,800       3,600     -1,800
+     *         60 min           1,800       1,800         +0
+     *        120 min           1,350         900       +450
+     *
+     *      A hot market is net deflationary, a quiet one mildly inflationary, and one
+     *      takeover per epoch is exactly neutral.
+     */
+    uint256 public constant BURN_ACTIVATION_SUPPLY = 250_000 ether;
+
+    /**
+     * @dev The requirement is also capped at 1/BURN_SUPPLY_CAP_DIVISOR of total supply, so
+     *      it can never exceed what the market could plausibly hold. Without this, a
+     *      collapse in circulating supply would make the office unaffordable to everyone
+     *      and freeze it - the same permanent-brick failure mode as FIX-6, reached through
+     *      economics rather than a revert.
+     */
+    uint256 public constant BURN_SUPPLY_CAP_DIVISOR = 100; // at most 1% of supply
+
     /// @dev Gas forwarded to a payout. Enough for a normal receive(), not enough to
     ///      let a hostile one burn the caller's gas.
     uint256 private constant SEND_GAS_STIPEND = 30_000;
@@ -161,6 +201,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     event PayoutCredited(address indexed to, uint256 amount);
     event CreditsWithdrawn(address indexed to, uint256 amount);
     event EmissionToCoffers(address indexed treasury, uint256 amount);
+    event BurnedForOffice(address indexed sheriff, uint256 amount);
 
     error Reentrancy();
     error Expired();
@@ -171,6 +212,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     error NotSheriff();
     error NothingAccrued();
     error TransferFailed();
+    error InsufficientNott(uint256 required, uint256 held);
 
     modifier nonReentrant() {
         if (slot0.locked == 2) revert Reentrancy();
@@ -278,6 +320,21 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         }
     }
 
+    /**
+     * @notice NOTT that must be burned to take the office right now.
+     * @dev Zero until circulating supply reaches BURN_ACTIVATION_SUPPLY - at genesis
+     *      nobody holds any NOTT, so requiring a burn immediately would make the office
+     *      unclaimable and the token unmintable, deadlocking the launch.
+     */
+    function currentBurnRequirement() public view returns (uint256) {
+        uint256 supply = INottToken(token).totalSupply();
+        if (supply < BURN_ACTIVATION_SUPPLY) return 0;
+
+        uint256 scheduled = slot0.dps * EPOCH_PERIOD;
+        uint256 cap = supply / BURN_SUPPLY_CAP_DIVISOR;
+        return scheduled < cap ? scheduled : cap;
+    }
+
     /// @notice NOTT owed to the sitting sheriff for the unclaimed part of the current reign.
     function _accrued(Slot0 memory s) private view returns (uint256) {
         if (s.sheriff == address(0)) return 0; // vacant office accrues to nobody
@@ -330,6 +387,17 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         price = _priceOf(s);
         if (price > maxPrice) revert MaxPriceExceeded();
         if (msg.value < price) revert InsufficientPayment();
+
+        // Burn the taker's NOTT before anything else changes hands, so a shortfall aborts
+        // cleanly rather than part-way through the settlement.
+        uint256 burnAmount = currentBurnRequirement();
+        if (burnAmount > 0) {
+            uint256 held = INottToken(token).balanceOf(msg.sender);
+            if (held < burnAmount) revert InsufficientNott(burnAmount, held);
+
+            INottToken(token).burnFrom(msg.sender, burnAmount);
+            emit BurnedForOffice(msg.sender, burnAmount);
+        }
 
         // Settle the outgoing sheriff's mining before the seat changes hands.
         uint256 owed = _accrued(s);

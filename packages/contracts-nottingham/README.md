@@ -43,6 +43,7 @@ theme is the accurate name for what the contract already did.
 | Emission split | **90% sheriff / 10% Coffers** |
 | Base emission | **0.5 NOTT/sec, halving every 365 days** |
 | Within-reign decay | **100% → 50% → 25% → 12.5% → 10% floor, per epoch held** |
+| Burn to take office | **dps x EPOCH** (1,800 NOTT), once supply > 250k |
 | Tail | 0.01 NOTT/sec |
 | Supply cap | 100M NOTT (backstop; fully-contested schedule tops out ~31.5M) |
 
@@ -83,12 +84,12 @@ launch window, with nothing to do but sell into the pool.
 
 ## Divergences from the Monad original
 
-Nine deliberate changes, marked `FIX-1..9` in the source.
+Ten deliberate changes, marked `FIX-1..10` in the source.
 
 | | Fix |
 |---|---|
 | Correctness | FIX-2 double-mint · FIX-3 CEI · **FIX-6 payout griefing brick** |
-| Economic | FIX-1 denomination · FIX-4 curve · FIX-5 activity-gated emission · FIX-8 emission split · **FIX-9 price multiplier** |
+| Economic | FIX-1 denomination · FIX-4 curve · FIX-5 activity-gated emission · FIX-8 emission split · **FIX-9 price multiplier** · FIX-10 burn sink |
 | Fairness | FIX-7 no deployer premine |
 
 **FIX-9 is the one that matters most.** The Monad deployment wasn't exploited by a clever
@@ -143,6 +144,35 @@ Coffers accumulated ETH with nothing to pair against, and buying NOTT requires a
 already exist. 10% of every mint now routes to the Coffers, so the treasury accrues both
 sides of the pair organically — liquidity without a premine, and without asking anyone to
 trust a genesis allocation.
+
+**FIX-10 — burn sink.** The token was mint-only: nothing ever removed supply, and NOTT had
+no job beyond being sold. Taking the office now burns NOTT too, which gives the token a
+use and creates structural buy pressure on the pool.
+
+The requirement is denominated in `dps × EPOCH_PERIOD` — one epoch of emission at the
+current base rate — so it tracks the halving schedule automatically and needs **no price
+oracle**. That denomination produces an exact equilibrium, because a sheriff deposed after
+a full epoch earns precisely `dps × EPOCH`:
+
+| Turnover | Emitted/hr | Burned/hr | Net |
+|---|---|---|---|
+| 5 min | 1,800 | 21,600 | −19,800 |
+| 30 min | 1,800 | 3,600 | −1,800 |
+| **60 min** | **1,800** | **1,800** | **0** |
+| 120 min | 1,350 | 900 | +450 |
+
+A hot market is net deflationary, a quiet one mildly inflationary, and one takeover per
+epoch is exactly neutral. Combined with activity-gated emission (FIX-5), supply now
+responds to demand in both directions.
+
+Two guards:
+
+- **Phase-in.** Zero requirement until circulating supply reaches 250k NOTT. At genesis
+  nobody holds any, so requiring a burn immediately would make the office unclaimable and
+  the token unmintable — a deadlocked launch.
+- **Capped at 1% of supply.** Without this, a collapse in circulating supply would make
+  the office unaffordable to everyone and freeze it — the same permanent-brick failure as
+  FIX-6, reached through economics rather than a revert.
 
 Also: `NottToken.mint()` **clamps** to `MAX_SUPPLY` rather than reverting. `KeepTokenV2`
 reverts, which would brick `takeOffice()` permanently at the cap — freezing the office
@@ -268,10 +298,23 @@ so bookkeeping on receipt would risk the send failing and the levy escrowing to 
 instead — the treasury would read empty while everything looked fine. There is a test
 asserting the levy arrives directly and `totalCredits` stays zero.
 
-Uniswap V2/V3/V4 and UniswapX are live on Robinhood Chain. Deployment addresses are
-**not hardcoded** — the docs surface them from a live registry rather than a static page,
-and an unverified router address baked into a treasury is not something to guess at.
-Confirm them on-chain, then approve from the multisig.
+### Uniswap addresses — verify before approving
+
+Uniswap V2/V3/V4 and UniswapX are live on Robinhood Chain, but addresses are **not
+hardcoded here**, and checking why justified the caution:
+
+**A name search returns 13 different verified contracts called `UniswapV3Factory`.**
+Twelve of them are not the one you want. Name is not identification.
+
+| Contract | Canonical address | Status |
+|---|---|---|
+| UniswapV3Factory | `0x1F98431c8aD98523631AE4a59f267346ea31F984` | verified present, name matches |
+| NonfungiblePositionManager | `0xC36442b4a4522E871399CD717aBDD847Ab11FE88` | **unconfirmed** — verifies as `PositionNFT` |
+
+The position manager at the canonical cross-chain address carries an unexpected verified
+name, so it is not confirmed. Before approving it from the Coffers, call `factory()` on it
+and check the result equals the factory address above — a name match alone is not enough
+on a chain with a dozen impostors.
 
 ## Deploy
 

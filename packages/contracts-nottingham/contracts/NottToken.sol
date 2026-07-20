@@ -65,6 +65,17 @@ contract NottToken is Initializable, ERC20Upgradeable, OwnableUpgradeable, UUPSU
         _mint(to, amount);
     }
 
+    /**
+     * @notice Burn NOTT from an address as part of taking the office.
+     * @dev No allowance required. The office is already the sole minter, and the only
+     *      caller path is takeOffice(), which the burned address invoked itself - an
+     *      approve step would be pure friction for a burn the user is initiating.
+     */
+    function burnFrom(address from, uint256 amount) external onlySheriffsOffice {
+        if (amount == 0) return;
+        _burn(from, amount);
+    }
+
     function getRemainingSupply() external view returns (uint256) {
         uint256 supply = totalSupply();
         return supply >= MAX_SUPPLY ? 0 : MAX_SUPPLY - supply;

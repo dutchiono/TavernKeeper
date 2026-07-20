@@ -121,25 +121,29 @@ describe("SheriffsOffice", () => {
             const s = await office.getSlot0();
             const initPrice = s.initPrice;
             const start = Number(s.startTime);
-            expect(initPrice).to.be.greaterThan(MIN_PRICE * 3n);
+            const floor = await office.floorPrice();
+            expect(initPrice).to.be.greaterThan(floor);
 
-            // A quarter in, the ask has shed a quarter of its starting value.
-            await time.setNextBlockTimestamp(start + EPOCH / 4);
-            await ethers.provider.send("evm_mine", []);
-            expect(await office.getPrice()).to.be.closeTo(
-                (initPrice * 3n) / 4n,
-                initPrice / 100n
-            );
+            // Assert the actual rule at several points: linear decay from initPrice,
+            // clamped at the floor. With the floor retargeting up under this pressure it
+            // sits just under initPrice, so the clamp engages early - which is the correct
+            // behaviour, not an absence of decay.
+            for (const fraction of [20, 10, 4, 2]) {
+                await time.setNextBlockTimestamp(start + EPOCH / fraction);
+                await ethers.provider.send("evm_mine", []);
 
-            // Halfway.
-            await time.setNextBlockTimestamp(start + EPOCH / 2);
-            await ethers.provider.send("evm_mine", []);
-            expect(await office.getPrice()).to.be.closeTo(initPrice / 2n, initPrice / 100n);
+                const elapsed = BigInt(EPOCH / fraction);
+                const decayed = initPrice - (initPrice * elapsed) / BigInt(EPOCH);
+                const expected = decayed < floor ? floor : decayed;
 
-            // Past the epoch it rests at the floor.
+                expect(await office.getPrice()).to.equal(expected);
+            }
+
+            // Past the epoch it rests at the floor - which retargets with demand, so read
+            // it rather than assuming the genesis constant.
             await time.setNextBlockTimestamp(start + EPOCH + 1);
             await ethers.provider.send("evm_mine", []);
-            expect(await office.getPrice()).to.equal(MIN_PRICE);
+            expect(await office.getPrice()).to.equal(await office.floorPrice());
         });
 
         it("clamps to the floor rather than going below it", async () => {
@@ -151,7 +155,7 @@ describe("SheriffsOffice", () => {
             // 1.3x above the floor decays into the clamp roughly 14 minutes in.
             await time.setNextBlockTimestamp(start + 20 * 60);
             await ethers.provider.send("evm_mine", []);
-            expect(await office.getPrice()).to.equal(MIN_PRICE);
+            expect(await office.getPrice()).to.equal(await office.floorPrice());
         });
 
         it("rejects a stale epochId", async () => {
@@ -416,10 +420,12 @@ describe("SheriffsOffice", () => {
             expect(rebate).to.be.greaterThan((MIN_PRICE * 80n) / 100n); // but not punitive
         });
 
-        it("keeps a hot market affordable", async () => {
+        it("does not let the multiplier itself run the price away", async () => {
             const { office, alice, bob } = await deploy();
 
-            // 20 takeovers ~5 minutes apart. At 2x this reached ~18 ETH.
+            // 20 takeovers ~5 minutes apart. At 2x the multiplier alone reached ~18 ETH.
+            // The floor deliberately climbs under this pressure (FIX-12), so the check is
+            // that the ask tracks the floor rather than compounding beyond it.
             let last = await time.latest();
             for (let i = 0; i < 20; i++) {
                 last += 300;
@@ -427,7 +433,11 @@ describe("SheriffsOffice", () => {
                 await take(office, i % 2 === 0 ? alice : bob, ethers.parseEther("2"));
             }
 
-            expect(await office.getPrice()).to.be.lessThan(ethers.parseEther("0.01"));
+            const floor = await office.floorPrice();
+            const price = await office.getPrice();
+
+            expect(price).to.be.lessThanOrEqual((floor * 13n) / 10n);
+            expect(floor).to.be.lessThanOrEqual(await office.MAX_FLOOR_PRICE());
         });
     });
 

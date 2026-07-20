@@ -37,7 +37,8 @@ theme is the accurate name for what the contract already did.
 | | |
 |---|---|
 | Epoch | 1 hour, linear price decay to floor |
-| Floor price | `0.0001 ETH` |
+| Floor price | **demand-retargeted**, `0.0001` – `0.1 ETH` |
+| Ask ceiling | **4× floor** |
 | Price reset | **1.3× last paid** |
 | Sale split | **70% deposed sheriff / 25% Coffers / 5% dev** |
 | Emission split | **80% sheriff / 10% Coffers / 10% sheriff's favored pool** |
@@ -84,7 +85,7 @@ launch window, with nothing to do but sell into the pool.
 
 ## Divergences from the Monad original
 
-Eleven deliberate changes, marked `FIX-1..11` in the source.
+Thirteen deliberate changes, marked `FIX-1..13` in the source.
 
 | | Fix |
 |---|---|
@@ -92,6 +93,7 @@ Eleven deliberate changes, marked `FIX-1..11` in the source.
 | Economic | FIX-1 denomination · FIX-4 curve · FIX-5 activity-gated emission · FIX-8 emission split · **FIX-9 price multiplier** · FIX-10 burn sink |
 | Fairness | FIX-7 no deployer premine |
 | Structural | FIX-11 sheriff-directed pool incentives |
+| Revenue | **FIX-12 demand-retargeted floor** · FIX-13 ask ceiling |
 
 **FIX-9 is the one that matters most.** The Monad deployment wasn't exploited by a clever
 attacker — it was just unbalanced, and this is the parameter that unbalanced it. See
@@ -237,6 +239,59 @@ At 1.3× the ask clamps to the floor about 14 minutes into an epoch rather than 
 down for the full hour. That's correct — at the floor there is nothing left to
 discover — and the decay window widens automatically when the price is elevated, which
 is when the auction actually matters.
+
+## Revenue
+
+The balance fix created a revenue problem, and it took measuring to see it.
+
+FIX-9 pins the multiplier at 1.3×, so the ask only escalates below ~14-minute turnover.
+At any realistic pace the price sat **at the floor** — meaning the levy earned 30% of
+$0.35 per takeover whether the game was thriving or dead:
+
+| Turnover | Takeovers/day | Price | Protocol/yr |
+|---|---|---|---|
+| hourly | 24 | floor | **$920** |
+| every 15 min | 96 | floor | **$3,679** |
+
+Revenue barely moved with volume, because volume didn't move price.
+
+### FIX-12 — demand-retargeted floor
+
+The floor now retargets like a difficulty adjustment: **one takeover per epoch is the
+target**, faster raises it, slower lowers it, proportionally
+(`newFloor = floor × TARGET / elapsed`). Price finds the level demand actually supports,
+so the levy scales with willingness to pay.
+
+It is self-correcting — a floor that climbs too high slows turnover, which pulls it back
+down — and bounded on both sides regardless:
+
+- **1.25× up / 0.8× down per takeover**, so one outlier gap cannot reprice the game
+- **`MIN_INIT_PRICE` 0.0001 ETH** — a dead market stays accessible
+- **`MAX_FLOOR_PRICE` 0.1 ETH** — a frenzy cannot price the office into orbit
+
+### FIX-13 — ask ceiling
+
+Capping the floor was not enough. The ask is *1.3× the last price paid* and compounds
+independently, so any turnover faster than the escalation threshold still ran away — a
+takeover a minute compounds ~1.28× each time and leaves the floor cap far behind. A test
+that meant to prove the cap worked instead ran out of ETH, which is how this surfaced.
+
+With the floor now doing slow price discovery, the multiplier only needs to run the
+within-epoch auction, so banding the ask to **4× the floor** costs nothing and removes the
+last unbounded path. The bistable escalate-until-nobody-can-pay cycle cannot happen at any
+cadence now.
+
+### Bounds
+
+| | |
+|---|---|
+| Max floor | 0.1 ETH (~$350) |
+| Max ask | 0.4 ETH (~$1,400) |
+| Protocol at the ceiling, hourly | **~$920,000/yr** |
+| Protocol at the genesis floor | ~$920/yr |
+
+The balance invariant is untouched: `1.3 × 0.70 = 0.91 < 1`, so holding the office still
+always costs something.
 
 ## Robinhood Stock Tokens — findings
 

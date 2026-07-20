@@ -90,6 +90,22 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice The pool this sheriff is directing incentives to. Cleared on every takeover.
     address public favoredPool;
 
+    /**
+     * @notice Demand-adjusted auction floor.
+     * @dev FIX-12: with a fixed floor, protocol revenue did not scale with success. FIX-9
+     *      pins the multiplier at 1.3x, so the ask only escalates below ~14-minute
+     *      turnover; at any realistic pace the price sat at the floor and the levy earned
+     *      30% of $0.35 per takeover whether the game was thriving or dead - roughly $920
+     *      a year at hourly turnover, identically at any volume.
+     *
+     *      The floor now retargets like a difficulty adjustment: one takeover per epoch is
+     *      the target, faster raises it, slower lowers it. Price finds the level demand
+     *      supports, so the levy scales with willingness to pay instead of being pinned to
+     *      a constant. It is self-correcting - a floor that climbs too high slows turnover,
+     *      which pulls it back down - and bounded on both sides regardless.
+     */
+    uint256 public floorPrice;
+
     // --- Economics ---
     // The levy: 30% of every sale, split 25% Coffers / 5% dev. The deposed sheriff
     // keeps 70%. Raised from the original 20% (15/5) to fund protocol-owned liquidity;
@@ -161,6 +177,33 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      */
     uint256 public constant MIN_INIT_PRICE = 0.0001 ether;
     uint256 public constant ABS_MAX_INIT_PRICE = type(uint192).max;
+
+    // --- Floor retargeting (FIX-12) ---
+    /// @notice Ceiling on the adjusted floor, so a frenzy cannot price the office into orbit.
+    uint256 public constant MAX_FLOOR_PRICE = 0.1 ether;
+
+    /// @notice Target cadence the floor retargets toward: one takeover per epoch.
+    uint256 public constant TARGET_INTERVAL = EPOCH_PERIOD;
+
+    /// @dev Per-takeover clamp on the adjustment, so one outlier gap cannot reprice the
+    ///      game. 1.25x up, 0.8x down - symmetric in log space.
+    uint256 public constant FLOOR_STEP_UP_BPS = 12_500;
+    uint256 public constant FLOOR_STEP_DOWN_BPS = 8_000;
+
+    /**
+     * @notice Ceiling on the asking price, as a multiple of the current floor.
+     * @dev FIX-13: capping the floor was not enough. The ask is `1.3x the last price paid`
+     *      and compounds independently, so any turnover faster than the escalation
+     *      threshold (~14 min) still ran away - a takeover a minute compounds ~1.28x each
+     *      time, which leaves the floor cap behind entirely.
+     *
+     *      With the floor now doing slow price discovery (FIX-12), the multiplier only
+     *      needs to run the within-epoch auction, so pinning the ask to a band above the
+     *      floor costs nothing and removes the last unbounded path. Max conceivable entry
+     *      is MAX_FLOOR_PRICE * 4 = 0.4 ETH, and the bistable escalate-until-nobody-can-pay
+     *      cycle cannot happen at any cadence.
+     */
+    uint256 public constant ASK_CEILING_BPS = 40_000; // 4x the floor
 
     // --- Emission ---
     /**
@@ -243,6 +286,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     event PoolEligibilityChanged(address indexed pool, bool eligible);
     event FavoredPoolSet(address indexed sheriff, address indexed pool);
     event EmissionToPool(address indexed pool, uint256 amount);
+    event FloorAdjusted(uint256 previousFloor, uint256 newFloor, uint256 elapsed);
 
     error Reentrancy();
     error Expired();
@@ -281,6 +325,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
         slot0.locked = 1;
         slot0.epochId = 1;
+        floorPrice = MIN_INIT_PRICE;
         slot0.initPrice = uint192(MIN_INIT_PRICE);
         slot0.startTime = uint40(block.timestamp);
         slot0.dps = INITIAL_DPS;
@@ -423,11 +468,37 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     function _priceOf(Slot0 memory s) private view returns (uint256) {
+        uint256 floor = floorPrice;
         uint256 elapsed = block.timestamp - s.startTime;
-        if (elapsed >= EPOCH_PERIOD) return MIN_INIT_PRICE;
+        if (elapsed >= EPOCH_PERIOD) return floor;
 
         uint256 price = s.initPrice - (uint256(s.initPrice) * elapsed) / EPOCH_PERIOD;
-        return price < MIN_INIT_PRICE ? MIN_INIT_PRICE : price;
+        return price < floor ? floor : price;
+    }
+
+    /**
+     * @notice Retarget the floor toward one takeover per epoch.
+     * @dev Proportional, so it is self-correcting: half the target interval doubles the
+     *      pressure, twice the interval halves it. Clamped per step and absolutely.
+     */
+    function _adjustFloor(uint256 elapsed) private {
+        uint256 current = floorPrice;
+        if (elapsed == 0) elapsed = 1; // same-block takeover
+
+        uint256 next = (current * TARGET_INTERVAL) / elapsed;
+
+        uint256 upper = (current * FLOOR_STEP_UP_BPS) / DIVISOR;
+        uint256 lower = (current * FLOOR_STEP_DOWN_BPS) / DIVISOR;
+        if (next > upper) next = upper;
+        else if (next < lower) next = lower;
+
+        if (next > MAX_FLOOR_PRICE) next = MAX_FLOOR_PRICE;
+        if (next < MIN_INIT_PRICE) next = MIN_INIT_PRICE;
+
+        if (next != current) {
+            floorPrice = next;
+            emit FloorAdjusted(current, next, elapsed);
+        }
     }
 
     // --- Core ---
@@ -478,9 +549,15 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         // writing slot0, leaving the contract in a pre-takeover state across four external
         // calls. It was safe only because of the reentrancy guard. State is now advanced
         // first so the guard is a backstop rather than the sole defence.
+        // Retarget the floor on the interval just observed, then clamp the new ask to it.
+        _adjustFloor(block.timestamp - s.startTime);
+
         uint256 newInitPrice = (price * NEW_PRICE_MULTIPLIER) / PRECISION;
+
+        uint256 ceiling = (floorPrice * ASK_CEILING_BPS) / DIVISOR;
+        if (newInitPrice > ceiling) newInitPrice = ceiling;
         if (newInitPrice > ABS_MAX_INIT_PRICE) newInitPrice = ABS_MAX_INIT_PRICE;
-        else if (newInitPrice < MIN_INIT_PRICE) newInitPrice = MIN_INIT_PRICE;
+        else if (newInitPrice < floorPrice) newInitPrice = floorPrice;
 
         unchecked { s.epochId++; }
         s.initPrice = uint192(newInitPrice);

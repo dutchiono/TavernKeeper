@@ -345,13 +345,37 @@ Unlike the Monad package — where `chains.ts` defaulted to mainnet and `hardhat
 defaulted to testnet off the same env var — this package defaults to **testnet**
 everywhere. Mainnet must be opted into explicitly.
 
+## Frontend
+
+`apps/web/lib/nottingham/` holds the chain config, env-driven addresses, and a wagmi
+config; `apps/web/lib/feature-flags.ts` is now per-chain (Monad's token economy stays
+off, Nottingham's is on). 17 tests in `apps/web/__tests__/lib/nottingham-config.test.ts`.
+
+This was added **alongside** the Monad config rather than retrofitting it, for two
+reasons found while mapping the work:
+
+1. **The existing wagmi tree is orphaned.** `UnifiedWeb3Provider` is the only thing that
+   mounts `WagmiProvider`, and it is never rendered — `app/layout.tsx` has no provider
+   above the components calling `useAccount`/`useSwitchChain`. The Monad web3 UI is
+   already non-functional, so a ~50-file retrofit would be churn against dead code.
+2. **`lib/contracts/addresses.ts` resolves its chain at module load** into one of three
+   frozen objects, so all 21 consumers get whatever was baked in at import time. Not a
+   thing to extend — a thing not to copy.
+
+Two traps worth knowing if you extend this:
+
+- Env vars must be read as **literal** `process.env.NEXT_PUBLIC_X`. Next inlines client
+  env vars by static analysis, so a computed `process.env[name]` is never rewritten and
+  every address silently reads as zero in the browser bundle.
+- viem's `isAddress` validates EIP-55 by default. It rejected a real mis-cased address
+  copied from a block explorer during development. Worth keeping strict.
+
 ## Not yet built
 
-- **Verified Uniswap addresses + a fork test** for the LP path. The manual multisig route
-  works today; an integration test against a forked Robinhood Chain would be the gate for
-  automating any of it.
-- **NOTT burn sink.** Would need a phase-in so genesis isn't blocked by nobody holding
-  NOTT yet.
-- **Sheriff-directed treasury reserves.** See findings above.
-- **Frontend.** The Monad app's `chains.ts` / `addresses.ts` / `feature-flags.ts` are
-  single-chain and hardcoded to Monad; they need to become per-chain first.
+- **Mounting a provider.** Nothing renders `WagmiProvider` today (see above), so no UI
+  can talk to these contracts until something does. Pre-existing, not introduced here.
+- **A fork test for the LP path.** The manual multisig route works; an integration test
+  against a forked Robinhood Chain is the gate for automating any of it.
+- **Sheriff-directed treasury reserves.** See the stock-token findings above.
+- **An audit.** Ten fixes found by reading with specific failure modes in mind is not the
+  same as an audit, and these contracts hold ETH.

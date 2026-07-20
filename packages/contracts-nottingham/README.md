@@ -40,7 +40,7 @@ theme is the accurate name for what the contract already did.
 | Floor price | `0.0001 ETH` |
 | Price reset | **1.3× last paid** |
 | Sale split | **70% deposed sheriff / 25% Coffers / 5% dev** |
-| Emission split | **90% sheriff / 10% Coffers** |
+| Emission split | **80% sheriff / 10% Coffers / 10% sheriff's favored pool** |
 | Base emission | **0.5 NOTT/sec, halving every 365 days** |
 | Within-reign decay | **100% → 50% → 25% → 12.5% → 10% floor, per epoch held** |
 | Burn to take office | **dps x EPOCH** (1,800 NOTT), once supply > 250k |
@@ -84,13 +84,14 @@ launch window, with nothing to do but sell into the pool.
 
 ## Divergences from the Monad original
 
-Ten deliberate changes, marked `FIX-1..10` in the source.
+Eleven deliberate changes, marked `FIX-1..11` in the source.
 
 | | Fix |
 |---|---|
 | Correctness | FIX-2 double-mint · FIX-3 CEI · **FIX-6 payout griefing brick** |
 | Economic | FIX-1 denomination · FIX-4 curve · FIX-5 activity-gated emission · FIX-8 emission split · **FIX-9 price multiplier** · FIX-10 burn sink |
 | Fairness | FIX-7 no deployer premine |
+| Structural | FIX-11 sheriff-directed pool incentives |
 
 **FIX-9 is the one that matters most.** The Monad deployment wasn't exploited by a clever
 attacker — it was just unbalanced, and this is the parameter that unbalanced it. See
@@ -144,6 +145,9 @@ Coffers accumulated ETH with nothing to pair against, and buying NOTT requires a
 already exist. 10% of every mint now routes to the Coffers, so the treasury accrues both
 sides of the pair organically — liquidity without a premine, and without asking anyone to
 trust a genesis allocation.
+
+**FIX-11 — sheriff-directed pool incentives.** The answer to pairing NOTT against
+tokenized equities. See [Balancing NOTT against many stock pairs](#balancing-nott-against-many-stock-pairs).
 
 **FIX-10 — burn sink.** The token was mint-only: nothing ever removed supply, and NOTT had
 no job beyond being sold. Taking the office now burns NOTT too, which gives the token a
@@ -269,11 +273,69 @@ protocol-owned pool anyway:
 Also note Stock Tokens are tokenized **debt securities** issued by Robinhood Assets
 (Jersey) Ltd and are documented as not offered to **U.S. Persons**.
 
-**Recommendation:** one deep canonical NOTT/ETH pool as the price anchor and protocol
-liquidity. If sheriff-directed equity exposure is wanted, hold stock tokens as *treasury
-reserves* rather than LP pairs — that sidesteps all three hazards (a rebase or pause
-affects a reserve balance, not a pool ratio) while keeping the "hot stocks get picked"
-signal. Whitelist, per-reign cap, and minimum hold time to bound governance capture.
+### Balancing NOTT against many stock pairs
+
+Two things I asserted earlier were wrong, and the correction matters.
+
+**Wrong: "pairing against a stock is worse impermanent loss than ETH."** Variance adds,
+and stocks are *less* volatile than ETH, so the relative volatility of the pair is lower.
+NOTT's own volatility dominates either way:
+
+| Pair | Quote vol | Relative vol | LVR/yr |
+|---|---|---|---|
+| NOTT/ETH | 60% | 1.62 | **32.6%** |
+| NOTT/TSLA | 55% | 1.60 | 31.9% |
+| NOTT/AAPL | 25% | 1.52 | **28.9%** |
+
+*(LVR — loss-versus-rebalancing — is the structural bleed a constant-product pool pays
+arbitrageurs, ≈ σ²/8 per year. NOTT assumed at 150% vol, ρ=0.)*
+
+**Wrong: "fragmentation multiplies the arbitrage leak."** LVR scales with pool *value*,
+so splitting one pool into N bleeds the same total. What fragmentation multiplies is
+**slippage**, and that is the binding constraint:
+
+| Treasury | 1 pool | 4 pools | 8 pools |
+|---|---|---|---|
+| $100k | 5.0% | 20.0% | **40.0%** |
+| $500k | 1.0% | 4.0% | 8.0% |
+| $2M | 0.2% | 1.0% | 2.0% |
+
+*(slippage on a $5k trade)*
+
+So multi-pair is not an arbitrage problem, it is a **depth** problem. Below roughly $500k
+of liquidity it is strictly worse at any N, and no clever balancing fixes that.
+
+**What still stands:** the protocol must never LP a stock token itself.
+`MULTIPLIER_UPDATER_ROLE` rebases balances on splits and corporate actions, and a
+constant-product pool has no idea a split happened — arbitrageurs drain it at the stale
+ratio the moment it lands. That is a scheduled loss, not a tail risk.
+
+### The design (FIX-11)
+
+**Canonical pool + incentivised satellites.** The protocol LPs one NOTT/ETH pool and
+nothing else. Stock pairs exist as third-party satellites whose LPs opted into rebase risk
+knowingly. Ordinary arbitrage against the canonical pool keeps every pair coherent — at no
+cost to the protocol, because the protocol is never the stale LP. **Balancing N pairs is
+not something this system has to do.**
+
+What the sheriff gets is the power to point **10% of emission** at one eligible pool per
+reign. Real lever, real "hot stocks get picked" signal, but it risks only capped emission —
+never treasury capital, never LP exposure to a rebasing asset. Undirected, it falls through
+to the Coffers.
+
+Three guards:
+
+- **Owner-curated eligibility.** The sheriff picks from a list, and cannot name an
+  arbitrary address — otherwise the office is a way to mint to yourself for the floor
+  price, the cheapest governance capture available.
+- **Re-checked at mint time.** A pool revoked mid-reign stops earning immediately rather
+  than paying out until the next takeover.
+- **Cleared on takeover.** Each sheriff makes their own pick; a reign never keeps funding
+  its predecessor's.
+
+Depth-gating is expressed through which pools the owner marks eligible — given the
+slippage table above, satellites are only worth incentivising once the canonical pool is
+deep enough to support them.
 
 ## Liquidity
 

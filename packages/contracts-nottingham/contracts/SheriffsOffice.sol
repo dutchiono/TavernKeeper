@@ -79,6 +79,17 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Sum of all outstanding credits, so the owner sweep cannot touch them.
     uint256 public totalCredits;
 
+    /**
+     * @notice Pools the sheriff may direct emission incentives to.
+     * @dev FIX-11: curated by the owner, chosen from by the sheriff. The sheriff must not
+     *      be able to name an arbitrary address or the office becomes a way to mint to
+     *      yourself for the floor price - the cheapest governance capture available.
+     */
+    mapping(address => bool) public eligiblePools;
+
+    /// @notice The pool this sheriff is directing incentives to. Cleared on every takeover.
+    address public favoredPool;
+
     // --- Economics ---
     // The levy: 30% of every sale, split 25% Coffers / 5% dev. The deposed sheriff
     // keeps 70%. Raised from the original 20% (15/5) to fund protocol-owned liquidity;
@@ -89,6 +100,33 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Share of every mint routed to the Coffers, so the protocol accrues NOTT
     ///         alongside ETH and can seed liquidity without a premine.
     uint256 public constant EMISSION_COFFERS_BPS = 1_000; // 10%
+
+    /**
+     * @notice Share of emission the sitting sheriff may direct to an eligible pool.
+     * @dev FIX-11: the answer to pairing NOTT against tokenized equities.
+     *
+     *      The protocol must never LP a stock token itself: MULTIPLIER_UPDATER_ROLE on
+     *      those contracts rebases balances for splits and corporate actions, and a
+     *      constant-product pool has no idea a split happened - arbitrageurs drain it at
+     *      the stale ratio the moment it lands.
+     *
+     *      So the protocol LPs one canonical NOTT/ETH pool and nothing else. Stock pairs
+     *      exist as third-party satellites whose LPs opted into rebase risk knowingly,
+     *      and ordinary arbitrage against the canonical pool is what keeps every pair
+     *      coherent - at no cost to the protocol, because the protocol is never the stale
+     *      LP. Balancing N pairs is not something this contract has to do.
+     *
+     *      What the sheriff gets is the power to point *emission* at one satellite per
+     *      reign. That is a real lever and a real "hot stocks get picked" signal, but it
+     *      risks only capped emission, never treasury capital, and never LP exposure to a
+     *      rebasing asset. Unspent, it falls through to the Coffers.
+     *
+     *      Note this is depth-gated in practice: splitting liquidity across N pairs
+     *      multiplies slippage linearly, so satellites are only worth incentivising once
+     *      the canonical pool is deep enough. That is an owner decision, expressed by
+     *      which pools are marked eligible.
+     */
+    uint256 public constant EMISSION_FAVORED_BPS = 1_000; // 10%
     uint256 public constant DIVISOR = 10_000;
     uint256 public constant PRECISION = 1e18;
 
@@ -202,6 +240,9 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     event CreditsWithdrawn(address indexed to, uint256 amount);
     event EmissionToCoffers(address indexed treasury, uint256 amount);
     event BurnedForOffice(address indexed sheriff, uint256 amount);
+    event PoolEligibilityChanged(address indexed pool, bool eligible);
+    event FavoredPoolSet(address indexed sheriff, address indexed pool);
+    event EmissionToPool(address indexed pool, uint256 amount);
 
     error Reentrancy();
     error Expired();
@@ -213,6 +254,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     error NothingAccrued();
     error TransferFailed();
     error InsufficientNott(uint256 required, uint256 held);
+    error PoolNotEligible(address pool);
 
     modifier nonReentrant() {
         if (slot0.locked == 2) revert Reentrancy();
@@ -309,15 +351,42 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         if (owed == 0) return;
 
         uint256 toCoffers = (owed * EMISSION_COFFERS_BPS) / DIVISOR;
-        uint256 toSheriff = owed - toCoffers;
+        uint256 toFavored = (owed * EMISSION_FAVORED_BPS) / DIVISOR;
+        uint256 toSheriff = owed - toCoffers - toFavored;
 
         INottToken(token).mint(sheriff, toSheriff);
         emit RewardsClaimed(sheriff, toSheriff);
+
+        address pool = favoredPool;
+        // Re-check eligibility at mint time: a pool revoked mid-reign must stop earning
+        // immediately rather than paying out until the next takeover.
+        if (toFavored > 0 && pool != address(0) && eligiblePools[pool]) {
+            INottToken(token).mint(pool, toFavored);
+            emit EmissionToPool(pool, toFavored);
+        } else {
+            toCoffers += toFavored; // undirected emission falls through to the Coffers
+        }
 
         if (toCoffers > 0) {
             INottToken(token).mint(treasury, toCoffers);
             emit EmissionToCoffers(treasury, toCoffers);
         }
+    }
+
+    /// @notice Curate which pools a sheriff may direct emission to.
+    function setPoolEligibility(address pool, bool eligible) external onlyOwner {
+        if (pool == address(0)) revert PoolNotEligible(pool);
+        eligiblePools[pool] = eligible;
+        emit PoolEligibilityChanged(pool, eligible);
+    }
+
+    /// @notice Point this reign's incentive slice at an eligible pool.
+    function setFavoredPool(address pool) external {
+        if (msg.sender != slot0.sheriff) revert NotSheriff();
+        if (pool != address(0) && !eligiblePools[pool]) revert PoolNotEligible(pool);
+
+        favoredPool = pool;
+        emit FavoredPoolSet(msg.sender, pool);
     }
 
     /**
@@ -421,6 +490,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         s.proclamation = proclamation;
         slot0 = s;
         lastClaimTime = 0;
+        favoredPool = address(0); // each sheriff makes their own pick
 
         _settle(deposed, price, msg.value);
         emit OfficeTaken(msg.sender, deposed, price, proclamation);

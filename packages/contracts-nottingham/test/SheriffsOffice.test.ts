@@ -22,12 +22,19 @@ function weightedSeconds(x: number): bigint {
     return w + remainder * decayMultiplier(epoch);
 }
 
-// Emission is split 90% sheriff / 10% Coffers.
-function toCoffers(owed: bigint): bigint {
+// Emission splits 80% sheriff / 10% Coffers / 10% the sheriff's favored pool.
+// With no favored pool set, the directed slice falls through to the Coffers.
+function slice(owed: bigint): bigint {
     return (owed * 1000n) / 10000n;
 }
 function toSheriff(owed: bigint): bigint {
-    return owed - toCoffers(owed);
+    return owed - slice(owed) - slice(owed);
+}
+function toCoffers(owed: bigint): bigint {
+    return slice(owed) + slice(owed); // undirected
+}
+function toPool(owed: bigint): bigint {
+    return slice(owed);
 }
 
 // NOTT accrued between two offsets into a reign.

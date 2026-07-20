@@ -209,7 +209,7 @@ instead — the treasury would read empty while everything looked fine. There is
 asserting the levy arrives directly and `totalCredits` stays zero.
 
 Uniswap V2/V3/V4 and UniswapX are live on Robinhood Chain. Deployment addresses are
-**not hardcoded** � the docs surface them from a live registry rather than a static page,
+**not hardcoded** — the docs surface them from a live registry rather than a static page,
 and an unverified router address baked into a treasury is not something to guess at.
 Confirm them on-chain, then approve from the multisig.
 

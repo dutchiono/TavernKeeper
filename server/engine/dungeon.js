@@ -11,7 +11,7 @@
  *  8. XP + gold awards on completion
  */
 
-const { db } = require('../db');
+const db = require('../db');
 const { narrateAction, narrateRoomEntry, narrateOutcome } = require('../ai/dungeonmaster');
 
 const MIN_PARTY_SIZE    = 2;

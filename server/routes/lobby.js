@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
-const { db } = require('../db');
+const db = require('../db');
 const { startDungeonRun } = require('../engine/dungeon');
 const { requireAgentAuth } = require('../middleware/auth');
 

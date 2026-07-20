@@ -1,4 +1,4 @@
-const { db } = require('../db');
+const db = require('../db');
 
 function requireAgentAuth(req, res, next) {
   const key = req.headers['x-agent-key'];

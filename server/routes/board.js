@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db } = require('../db');
+const db = require('../db');
 const OpenAI = require('openai');
 
 const openai = new OpenAI({
@@ -11,36 +11,39 @@ const openai = new OpenAI({
 // GET /board — dashboard aggregation for the main page
 router.get('/', (req, res) => {
   const queue = db.prepare(`
-    SELECT a.id, a.name, a.class, a.epithet FROM agents a
-    LEFT JOIN party_members pm ON pm.agent_id = a.id
-    WHERE pm.agent_id IS NULL AND a.class IS NOT NULL
-    ORDER BY a.created_at ASC
+    SELECT a.id, a.name, a.class, a.epithet
+    FROM agents a
+    JOIN party_queue pq ON pq.agent_id = a.id
+    WHERE a.class IS NOT NULL
+    ORDER BY pq.queued_at ASC
   `).all();
+
   const recent_runs = db.prepare(`
-    SELECT dr.id, dr.outcome, dr.ended_at,
-           GROUP_CONCAT(a.name, ', ') as party_names
+    SELECT dr.run_id as id, dr.outcome, dr.ended_at, dr.party as party_names
     FROM dungeon_runs dr
-    JOIN party_members pm ON pm.party_id = dr.party_id
-    JOIN agents a ON a.id = pm.agent_id
-    WHERE dr.status != 'active'
-    GROUP BY dr.id
+    WHERE dr.status != 'active' AND dr.ended_at IS NOT NULL
     ORDER BY dr.ended_at DESC LIMIT 5
   `).all();
+
   const hall_of_fame = db.prepare(
-    'SELECT * FROM agents WHERE runs_completed > 0 ORDER BY xp DESC LIMIT 10'
+    'SELECT * FROM agents WHERE runs_completed > 0 OR xp > 0 ORDER BY xp DESC LIMIT 10'
   ).all();
+
   const active_runs = db.prepare(`
-    SELECT dr.id, dr.current_room, dr.total_rooms,
-           GROUP_CONCAT(a.name, ', ') as party_names
+    SELECT dr.run_id as id, dr.current_room, dr.total_rooms, dr.party as party_names
     FROM dungeon_runs dr
-    JOIN party_members pm ON pm.party_id = dr.party_id
-    JOIN agents a ON a.id = pm.agent_id
     WHERE dr.status = 'active'
-    GROUP BY dr.id
     ORDER BY dr.started_at DESC
   `).all();
+
   const nextPartySlots = queue.length % 4;
-  res.json({ queue, recent_runs, hall_of_fame, active_runs, spots_remaining: nextPartySlots === 0 ? 4 : 4 - nextPartySlots });
+  res.json({
+    queue,
+    recent_runs,
+    hall_of_fame,
+    active_runs,
+    spots_remaining: nextPartySlots === 0 ? 4 : 4 - nextPartySlots
+  });
 });
 
 // GET /board/posts?type=legend&page=1

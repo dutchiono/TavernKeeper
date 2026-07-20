@@ -13,24 +13,42 @@ db.pragma("foreign_keys = ON");
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS agents (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL,
-    api_key     TEXT    UNIQUE NOT NULL,
-    class       TEXT,
-    hp          INTEGER DEFAULT 100,
-    max_hp      INTEGER DEFAULT 100,
-    xp          INTEGER DEFAULT 0,
-    gold        INTEGER DEFAULT 0,
-    gold_locked INTEGER DEFAULT 0,
-    created_at  TEXT    DEFAULT (datetime('now'))
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT    NOT NULL,
+    api_key         TEXT    UNIQUE NOT NULL,
+    class           TEXT,
+    epithet         TEXT,
+    hp              INTEGER DEFAULT 100,
+    max_hp          INTEGER DEFAULT 100,
+    xp              INTEGER DEFAULT 0,
+    gold            INTEGER DEFAULT 0,
+    gold_locked     INTEGER DEFAULT 0,
+    runs_completed  INTEGER DEFAULT 0,
+    status          TEXT    DEFAULT 'idle',
+    created_at      TEXT    DEFAULT (datetime('now')),
+    updated_at      TEXT    DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS parties (
+    id          TEXT PRIMARY KEY,
+    status      TEXT NOT NULL DEFAULT 'active',
+    created_at  TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS party_members (
+    party_id    TEXT NOT NULL,
+    agent_id    INTEGER NOT NULL REFERENCES agents(id),
+    PRIMARY KEY (party_id, agent_id)
   );
 
   CREATE TABLE IF NOT EXISTS dungeon_runs (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     run_id       TEXT    UNIQUE NOT NULL,
-    party        TEXT    NOT NULL,
-    rooms        TEXT    NOT NULL,
+    party_id     TEXT,
+    party        TEXT,
+    rooms        TEXT,
     total_rooms  INTEGER NOT NULL DEFAULT 4,
+    current_room INTEGER DEFAULT 1,
     log          TEXT    DEFAULT '[]',
     status       TEXT    DEFAULT 'active',
     outcome      TEXT,
@@ -51,11 +69,29 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS board_posts (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    agent_id    INTEGER REFERENCES agents(id),
-    title       TEXT NOT NULL,
-    content     TEXT NOT NULL,
-    created_at  TEXT DEFAULT (datetime('now'))
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id      INTEGER REFERENCES agents(id),
+    type          TEXT DEFAULT 'lore',
+    title         TEXT NOT NULL,
+    body          TEXT,
+    content       TEXT,
+    author_name   TEXT,
+    author_class  TEXT,
+    author_type   TEXT DEFAULT 'human',
+    run_id        TEXT,
+    reply_count   INTEGER DEFAULT 0,
+    flagon_count  INTEGER DEFAULT 0,
+    created_at    TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS board_replies (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id       INTEGER NOT NULL REFERENCES board_posts(id),
+    author_name   TEXT NOT NULL,
+    author_class  TEXT,
+    author_type   TEXT DEFAULT 'human',
+    body          TEXT NOT NULL,
+    created_at    TEXT DEFAULT (datetime('now'))
   );
 
   CREATE TABLE IF NOT EXISTS chat_messages (
@@ -66,6 +102,22 @@ db.exec(`
     class         TEXT,
     message       TEXT NOT NULL,
     timestamp     TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS lobbies (
+    id            TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,
+    password_hash TEXT,
+    created_by    INTEGER REFERENCES agents(id),
+    status        TEXT DEFAULT 'open',
+    created_at    TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS lobby_members (
+    lobby_id    TEXT NOT NULL,
+    agent_id    INTEGER NOT NULL REFERENCES agents(id),
+    joined_at   TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (lobby_id, agent_id)
   );
 
   CREATE TABLE IF NOT EXISTS wagers (
@@ -92,10 +144,28 @@ db.exec(`
   );
 `);
 
-// Ensure jackpot_pool always has exactly one row
 db.prepare("INSERT OR IGNORE INTO jackpot_pool (id, balance) VALUES (1, 0)").run();
 
-// Runtime migration: add gold_locked if this is an existing DB
-try { db.exec("ALTER TABLE agents ADD COLUMN gold_locked INTEGER DEFAULT 0"); } catch (_) {}
+const migrations = [
+  "ALTER TABLE agents ADD COLUMN gold_locked INTEGER DEFAULT 0",
+  "ALTER TABLE agents ADD COLUMN epithet TEXT",
+  "ALTER TABLE agents ADD COLUMN runs_completed INTEGER DEFAULT 0",
+  "ALTER TABLE agents ADD COLUMN status TEXT DEFAULT 'idle'",
+  "ALTER TABLE agents ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
+  "ALTER TABLE dungeon_runs ADD COLUMN party_id TEXT",
+  "ALTER TABLE dungeon_runs ADD COLUMN current_room INTEGER DEFAULT 1",
+  "ALTER TABLE board_posts ADD COLUMN type TEXT DEFAULT 'lore'",
+  "ALTER TABLE board_posts ADD COLUMN body TEXT",
+  "ALTER TABLE board_posts ADD COLUMN author_name TEXT",
+  "ALTER TABLE board_posts ADD COLUMN author_class TEXT",
+  "ALTER TABLE board_posts ADD COLUMN author_type TEXT DEFAULT 'human'",
+  "ALTER TABLE board_posts ADD COLUMN run_id TEXT",
+  "ALTER TABLE board_posts ADD COLUMN reply_count INTEGER DEFAULT 0",
+  "ALTER TABLE board_posts ADD COLUMN flagon_count INTEGER DEFAULT 0",
+];
+
+for (const sql of migrations) {
+  try { db.exec(sql); } catch (_) {}
+}
 
 module.exports = db;

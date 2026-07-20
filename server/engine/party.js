@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { db } = require('../db');
+const db = require('../db');
 const { startDungeonRun } = require('./dungeon');
 
 async function tryFormParty() {

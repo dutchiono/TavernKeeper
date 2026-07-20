@@ -305,14 +305,45 @@ so splitting one pool into N bleeds the same total. What fragmentation multiplie
 So multi-pair is not an arbitrage problem, it is a **depth** problem. Below roughly $500k
 of liquidity it is strictly worse at any N, and no clever balancing fixes that.
 
-**What still stands:** the protocol must never LP a stock token itself.
-`MULTIPLIER_UPDATER_ROLE` rebases balances on splits and corporate actions, and a
-constant-product pool has no idea a split happened — arbitrageurs drain it at the stale
-ratio the moment it lands. That is a scheduled loss, not a tail risk.
+**Also wrong: "a stock split silently drains the pool."** This was my strongest objection
+and it does not hold. Reading the implementation, Stock Tokens **do not rebase**:
 
-### The design (FIX-11)
+```solidity
+function balanceOf(address account) public view virtual returns (uint256) {
+    return $._balances[account];      // no multiplier applied
+}
+```
 
-**Canonical pool + incentivised satellites.** The protocol LPs one NOTT/ETH pool and
+`balanceOf` and `totalSupply` return raw stored values. The `MULTIPLIER_UPDATER_ROLE`
+multiplier lives in `ERC20ScaledUIUpgradeable` and is **display-only** — it changes how
+amounts are presented, not what anyone holds. Pool reserves are never altered behind your
+back, so the drain scenario I described cannot happen.
+
+**What actually remains,** and it is manageable:
+
+- **Pausable.** `transfer` carries `onlyNotPaused`, and `paused()` folds in oracle status —
+  a stale oracle or closed market can freeze transfers.
+- **Discretionary blocklist.** Robinhood can block any address, including a pool.
+- **Depth.** The slippage table above.
+
+None of these destroy value; they make a position temporarily illiquid. That is survivable
+for a **reserve** and fatal only if the protocol's core tradability depends on it.
+
+### The design
+
+Stock exposure is available in two forms, and the invariant governing both is:
+**stock exposure must never be load-bearing.** The canonical NOTT/ETH pair has to keep
+working when a stock token is paused or an address is blocked.
+
+**1. Capped treasury reserves (`Coffers`).** The treasury may hold approved Stock Tokens
+as reserves, so "the sheriff picks hot stocks" is a real allocation rather than a gesture.
+`MAX_RESERVE_BPS = 3000` caps it at **30% of lifetime treasury ETH**; the other 70% stays
+in ETH backing the canonical pool. The ceiling counts already-committed capital in its
+base, so it is a cap on total allocation rather than a target that drifts as the balance
+moves. Purchases run through `fundReservePurchase()` — the multisig executes the actual
+trade, because an autonomous buyer is sandwichable on every fire.
+
+**2. Sheriff-directed pool incentives (FIX-11).** The protocol LPs one NOTT/ETH pool and
 nothing else. Stock pairs exist as third-party satellites whose LPs opted into rebase risk
 knowingly. Ordinary arbitrage against the canonical pool keeps every pair coherent — at no
 cost to the protocol, because the protocol is never the stale LP. **Balancing N pairs is

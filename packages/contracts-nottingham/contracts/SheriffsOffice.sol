@@ -14,13 +14,18 @@ interface INottToken {
  * @notice Buy the office, tax the town, hold it until someone outbids you.
  *
  * A descending Dutch auction over a one-hour epoch. Whoever holds the office is the
- * sole minter of $NOTT, accruing at `dps` per second until deposed. Taking the office
- * pays out the sitting sheriff and resets the asking price to 2x what was paid, which
- * then decays linearly back to the floor.
+ * sole minter of $NOTT, accruing until deposed. Taking the office pays out the sitting
+ * sheriff and resets the asking price to 2x what was paid, which then decays linearly
+ * back to the floor.
+ *
+ * Accrual is not flat: it halves each epoch a sheriff holds uncontested, resting at 10%
+ * of the base rate. Emission therefore tracks how contested the office is rather than
+ * how much time has passed, so a quiet market does not dilute holders.
  *
  * Descends from TavernKeeper's "The Office" (itself a donut-miner port), extracted away
- * from the ERC721 and retargeted at Robinhood Chain. Three deliberate divergences from
- * that lineage are marked FIX-1 / FIX-2 / FIX-3 below.
+ * from the ERC721 and retargeted at Robinhood Chain. Five deliberate divergences from
+ * that lineage are marked FIX-1 .. FIX-5 below: two are bug fixes (FIX-2, FIX-3), three
+ * are economic (FIX-1, FIX-4, FIX-5).
  */
 contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct Slot0 {
@@ -48,7 +53,11 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 public genesisTime;
 
     // --- Economics ---
-    uint256 public constant FEE = 2_000;      // 20% of every sale is taxed
+    // The levy: 30% of every sale, split 25% Coffers / 5% dev. The deposed sheriff
+    // keeps 70%. Raised from the original 20% (15/5) to fund protocol-owned liquidity;
+    // the deposed share stays high enough that buying in remains positive-sum.
+    uint256 public constant COFFERS_BPS = 2_500;
+    uint256 public constant DEV_BPS = 500;
     uint256 public constant DIVISOR = 10_000;
     uint256 public constant PRECISION = 1e18;
 
@@ -66,9 +75,33 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 public constant ABS_MAX_INIT_PRICE = type(uint192).max;
 
     // --- Emission ---
-    uint256 public constant INITIAL_DPS = 4 ether;   // 4 NOTT per second
-    uint256 public constant HALVING_PERIOD = 30 days;
+    /**
+     * @notice Base emission rate, before within-reign decay.
+     * @dev FIX-4: the original ran 4 NOTT/sec on a 30-day halving, which put 47.8% of all
+     *      supply in month one and 86% inside a quarter - a launch-window lottery whose
+     *      winners have nothing to do but sell into the pool. 0.5/sec on a 365-day halving
+     *      emits the same ~22M total but front-loads only 5.9% in month one and 53% in
+     *      year one.
+     */
+    uint256 public constant INITIAL_DPS = 0.5 ether;
+    uint256 public constant HALVING_PERIOD = 365 days;
     uint256 public constant TAIL_DPS = 0.01 ether;
+
+    // --- Within-reign decay ---
+    /**
+     * @dev FIX-5: emission was pure wall-clock, so an *uncontested* sheriff minted at full
+     *      rate indefinitely - one address that paid the floor once could drain the schedule
+     *      through any quiet stretch. Accrual now halves each epoch held without being
+     *      deposed, resting at DECAY_FLOOR. Supply growth becomes activity-gated rather than
+     *      time-gated: a dead market stops inflating, and the pressure is toward turnover,
+     *      which is what actually generates the fees that fund liquidity.
+     *
+     *      Multiplier by epoch held: 100% / 50% / 25% / 12.5% / then 10% forever.
+     *      A 30-day uncontested squat drops from ~1,296,000 NOTT to ~132,000.
+     */
+    uint256 public constant DECAY_EPOCHS = 4;         // halving steps before the floor
+    uint256 public constant DECAY_FLOOR = 1e17;       // 10% of base rate, perpetual
+    uint256 private constant DECAY_HEAD_SUM = 1.875e18; // sum of multipliers over epochs 0..3
 
     /// @dev Bounds the stored proclamation so reads stay cheap.
     uint256 public constant MAX_PROCLAMATION_BYTES = 256;
@@ -139,6 +172,44 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         return lastClaimTime > s.startTime ? lastClaimTime : s.startTime;
     }
 
+    /// @dev Accrual multiplier for the n-th epoch of a reign, 1e18-scaled.
+    function _decayMultiplier(uint256 epoch) private pure returns (uint256) {
+        if (epoch >= DECAY_EPOCHS) return DECAY_FLOOR;
+        return PRECISION >> epoch; // 1e18 / 5e17 / 2.5e17 / 1.25e17, all exact
+    }
+
+    /**
+     * @notice Decay-weighted seconds elapsed `x` seconds into a reign, 1e18-scaled.
+     * @dev The integral of the decay curve from 0 to x. Expressing accrual as a cumulative
+     *      function is what lets mid-reign claims compose correctly: any claim is simply
+     *      F(now) - F(last), so the decay is measured from the reign's start no matter how
+     *      often the sheriff draws. Closed-form past the floor, so a long reign costs no
+     *      more gas than a short one.
+     */
+    function _weightedSeconds(uint256 x) private pure returns (uint256 w) {
+        uint256 epoch = x / EPOCH_PERIOD;
+        uint256 remainder = x % EPOCH_PERIOD;
+
+        if (epoch >= DECAY_EPOCHS) {
+            w = EPOCH_PERIOD * DECAY_HEAD_SUM;
+            w += (epoch - DECAY_EPOCHS) * EPOCH_PERIOD * DECAY_FLOOR;
+        } else {
+            for (uint256 i = 0; i < epoch; ++i) {
+                w += EPOCH_PERIOD * _decayMultiplier(i);
+            }
+        }
+
+        w += remainder * _decayMultiplier(epoch);
+    }
+
+    /// @notice NOTT owed to the sitting sheriff for the unclaimed part of the current reign.
+    function _accrued(Slot0 memory s) private view returns (uint256) {
+        uint256 reignStart = s.startTime;
+        uint256 from = _accrualStart(s) - reignStart;
+        uint256 to = block.timestamp - reignStart;
+        return ((_weightedSeconds(to) - _weightedSeconds(from)) * s.dps) / PRECISION;
+    }
+
     function _dpsAt(uint256 time) private view returns (uint256 dps) {
         uint256 halvings = time <= genesisTime ? 0 : (time - genesisTime) / HALVING_PERIOD;
         // Past 255 halvings the shift is undefined; emission is long since at the tail.
@@ -184,7 +255,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         if (msg.value < price) revert InsufficientPayment();
 
         // Settle the outgoing sheriff's mining before the seat changes hands.
-        uint256 owed = (block.timestamp - _accrualStart(s)) * s.dps;
+        uint256 owed = _accrued(s);
         if (owed > 0 && s.sheriff != address(0)) {
             INottToken(token).mint(s.sheriff, owed);
             emit RewardsClaimed(s.sheriff, owed);
@@ -220,10 +291,9 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 excess = paid - price;
 
         if (price > 0) {
-            uint256 tax = (price * FEE) / DIVISOR;
-            uint256 toDeposed = price - tax;
-            uint256 devCut = tax / 4;
-            uint256 coffers = tax - devCut;
+            uint256 devCut = (price * DEV_BPS) / DIVISOR;
+            uint256 coffers = (price * COFFERS_BPS) / DIVISOR;
+            uint256 toDeposed = price - devCut - coffers;
 
             _send(owner(), devCut);
             _send(treasury, coffers);
@@ -253,7 +323,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         Slot0 memory s = slot0;
         if (msg.sender != s.sheriff) revert NotSheriff();
 
-        uint256 owed = (block.timestamp - _accrualStart(s)) * s.dps;
+        uint256 owed = _accrued(s);
         if (owed == 0) revert NothingAccrued();
 
         lastClaimTime = uint40(block.timestamp);
@@ -265,7 +335,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     function pendingRewards() external view returns (uint256) {
         Slot0 memory s = slot0;
-        return (block.timestamp - _accrualStart(s)) * s.dps;
+        return _accrued(s);
     }
 
     function getPrice() external view returns (uint256) {
@@ -299,7 +369,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
             s.sheriff,
             _priceOf(s),
             s.dps,
-            (block.timestamp - _accrualStart(s)) * s.dps,
+            _accrued(s),
             s.epochId,
             s.startTime,
             s.proclamation

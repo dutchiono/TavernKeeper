@@ -168,3 +168,6 @@ pnpm-debug.log*
 # Heavy Folders (Cleaned up)
 m00n-cabal/
 donut demos/
+packages/contracts-nottingham/artifacts/
+packages/contracts-nottingham/cache/
+packages/contracts-nottingham/typechain-types/

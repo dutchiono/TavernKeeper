@@ -70,11 +70,11 @@ async function pricePaid(office: any, tx: any): Promise<bigint> {
 
 describe("SheriffsOffice", () => {
     describe("deployment", () => {
-        it("opens at the floor price with the deployer holding office", async () => {
-            const { office, owner } = await deploy();
+        it("opens vacant at the floor price", async () => {
+            const { office } = await deploy();
             const s = await office.getSlot0();
 
-            expect(s.sheriff).to.equal(owner.address);
+            expect(s.sheriff).to.equal(ethers.ZeroAddress);
             expect(s.epochId).to.equal(1);
             expect(await office.getPrice()).to.equal(MIN_PRICE);
             expect(await office.getDps()).to.equal(INITIAL_DPS);
@@ -240,6 +240,101 @@ describe("SheriffsOffice", () => {
             // Bob accrues from his own start, not from Alice's stale lastClaimTime.
             expect(await office.pendingRewards()).to.equal(accrued(0, 600));
             expect(await token.balanceOf(bob.address)).to.equal(0n);
+        });
+    });
+
+    describe("unpayable sheriff (FIX-6)", () => {
+        async function seizeWithHostile(office: any, alice: any) {
+            const Hostile = await ethers.getContractFactory("HostileReceiver");
+            const hostile = await Hostile.deploy();
+            await hostile.waitForDeployment();
+
+            // Funded through the payable call itself: receive() rejects by design.
+            await hostile
+                .connect(alice)
+                .seize(await office.getAddress(), MIN_PRICE, { value: MIN_PRICE });
+            return hostile;
+        }
+
+        it("cannot brick the office by refusing payment", async () => {
+            const { office, alice, bob } = await deploy();
+            const hostile = await seizeWithHostile(office, alice);
+
+            expect((await office.getSlot0()).sheriff).to.equal(await hostile.getAddress());
+
+            // The griefer rejects ETH, but deposing them must still succeed.
+            await expect(take(office, bob, ethers.parseEther("1"))).to.not.be.reverted;
+            expect((await office.getSlot0()).sheriff).to.equal(bob.address);
+        });
+
+        it("escrows the undeliverable payout instead of dropping it", async () => {
+            const { office, alice, bob } = await deploy();
+            const hostile = await seizeWithHostile(office, alice);
+            const addr = await hostile.getAddress();
+
+            const tx = await take(office, bob, ethers.parseEther("1"));
+            const price = await pricePaid(office, tx);
+            const owed = price - (price * 500n) / 10000n - (price * 2500n) / 10000n;
+
+            expect(await office.credits(addr)).to.equal(owed);
+            expect(await office.totalCredits()).to.equal(owed);
+
+            // Once it stops refusing, it can collect what it was owed.
+            await hostile.setAccept(true);
+            const before = await ethers.provider.getBalance(addr);
+            await hostile.collect(await office.getAddress());
+
+            expect(await ethers.provider.getBalance(addr)).to.equal(before + owed);
+            expect(await office.credits(addr)).to.equal(0);
+            expect(await office.totalCredits()).to.equal(0);
+        });
+
+        it("keeps escrowed credits out of the owner sweep", async () => {
+            const { office, owner, alice, bob } = await deploy();
+            const hostile = await seizeWithHostile(office, alice);
+
+            await take(office, bob, ethers.parseEther("1"));
+            const owed = await office.credits(await hostile.getAddress());
+            expect(owed).to.be.greaterThan(0n);
+
+            // The contract holds exactly the escrow, so there is nothing free to sweep.
+            expect(await ethers.provider.getBalance(await office.getAddress())).to.equal(owed);
+            await expect(office.connect(owner).withdrawFunds()).to.be.revertedWith(
+                "Office: nothing to withdraw"
+            );
+        });
+    });
+
+    describe("vacant genesis (FIX-7)", () => {
+        it("starts with no sheriff, so the deployer accrues nothing", async () => {
+            const { office } = await deploy();
+
+            expect((await office.getSlot0()).sheriff).to.equal(ethers.ZeroAddress);
+
+            await time.increase(7 * 24 * 3600);
+            expect(await office.pendingRewards()).to.equal(0n);
+        });
+
+        it("routes the vacant office's share to the Coffers", async () => {
+            const { office, alice, treasury } = await deploy();
+            const before = await ethers.provider.getBalance(treasury.address);
+
+            const tx = await take(office, alice, MIN_PRICE);
+            const price = await pricePaid(office, tx);
+
+            // No deposed sheriff exists, so Coffers take their 25% plus the unclaimed 70%.
+            const devCut = (price * 500n) / 10000n;
+            expect(await ethers.provider.getBalance(treasury.address)).to.equal(
+                before + (price - devCut)
+            );
+        });
+
+        it("mints nothing until the office is first bought", async () => {
+            const { office, token, alice } = await deploy();
+            await time.increase(30 * 24 * 3600);
+
+            await take(office, alice, MIN_PRICE);
+            expect(await token.totalSupply()).to.equal(0n);
         });
     });
 

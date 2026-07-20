@@ -80,7 +80,13 @@ launch window, with nothing to do but sell into the pool.
 
 ## Divergences from the Monad original
 
-Five deliberate changes, marked `FIX-1..5` in the source. Two are bug fixes.
+Seven deliberate changes, marked `FIX-1..7` in the source.
+
+| | Fix |
+|---|---|
+| Correctness | FIX-2 double-mint · FIX-3 CEI · **FIX-6 payout griefing brick** |
+| Economic | FIX-1 denomination · FIX-4 curve · FIX-5 activity-gated emission |
+| Fairness | FIX-7 no deployer premine |
 
 **FIX-1 — price denomination.** `MIN_INIT_PRICE = 1 ether` meant 1 MON. Robinhood Chain's
 native currency is ETH, so the same literal would put the floor in the thousands of
@@ -102,6 +108,26 @@ calls; safe only via the reentrancy guard. State now advances first.
 
 **FIX-5 — within-reign decay.** Emission was pure wall-clock, so an uncontested sheriff
 minted at full rate indefinitely.
+
+**FIX-6 — payout griefing brick (bug, critical).** Every payout was a `require`-checked
+push. A sheriff that cannot receive ETH — a contract with no `receive()`, or one that
+reverts deliberately — made `takeOffice()` revert forever at the deposed-sheriff
+transfer. **The office would be permanently bricked**: nobody could ever depose the
+griefer, who kept accruing at the floor rate indefinitely. Cost of the attack: one
+floor-priced takeover, about 35 cents, irreversible.
+
+Failed payouts are now escrowed to `credits[]` and claimed via `withdrawCredits()`,
+and the send gas is capped at a 30k stipend so a hostile `receive()` cannot burn the
+caller's gas either. `withdrawFunds()` subtracts `totalCredits` so the owner sweep can
+never take escrowed funds. Proven by a `HostileReceiver` test contract that refuses ETH
+and still gets deposed.
+
+> The Monad original has the same shape (`require(successMiner, "Miner transfer failed")`).
+
+**FIX-7 — no deployer premine.** The original seated the deployer as opening sheriff, who
+then accrued from deployment until the first takeover — a stealth premine proportional to
+how long launch took. The office now starts **vacant**: nothing accrues until someone
+actually buys it, and the vacant office's 70% share routes to the Coffers.
 
 Also: `NottToken.mint()` **clamps** to `MAX_SUPPLY` rather than reverting. `KeepTokenV2`
 reverts, which would brick `takeOffice()` permanently at the cap — freezing the office

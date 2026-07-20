@@ -23,9 +23,12 @@ interface INottToken {
  * how much time has passed, so a quiet market does not dilute holders.
  *
  * Descends from TavernKeeper's "The Office" (itself a donut-miner port), extracted away
- * from the ERC721 and retargeted at Robinhood Chain. Five deliberate divergences from
- * that lineage are marked FIX-1 .. FIX-5 below: two are bug fixes (FIX-2, FIX-3), three
- * are economic (FIX-1, FIX-4, FIX-5).
+ * from the ERC721 and retargeted at Robinhood Chain. Seven deliberate divergences from
+ * that lineage are marked FIX-1 .. FIX-7 below:
+ *
+ *   Correctness  FIX-2 (double-mint), FIX-3 (CEI), FIX-6 (payout griefing brick)
+ *   Economic     FIX-1 (denomination), FIX-4 (curve), FIX-5 (activity-gated emission)
+ *   Fairness     FIX-7 (no deployer premine)
  */
 contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct Slot0 {
@@ -51,6 +54,22 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Deployment timestamp; halvings are measured from here.
     uint256 public genesisTime;
+
+    /**
+     * @notice Payouts that could not be delivered, withdrawable by their owner.
+     * @dev FIX-6: every payout used to be a `require`-checked push. A sheriff that cannot
+     *      receive ETH - a contract with no receive(), or one that reverts on purpose -
+     *      made takeOffice() revert forever at the deposed-sheriff transfer, permanently
+     *      bricking the office and leaving the griefer accruing at the floor rate with no
+     *      way to depose them. Cost of the attack: one floor-priced takeover.
+     *
+     *      Failed sends are now escrowed here instead of reverting, and the gas stipend is
+     *      capped so a receive() hook cannot burn the caller's gas either.
+     */
+    mapping(address => uint256) public credits;
+
+    /// @notice Sum of all outstanding credits, so the owner sweep cannot touch them.
+    uint256 public totalCredits;
 
     // --- Economics ---
     // The levy: 30% of every sale, split 25% Coffers / 5% dev. The deposed sheriff
@@ -103,6 +122,10 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 public constant DECAY_FLOOR = 1e17;       // 10% of base rate, perpetual
     uint256 private constant DECAY_HEAD_SUM = 1.875e18; // sum of multipliers over epochs 0..3
 
+    /// @dev Gas forwarded to a payout. Enough for a normal receive(), not enough to
+    ///      let a hostile one burn the caller's gas.
+    uint256 private constant SEND_GAS_STIPEND = 30_000;
+
     /// @dev Bounds the stored proclamation so reads stay cheap.
     uint256 public constant MAX_PROCLAMATION_BYTES = 256;
 
@@ -112,6 +135,8 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     event DeposedPaid(address indexed deposed, uint256 amount);
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
     event FundsWithdrawn(address indexed to, uint256 amount);
+    event PayoutCredited(address indexed to, uint256 amount);
+    event CreditsWithdrawn(address indexed to, uint256 amount);
 
     error Reentrancy();
     error Expired();
@@ -151,7 +176,11 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         slot0.initPrice = uint192(MIN_INIT_PRICE);
         slot0.startTime = uint40(block.timestamp);
         slot0.dps = INITIAL_DPS;
-        slot0.sheriff = msg.sender;
+        // FIX-7: the original seated the deployer as the opening sheriff, who then accrued
+        // from deployment until the first takeover - a stealth premine proportional to how
+        // long launch took. The office starts vacant instead; nothing accrues until someone
+        // actually buys it.
+        slot0.sheriff = address(0);
         lastClaimTime = 0;
     }
 
@@ -204,6 +233,7 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice NOTT owed to the sitting sheriff for the unclaimed part of the current reign.
     function _accrued(Slot0 memory s) private view returns (uint256) {
+        if (s.sheriff == address(0)) return 0; // vacant office accrues to nobody
         uint256 reignStart = s.startTime;
         uint256 from = _accrualStart(s) - reignStart;
         uint256 to = block.timestamp - reignStart;
@@ -302,16 +332,40 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
             if (deposed != address(0)) {
                 _send(deposed, toDeposed);
                 emit DeposedPaid(deposed, toDeposed);
+            } else {
+                // Office was vacant: nobody to depose, so the whole share goes to the Coffers.
+                _send(treasury, toDeposed);
+                emit TreasuryPaid(treasury, toDeposed);
             }
         }
 
         if (excess > 0) _send(msg.sender, excess);
     }
 
+    /// @dev Never reverts. A failed payout is escrowed rather than blocking the caller.
     function _send(address to, uint256 amount) private {
         if (amount == 0 || to == address(0)) return;
-        (bool ok, ) = payable(to).call{value: amount}("");
+
+        (bool ok, ) = payable(to).call{value: amount, gas: SEND_GAS_STIPEND}("");
+        if (!ok) {
+            credits[to] += amount;
+            totalCredits += amount;
+            emit PayoutCredited(to, amount);
+        }
+    }
+
+    /// @notice Withdraw a payout that could not be delivered at the time it was owed.
+    function withdrawCredits() external nonReentrant {
+        uint256 amount = credits[msg.sender];
+        if (amount == 0) revert NothingAccrued();
+
+        credits[msg.sender] = 0;
+        totalCredits -= amount;
+        // Full gas here: the recipient asked for this, so a costly fallback is their problem.
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
         if (!ok) revert TransferFailed();
+
+        emit CreditsWithdrawn(msg.sender, amount);
     }
 
     /**
@@ -386,7 +440,8 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Sweeps any ETH stranded by a failed payout path.
     function withdrawFunds() external onlyOwner {
-        uint256 balance = address(this).balance;
+        // Escrowed payouts belong to their owners, not the treasury.
+        uint256 balance = address(this).balance - totalCredits;
         require(balance > 0, "Office: nothing to withdraw");
 
         address to = treasury != address(0) ? treasury : owner();

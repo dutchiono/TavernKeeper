@@ -97,22 +97,52 @@ describe("SheriffsOffice", () => {
     });
 
     describe("dutch auction", () => {
-        it("decays linearly to the floor across the epoch", async () => {
-            const { office, alice } = await deploy();
+        it("decays linearly toward the floor across the epoch", async () => {
+            const { office, alice, bob } = await deploy();
 
-            // Seize at the floor, which resets the ask to 2x.
-            await take(office, alice, MIN_PRICE);
-            const start = await time.latest();
-            const initPrice = MIN_PRICE * 2n;
-            expect(await office.getPrice()).to.be.closeTo(initPrice, initPrice / 100n);
+            // Push the ask well above the floor first. At 1.3x a single takeover from the
+            // floor lands only 30% above it, so the price would clamp within ~14 minutes
+            // and there would be no decay left to measure. Five rapid takeovers give a
+            // real spread to observe.
+            let last = await time.latest();
+            for (let i = 0; i < 5; i++) {
+                last += 1;
+                await time.setNextBlockTimestamp(last);
+                await take(office, i % 2 === 0 ? alice : bob, ethers.parseEther("1"));
+            }
 
-            // Halfway through the epoch the ask is ~half of init.
+            const s = await office.getSlot0();
+            const initPrice = s.initPrice;
+            const start = Number(s.startTime);
+            expect(initPrice).to.be.greaterThan(MIN_PRICE * 3n);
+
+            // A quarter in, the ask has shed a quarter of its starting value.
+            await time.setNextBlockTimestamp(start + EPOCH / 4);
+            await ethers.provider.send("evm_mine", []);
+            expect(await office.getPrice()).to.be.closeTo(
+                (initPrice * 3n) / 4n,
+                initPrice / 100n
+            );
+
+            // Halfway.
             await time.setNextBlockTimestamp(start + EPOCH / 2);
             await ethers.provider.send("evm_mine", []);
             expect(await office.getPrice()).to.be.closeTo(initPrice / 2n, initPrice / 100n);
 
             // Past the epoch it rests at the floor.
             await time.setNextBlockTimestamp(start + EPOCH + 1);
+            await ethers.provider.send("evm_mine", []);
+            expect(await office.getPrice()).to.equal(MIN_PRICE);
+        });
+
+        it("clamps to the floor rather than going below it", async () => {
+            const { office, alice } = await deploy();
+
+            await take(office, alice, MIN_PRICE);
+            const start = await time.latest();
+
+            // 1.3x above the floor decays into the clamp roughly 14 minutes in.
+            await time.setNextBlockTimestamp(start + 20 * 60);
             await ethers.provider.send("evm_mine", []);
             expect(await office.getPrice()).to.equal(MIN_PRICE);
         });
@@ -345,6 +375,52 @@ describe("SheriffsOffice", () => {
 
             await take(office, alice, MIN_PRICE);
             expect(await token.totalSupply()).to.equal(0n);
+        });
+    });
+
+    describe("price multiplier invariant (FIX-9)", () => {
+        // The deposed sheriff receives MULTIPLIER * (1 - t/EPOCH) of what was paid. If
+        // MULTIPLIER * deposedShare >= 1, an instant flip returns more ETH than it cost
+        // and the taker keeps the emission for free - risk-free profit funded by the next
+        // buyer. Everyone races to flip, turnover collapses, price runs away. This is the
+        // balance failure the 2x original had.
+        it("makes holding the office always cost something", async () => {
+            const { office } = await deploy();
+
+            const multiplier = await office.NEW_PRICE_MULTIPLIER();
+            const divisor = await office.DIVISOR();
+            const deposedShare =
+                divisor - (await office.COFFERS_BPS()) - (await office.DEV_BPS());
+
+            expect((multiplier * deposedShare) / divisor).to.be.lessThan(ONE);
+        });
+
+        it("returns less than was paid on an instant flip", async () => {
+            const { office, alice, bob } = await deploy();
+
+            await take(office, alice, MIN_PRICE);
+
+            const before = await ethers.provider.getBalance(alice.address);
+            await take(office, bob, ethers.parseEther("1"));
+            const rebate = (await ethers.provider.getBalance(alice.address)) - before;
+
+            // Deposed almost immediately: the best possible case, and still a net cost.
+            expect(rebate).to.be.lessThan(MIN_PRICE);
+            expect(rebate).to.be.greaterThan((MIN_PRICE * 80n) / 100n); // but not punitive
+        });
+
+        it("keeps a hot market affordable", async () => {
+            const { office, alice, bob } = await deploy();
+
+            // 20 takeovers ~5 minutes apart. At 2x this reached ~18 ETH.
+            let last = await time.latest();
+            for (let i = 0; i < 20; i++) {
+                last += 300;
+                await time.setNextBlockTimestamp(last);
+                await take(office, i % 2 === 0 ? alice : bob, ethers.parseEther("2"));
+            }
+
+            expect(await office.getPrice()).to.be.lessThan(ethers.parseEther("0.01"));
         });
     });
 

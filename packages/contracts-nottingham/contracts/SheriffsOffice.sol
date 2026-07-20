@@ -85,7 +85,26 @@ contract SheriffsOffice is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 public constant PRECISION = 1e18;
 
     uint256 public constant EPOCH_PERIOD = 1 hours;
-    uint256 public constant NEW_PRICE_MULTIPLIER = 2e18; // asking price resets to 2x paid
+
+    /**
+     * @notice How far the asking price resets above what was just paid.
+     * @dev FIX-9: this was 2e18, and it is the balance bug the Monad deployment actually
+     *      suffered from. The deposed sheriff receives `MULTIPLIER * (1 - t/EPOCH)` of the
+     *      price paid. At 2x, an instant flip returned 2 * 70% = 140% of cost - the taker
+     *      got back MORE ETH than they paid AND kept the emission. Cost per NOTT went
+     *      negative for any hold under ~15 minutes.
+     *
+     *      That is risk-free profit funded by the next buyer, so everyone races to flip.
+     *      Turnover collapses below the escalation threshold and the price runs away: at
+     *      2x, a takeover every 5 minutes reaches ~7,900 ETH within two and a half hours.
+     *      A successful launch prices itself out, crashes back to the floor, repeats.
+     *
+     *      INVARIANT: MULTIPLIER * deposedShare < 1, i.e. holding the office must always
+     *      cost something. deposedShare = 70%, so the multiplier must stay below 1/0.7
+     *      (~1.428). 1.3x leaves margin: an instant flip returns 91%, a 9% cost for
+     *      however much emission was earned. Enforced by a test.
+     */
+    uint256 public constant NEW_PRICE_MULTIPLIER = 1.3e18;
 
     /**
      * @notice Auction floor.

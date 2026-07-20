@@ -38,7 +38,7 @@ theme is the accurate name for what the contract already did.
 |---|---|
 | Epoch | 1 hour, linear price decay to floor |
 | Floor price | `0.0001 ETH` |
-| Price reset | 2× last paid |
+| Price reset | **1.3× last paid** |
 | Sale split | **70% deposed sheriff / 25% Coffers / 5% dev** |
 | Emission split | **90% sheriff / 10% Coffers** |
 | Base emission | **0.5 NOTT/sec, halving every 365 days** |
@@ -83,13 +83,17 @@ launch window, with nothing to do but sell into the pool.
 
 ## Divergences from the Monad original
 
-Eight deliberate changes, marked `FIX-1..8` in the source.
+Nine deliberate changes, marked `FIX-1..9` in the source.
 
 | | Fix |
 |---|---|
 | Correctness | FIX-2 double-mint · FIX-3 CEI · **FIX-6 payout griefing brick** |
-| Economic | FIX-1 denomination · FIX-4 curve · FIX-5 activity-gated emission · FIX-8 emission split |
+| Economic | FIX-1 denomination · FIX-4 curve · FIX-5 activity-gated emission · FIX-8 emission split · **FIX-9 price multiplier** |
 | Fairness | FIX-7 no deployer premine |
+
+**FIX-9 is the one that matters most.** The Monad deployment wasn't exploited by a clever
+attacker — it was just unbalanced, and this is the parameter that unbalanced it. See
+[Balance](#balance).
 
 **FIX-1 — price denomination.** `MIN_INIT_PRICE = 1 ether` meant 1 MON. Robinhood Chain's
 native currency is ETH, so the same literal would put the floor in the thousands of
@@ -143,6 +147,62 @@ trust a genesis allocation.
 Also: `NottToken.mint()` **clamps** to `MAX_SUPPLY` rather than reverting. `KeepTokenV2`
 reverts, which would brick `takeOffice()` permanently at the cap — freezing the office
 with no way to depose the sitting sheriff.
+
+## Balance
+
+The original's problem was never an exploit. It was that `NEW_PRICE_MULTIPLIER = 2x`
+made flipping free money.
+
+The deposed sheriff receives `MULTIPLIER × (1 − t/EPOCH)` of the price paid. At 2×, an
+instant flip returned `2 × 70% = 140%` of cost. **The taker got back more ETH than they
+paid and kept the emission.** Cost per NOTT was negative for any hold under ~15 minutes:
+
+| Held | Cost per NOTT @ 2.0× | @ 1.3× |
+|---|---|---|
+| 1 min | **−0.0140** | 0.0039 |
+| 5 min | **−0.0021** | 0.0012 |
+| 15 min | **−0.0001** | 0.0008 |
+| 60 min | 0.0006 | 0.0006 |
+
+*(in units of the price paid; negative = the game pays you to play)*
+
+That's risk-free profit funded by the next buyer, so rational players race to flip.
+Turnover collapses below the escalation threshold and the price runs away — the spiral
+isn't a side effect, it's the arbitrage working.
+
+### The runaway
+
+Price grows whenever `MULTIPLIER × (1 − t/EPOCH) > 1`, so at 2× **any turnover faster
+than 30 minutes escalates without bound**:
+
+| 5-min turnover for… | 1.3× | 2.0× |
+|---|---|---|
+| 50 min | $2 | $150 |
+| 100 min | $12 | $64,000 |
+| 150 min | $67 | **$27,625,560** |
+
+The system was bistable: escalate until nobody can afford it, crash back to the floor,
+repeat. A *successful* launch destroyed itself within hours, and the office was
+unaffordable at exactly the moments people wanted it.
+
+### The invariant
+
+> **`MULTIPLIER × deposedShare < 1`** — holding the office must always cost something.
+
+With a 70% deposed share the multiplier must stay below `1/0.7 ≈ 1.428`. **1.3×** leaves
+margin: an instant flip returns 91%, so the taker pays 9% for whatever emission they
+earned, and the cost per NOTT stays positive and roughly flat (3× spread from 5 minutes
+to 2 hours) — no single hold-time dominates, so every strategy stays viable.
+
+There is a test asserting the invariant directly against the deployed constants, so it
+cannot silently break if the levy is ever retuned.
+
+### Consequence worth knowing
+
+At 1.3× the ask clamps to the floor about 14 minutes into an epoch rather than gliding
+down for the full hour. That's correct — at the floor there is nothing left to
+discover — and the decay window widens automatically when the price is elevated, which
+is when the auction actually matters.
 
 ## Robinhood Stock Tokens — findings
 
